@@ -1,0 +1,3 @@
+Requirements for the Project:
+    - apt-get install python-dev libmysqlclient-dev
+    - pip install MySQL-python
