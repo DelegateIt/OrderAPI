@@ -43,4 +43,4 @@ if __name__ == "__main__":
     session.add(customer)
     session.commit()
 
-    print session.query(Customer).order_by(id)[0]
+    print session.query(Customer).order_by("id")[0]
