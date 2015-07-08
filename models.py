@@ -11,9 +11,9 @@ class Customer(Base):
 
     # TODO: add nullable=False
     id = Column(Integer, primary_key=True)
-    first_name = Column(String)
-    last_name  = Column(String)
-    phone_number = Column(String) # TODO: use python phone numbers parsing library
+    first_name = Column(String(50), nullable=True)
+    last_name  = Column(String(50), nullable=True)
+    phone_number = Column(String(50), nullable=True) # TODO: use python phone numbers parsing library
     messages = relationship("Message", order_by="Message.id", backref="customer",
                                     cascade="all, delete, delete-orphan")
 
@@ -26,7 +26,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True)
-    content = Column(String)
+    content = Column(String(50), nullable=True)
     customer_id = Column(Integer, ForeignKey('customers.id'))
 
     def __repr__(self):
@@ -35,6 +35,7 @@ class Message(Base):
 
 
 if __name__ == "__main__":
+    Base.metadata.create_all(engine)
     session = Session()
 
     customer = Customer(first_name="George", last_name="Farcasiu", phone_number="8176808185")
@@ -43,4 +44,4 @@ if __name__ == "__main__":
     session.add(customer)
     session.commit()
 
-    print session.query(Customer).order_by(id)[0]
+    print session.query(Customer).order_by("id")[0]
