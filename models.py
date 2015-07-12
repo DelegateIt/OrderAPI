@@ -2,9 +2,18 @@ from sqlalchemy import Column, Integer, String, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
+##############################
+# Global vars, consts, extra #
+##############################
+
 Base = declarative_base()
+
+# Create the engine and add all tables to it
 engine = create_engine("mysql+mysqldb://@localhost/DelegateItDB")
+Base.metdata.create_all(engine)
+
 Session = sessionmaker(bind=engine)
+
 
 class Customer(Base):
     __tablename__ = "customers"
@@ -35,7 +44,6 @@ class Message(Base):
 
 
 if __name__ == "__main__":
-    Base.metadata.create_all(engine)
     session = Session()
 
     customer = Customer(first_name="George", last_name="Farcasiu", phone_number="8176808185")
