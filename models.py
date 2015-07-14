@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 Base = declarative_base()
 
 # Create the engine and add all tables to it
-engine = create_engine("mysql+mysqldb://root:default@localhost/DelegateItDB")
+engine = create_engine("mysql+mysqldb://root@localhost/DelegateItDB")
 
 Session = sessionmaker(bind=engine)
 

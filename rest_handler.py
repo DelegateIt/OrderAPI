@@ -1,4 +1,6 @@
 from flask import Flask
+import time
+import json
 
 import models
 from common import Exceptions
@@ -13,21 +15,22 @@ def index():
 def send_message(phone_number, content):
     session = models.Session()
 
-    customer_query_result = session.query(Customer)
-    if len(customer_query_result) == 0:
-        return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
+    customer_query_result = session.query(models.Customer)
+    #if len(customer_query_result) == 0:
+        #return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
 
     cur_time = int(round(time.time() * 1000))
 
     message = models.Message(content=content)
-    customer_query_result[0].messages.append(message)
+    customer = customer_query_result[0]
+    customer.messages.append(message)
 
     session.commit()
 
     return json.dumps({
             "phone_number": phone_number,
-		    "message": content,
-		    "timestamp": cur_time
+            "message": content,
+	    "timestamp": cur_time
         })
 
 @app.route('/get_messages/<phone_number>')
