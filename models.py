@@ -9,8 +9,7 @@ from sqlalchemy.orm import relationship, backref, sessionmaker
 Base = declarative_base()
 
 # Create the engine and add all tables to it
-engine = create_engine("mysql+mysqldb://@localhost/DelegateItDB")
-Base.metdata.create_all(engine)
+engine = create_engine("mysql+mysqldb://root:default@localhost/DelegateItDB")
 
 Session = sessionmaker(bind=engine)
 
@@ -35,15 +34,15 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True)
-    content = Column(String(50), nullable=True)
+    content = Column(String(1000), nullable=True)
     customer_id = Column(Integer, ForeignKey('customers.id'))
 
     def __repr__(self):
         return "<Message(content='%s', customer_id='%s')>" % (
             self.content, self.customer_id)
 
-
 if __name__ == "__main__":
+    Base.metadata.create_all(engine)
     session = Session()
 
     customer = Customer(first_name="George", last_name="Farcasiu", phone_number="8176808185")
@@ -52,4 +51,5 @@ if __name__ == "__main__":
     session.add(customer)
     session.commit()
 
-    print session.query(Customer).order_by("id")[0]
+    for row in session.query(Customer).filter_by(phone_number="8176808185"):
+        print row

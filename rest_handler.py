@@ -1,5 +1,8 @@
 from flask import Flask
 
+import models
+from common import Exceptions
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -8,21 +11,24 @@ def index():
 
 @app.route('/send_message/<phone_number>/<content>')
 def send_message(phone_number, content):
-    if phone_number not in message_store:
-        message_store[phone_number] = {"messages": list()}
+    session = models.Session()
+
+    customer_query_result = session.query(Customer)
+    if len(customer_query_result) == 0:
+        return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
 
     cur_time = int(round(time.time() * 1000))
 
-    #message = Message(content)
+    message = models.Message(content=content)
+    customer_query_result[0].messages.append(message)
 
-    message_store[phone_number]["messages"].append({"content": content, "timestamp": cur_time})
-    message_store.save_data()
+    session.commit()
 
-    return json.dumps(
-		{"phone_number": phone_number,
-		 "message": content,
-		 "timestamp": cur_time
-		})
+    return json.dumps({
+            "phone_number": phone_number,
+		    "message": content,
+		    "timestamp": cur_time
+        })
 
 @app.route('/get_messages/<phone_number>')
 def get_messages(phone_number):
