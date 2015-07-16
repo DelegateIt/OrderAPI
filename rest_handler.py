@@ -7,6 +7,7 @@ import models
 from common import Exceptions
 
 app = Flask(__name__)
+Base.metadata.create_all(engine) # Update/Add all tables
 
 VALID_PLATFORMS = ["sms"]
 
@@ -120,4 +121,4 @@ def verify_dict_contains_keys(dic, keys):
     return True
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", debug=True)
+    app.run(host="0.0.0.0", port="8080", debug=True)
