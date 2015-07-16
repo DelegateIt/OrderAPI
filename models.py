@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, String, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
 
+import json
+
 ##############################
 # Global vars, consts, extra #
 ##############################
@@ -29,18 +31,24 @@ class Customer(Base):
         return "<Customer(first_name='%s', last_name='%s', phone_number='%s', messages=[%s])>" % (
             self.first_name, self.last_name, self.phone_number, ", ".join([str(message) for message in self.messages]))
 
+    def to_json(self):
+        return json.dumps({"first_name": self.first_name, "last_name": self.last_name, "phone_number": self.phone_number})
+
 
 class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True)
-    content = Column(String(1000), nullable=True)
+    content = Column(String(1000), nullable=False)
     customer_id = Column(Integer, ForeignKey('customers.id'))
-    timestamp = Column(Integer)
+    timestamp = Column(Integer, nullable=False)
 
     def __repr__(self):
         return "<Message(content='%s', customer_id='%s')>" % (
             self.content, self.customer_id)
+
+    def to_json(self):
+        return json.dummps({"content": self.content, "timestamp": self.timestamp})
 
 if __name__ == "__main__":
     Base.metadata.create_all(engine)

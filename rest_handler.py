@@ -18,8 +18,7 @@ def index():
 @app.route('/send_message/<phone_number>', methods=['POST'])
 def send_message(phone_number):
     session = models.Session()
-   
-    print "Request Data; '%s'" % request.data
+
     data_dict = json.loads(request.data)
     if not verify_dict_contains_keys(data_dict, ["content", "platform_type"]):
         return json.dumps({"Error": Exceptions.DATA_NOT_PRESENT})
@@ -112,6 +111,31 @@ def get_unhelped_transactions():
     return [user_data for user_data in message_store \
             if "transaction_status" in user_data \
             and user_data["transaction_status"] == TRANSACTION_STARTED]
+
+@app.route('/user/<phone_number>', methdos=['POST', 'GET'])
+def add_customer():
+    session = models.Session()
+
+    if request.method == 'POST':
+        data_dict = json.loads(request.data)
+
+        if not verify_dict_contains_keys(data_dict, ["first_name", "last_name", "phone_number"]):
+            return json.dumps({"Error": Exceptions.DATA_NOT})
+
+        customer = Customer(first_name=data_dict["first_name"],
+                            last_name=data_dict["first_name"],
+                            phone_number=data_dict["phone_number"])
+
+        session.add(customer)
+        session.commit()
+    elif request.method == 'GET':
+        customer_query_result = session.query(models.Customer). \
+                                filter_by(phone_number=phone_number)
+
+        if customer_query_result.count() == 0:
+            return json.dumps({"Error": Exceptions.CUSTOMER_DOES_NOT_EXIST})
+
+    return customer_query_result[0].to_json()
 
 # Helper functions
 def verify_dict_contains_keys(dic, keys):
