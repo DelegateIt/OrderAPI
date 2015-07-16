@@ -7,7 +7,7 @@ import models
 from common import Exceptions
 
 app = Flask(__name__)
-Base.metadata.create_all(engine) # Update/Add all tables
+models.Base.metadata.create_all(models.engine) # Update/Add all tables
 
 VALID_PLATFORMS = ["sms"]
 
@@ -15,21 +15,22 @@ VALID_PLATFORMS = ["sms"]
 def index():
     return "GatorRestService is up and running!"
 
-@app.route('/send_message/<phone_number>')
+@app.route('/send_message/<phone_number>', methods=['POST'])
 def send_message(phone_number):
     session = models.Session()
-
+   
+    print "Request Data; '%s'" % request.data
     data_dict = json.loads(request.data)
-    if not verifty_dict_contains_keys(data_dict, ["content", "platform_type"]):
+    if not verify_dict_contains_keys(data_dict, ["content", "platform_type"]):
         return json.dumps({"Error": Exceptions.DATA_NOT_PRESENT})
 
     elif data_dict["platform_type"] not in VALID_PLATFORMS:
         return json.dumps({"Error": Exceptions.UNSUPPORTED_PLATFORM})
 
-    customer_query_result = session.query(Customer). \
+    customer_query_result = session.query(models.Customer). \
         filter_by(phone_number=phone_number)
 
-    if len(customer_query_result) == 0:
+    if customer_query_result.count() == 0:
         return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
 
     cur_time = int(round(time.time() * 1000))
@@ -115,10 +116,10 @@ def get_unhelped_transactions():
 # Helper functions
 def verify_dict_contains_keys(dic, keys):
     for cur_key in dic:
-        if cur_key not in Keys:
+        if cur_key not in keys:
             return False
 
     return True
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port="8080", debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=True)
