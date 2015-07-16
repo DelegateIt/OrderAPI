@@ -112,7 +112,7 @@ def get_unhelped_transactions():
             if "transaction_status" in user_data \
             and user_data["transaction_status"] == TRANSACTION_STARTED]
 
-@app.route('/user/<phone_number>', methdos=['POST', 'GET'])
+@app.route('/customer/<phone_number>', methdos=['POST', 'GET'])
 def add_customer():
     session = models.Session()
 
@@ -120,7 +120,7 @@ def add_customer():
         data_dict = json.loads(request.data)
 
         if not verify_dict_contains_keys(data_dict, ["first_name", "last_name", "phone_number"]):
-            return json.dumps({"Error": Exceptions.DATA_NOT})
+            return json.dumps({"Error": Exceptions.DATA_NOT_PRESENT})
 
         customer = Customer(first_name=data_dict["first_name"],
                             last_name=data_dict["first_name"],
