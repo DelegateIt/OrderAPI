@@ -36,6 +36,7 @@ class Message(Base):
     id = Column(Integer, primary_key=True)
     content = Column(String(1000), nullable=True)
     customer_id = Column(Integer, ForeignKey('customers.id'))
+    timestamp = Column(Integer)
 
     def __repr__(self):
         return "<Message(content='%s', customer_id='%s')>" % (

@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, request
+
 import time
 import json
 
@@ -7,21 +8,32 @@ from common import Exceptions
 
 app = Flask(__name__)
 
+VALID_PLATFORMS = ["sms"]
+
 @app.route('/')
 def index():
-    return "Hello, World!"
+    return "GatorRestService is up and running!"
 
-@app.route('/send_message/<phone_number>/<content>')
-def send_message(phone_number, content):
+@app.route('/send_message/<phone_number>')
+def send_message(phone_number):
     session = models.Session()
 
-    customer_query_result = session.query(models.Customer)
-    #if len(customer_query_result) == 0:
-        #return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
+    data_dict = json.loads(request.data)
+    if not verifty_dict_contains_keys(data_dict, ["content", "platform_type"]):
+        return json.dumps({"Error": Exceptions.DATA_NOT_PRESENT})
+
+    elif data_dict["platform_type"] not in VALID_PLATFORMS:
+        return json.dumps({"Error": Exceptions.UNSUPPORTED_PLATFORM})
+
+    customer_query_result = session.query(Customer). \
+        filter_by(phone_number=phone_number)
+
+    if len(customer_query_result) == 0:
+        return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
 
     cur_time = int(round(time.time() * 1000))
+    message = models.Message(content=data_dict["content"])
 
-    message = models.Message(content=content)
     customer = customer_query_result[0]
     customer.messages.append(message)
 
@@ -30,15 +42,20 @@ def send_message(phone_number, content):
     return json.dumps({
             "phone_number": phone_number,
             "message": content,
-	    "timestamp": cur_time
+    	    "timestamp": cur_time
         })
 
-@app.route('/get_messages/<phone_number>')
+@app.route('/get_messages/<phone_number>', methods=['GET'])
 def get_messages(phone_number):
-    if phone_number not in message_store:
-        return json.dumps(None)
-    else:
-        return json.dumps(message_store[phone_number])
+    session = models.Session()
+
+    customer_messages_query_result = session.query(Custoemr.messages). \
+        filter_by(phone_number=phone_number)
+
+    if len(customer_query_result) == 0:
+        return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
+
+    return json.dumps(customer_messages_query_result)
 
 @app.route('/get_messages_past_time/<phone_number>/<timestamp>')
 def get_messages_past_time(phone_number, timestamp):
@@ -94,5 +111,13 @@ def get_unhelped_transactions():
             if "transaction_status" in user_data \
             and user_data["transaction_status"] == TRANSACTION_STARTED]
 
+# Helper functions
+def verify_dict_contains_keys(dic, keys):
+    for cur_key in dic:
+        if cur_key not in Keys:
+            return False
+
+    return True
+
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", debug=True)
