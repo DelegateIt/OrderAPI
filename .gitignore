@@ -1,0 +1,5 @@
+# This gitignore should be used by everyone #
+
+*.swp
+*.swo
+*.pyc

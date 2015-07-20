@@ -4,10 +4,14 @@ import time
 import json
 
 import models
-from common import Exceptions
+import common
+
+from models import Customer, Message
+from common import Errors
 
 app = Flask(__name__)
-models.Base.metadata.create_all(models.engine) # Update/Add all tables
+
+session = models.Session()
 
 VALID_PLATFORMS = ["sms"]
 
@@ -17,23 +21,22 @@ def index():
 
 @app.route('/send_message/<phone_number>', methods=['POST'])
 def send_message(phone_number):
-    session = models.Session()
-
     data_dict = json.loads(request.data)
     if not verify_dict_contains_keys(data_dict, ["content", "platform_type"]):
-        return json.dumps({"Error": Exceptions.DATA_NOT_PRESENT})
+        return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     elif data_dict["platform_type"] not in VALID_PLATFORMS:
-        return json.dumps({"Error": Exceptions.UNSUPPORTED_PLATFORM})
+        return common.error_to_json(Errors.UNSUPPORTED_PLATFORM)
 
-    customer_query_result = session.query(models.Customer). \
+    customer_query_result = session.query(Customer). \
+    session.query(Customer). \
         filter_by(phone_number=phone_number)
 
     if customer_query_result.count() == 0:
-        return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
+        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
     cur_time = int(round(time.time() * 1000))
-    message = models.Message(content=data_dict["content"])
+    message = Message(content=data_dict["content"], timestamp=cur_time)
 
     customer = customer_query_result[0]
     customer.messages.append(message)
@@ -41,20 +44,17 @@ def send_message(phone_number):
     session.commit()
 
     return json.dumps({
-            "phone_number": phone_number,
-            "message": content,
+            "result": 0,
     	    "timestamp": cur_time
         })
 
 @app.route('/get_messages/<phone_number>', methods=['GET'])
 def get_messages(phone_number):
-    session = models.Session()
-
-    customer_messages_query_result = session.query(Custoemr.messages). \
+    customer_messages_query_result = db.session.query(Custoemr.messages). \
         filter_by(phone_number=phone_number)
 
     if len(customer_query_result) == 0:
-        return json.dumps({"Error": Exceptions.USER_DOES_NOT_EXIST})
+        return common.error_to_json(Errors.USER_DOES_NOT_EXIST)
 
     return json.dumps(customer_messages_query_result)
 
@@ -112,30 +112,33 @@ def get_unhelped_transactions():
             if "transaction_status" in user_data \
             and user_data["transaction_status"] == TRANSACTION_STARTED]
 
-@app.route('/customer/<phone_number>', methdos=['POST', 'GET'])
-def add_customer():
-    session = models.Session()
+@app.route('/customer/<phone_number>', methods=['POST', 'GET'])
+def customer(phone_number):
+    customer_query_result = session.query(Customer). \
+                            filter_by(phone_number=phone_number)
 
     if request.method == 'POST':
+        if customer_query_result.count() != 0:
+            return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
+
         data_dict = json.loads(request.data)
 
-        if not verify_dict_contains_keys(data_dict, ["first_name", "last_name", "phone_number"]):
-            return json.dumps({"Error": Exceptions.DATA_NOT_PRESENT})
+        if not verify_dict_contains_keys(data_dict, ["first_name", "last_name"]):
+            return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
         customer = Customer(first_name=data_dict["first_name"],
-                            last_name=data_dict["first_name"],
-                            phone_number=data_dict["phone_number"])
+                            last_name=data_dict["last_name"],
+                            phone_number=phone_number)
 
         session.add(customer)
         session.commit()
+
+        return json.dumps({"result": 0})
     elif request.method == 'GET':
-        customer_query_result = session.query(models.Customer). \
-                                filter_by(phone_number=phone_number)
-
         if customer_query_result.count() == 0:
-            return json.dumps({"Error": Exceptions.CUSTOMER_DOES_NOT_EXIST})
+            return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    return customer_query_result[0].to_json()
+        return customer_query_result[0].to_json()
 
 # Helper functions
 def verify_dict_contains_keys(dic, keys):
@@ -146,4 +149,5 @@ def verify_dict_contains_keys(dic, keys):
     return True
 
 if __name__ == '__main__':
+    models.init()
     app.run(host="0.0.0.0", port=8080, debug=True)

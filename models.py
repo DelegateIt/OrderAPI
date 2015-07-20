@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
+from sqlalchemy.dialects.mysql import BIGINT
 
 import json
 
@@ -11,7 +12,7 @@ import json
 Base = declarative_base()
 
 # Create the engine and add all tables to it
-engine = create_engine("mysql+mysqldb://root@localhost/DelegateItDB")
+engine = create_engine("mysql+mysqldb://root:default@localhost/DelegateItDB")
 
 Session = sessionmaker(bind=engine)
 
@@ -23,7 +24,7 @@ class Customer(Base):
     id = Column(Integer, primary_key=True)
     first_name = Column(String(50), nullable=True)
     last_name  = Column(String(50), nullable=True)
-    phone_number = Column(String(50), nullable=True) # TODO: use python phone numbers parsing library
+    phone_number = Column(String(50), nullable=True, unique=True) # TODO: use python phone numbers parsing library
     messages = relationship("Message", order_by="Message.id", backref="customer",
                                     cascade="all, delete, delete-orphan")
 
@@ -41,7 +42,7 @@ class Message(Base):
     id = Column(Integer, primary_key=True)
     content = Column(String(1000), nullable=False)
     customer_id = Column(Integer, ForeignKey('customers.id'))
-    timestamp = Column(Integer, nullable=False)
+    timestamp = Column(BIGINT(unsigned=True))
 
     def __repr__(self):
         return "<Message(content='%s', customer_id='%s')>" % (
@@ -49,6 +50,13 @@ class Message(Base):
 
     def to_json(self):
         return json.dummps({"content": self.content, "timestamp": self.timestamp})
+
+# ********************* #
+# Initialize all tables #
+# ********************* #
+
+def init():
+    Base.metadata.create_all(engine)
 
 if __name__ == "__main__":
     Base.metadata.create_all(engine)
