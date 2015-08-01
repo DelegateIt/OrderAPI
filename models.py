@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref, sessionmaker
-from sqlalchemy.dialects.mysql import BIGINT
+from sqlalchemy.pool import NullPool
+from sqlalchemy.dialects.postgresql import BIGINT
 
 import json
 
@@ -12,9 +13,13 @@ import json
 Base = declarative_base()
 
 # Create the engine and add all tables to it
-engine = create_engine("mysql+mysqldb://root:default@localhost/DelegateItDB")
+#engine = create_engine("postgresql+psycopg2://Delegator:WeAreDelegators99@restservicetestdb.cwfe0qmzkgyc.us-west-2.rds.amazonaws.com/DelegateItDB",
+            #poolclass=NullPool)
 
-Session = sessionmaker(bind=engine)
+engine = create_engine("postgresql+psycopg2://Delegator:WeAreDelegators99@restservicetestdb.cwfe0qmzkgyc.us-west-2.rds.amazonaws.com/DelegateItDB",
+        poolclass=NullPool)
+
+Session = sessionmaker()
 
 
 class Customer(Base):
@@ -42,7 +47,7 @@ class Message(Base):
     id = Column(Integer, primary_key=True)
     content = Column(String(1000), nullable=False)
     customer_id = Column(Integer, ForeignKey('customers.id'))
-    timestamp = Column(BIGINT(unsigned=True))
+    timestamp = Column(BIGINT)
 
     def __repr__(self):
         return "<Message(content='%s', customer_id='%s')>" % (
