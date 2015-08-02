@@ -18,6 +18,32 @@ VALID_PLATFORMS = ["sms"]
 def index():
     return "GatorRestService is up and running!"
 
+@app.route('/customer/<phone_number>', methods=['POST', 'GET'])
+def customer(phone_number):
+    if request.method == 'POST':
+        if models.customers.has_item(phone_number=phone_number):
+            return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
+
+        data_dict = json.loads(request.data)
+
+        if not verify_dict_contains_keys(data_dict, ["first_name", "last_name"]):
+            return common.error_to_json(Errors.DATA_NOT_PRESENT)
+
+        customer = Customer(first_name=data_dict["first_name"], last_name=data_dict["last_name"], phone_number=phone_number)
+        models.customers.put_item(data=customer.get_data())
+
+        return json.dumps({"result": 0})
+    elif request.method == 'GET':
+        if not models.customers.has_item(phone_number=phone_number):
+            return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+
+        customer = models.customers.get_item(phone_number=phone_number)
+
+        return json.dumps({
+                "first_name":   customer["first_name"],
+                "last_name":    customer["last_name"],
+                "phone_number": customer["phone_number"]})
+
 @app.route('/send_message/<phone_number>', methods=['POST'])
 def send_message(phone_number):
     data_dict = json.loads(request.data)
@@ -33,14 +59,18 @@ def send_message(phone_number):
 
     message = Message(data_dict["content"])
     customer = models.customers.get_item(phone_number=phone_number)
-    customer["messages"].append(message)
+
+    if customer["messages"] is None:
+        customer["messages"] = []
+
+    customer["messages"].append(message.get_data())
 
     # Save data to the database
     customer.save()
 
     return json.dumps({
             "result": 0,
-    	    "timestamp": cur_time
+            "timestamp": message.timestamp
         })
 
 @app.route('/get_messages/<phone_number>', methods=['GET'])
@@ -48,21 +78,23 @@ def get_messages(phone_number):
     if not models.customers.has_item(phone_number=phone_number):
         return common.error_to_json(Errors.USER_DOES_NOT_EXIST)
 
-    return json.dumps(models.customers.get_item(phone_number=phone_number)["messages"])
+    customer = models.customers.get_item(phone_number=phone_number)
+
+    if customer.get("messsages") is None:
+        return json.dumps(None)
+    else:
+        return json.dumps(customer["messages"])
 
 @app.route('/get_messages_past_time/<phone_number>/<timestamp>')
 def get_messages_past_time(phone_number, timestamp):
-    session = models.Session(bind=models.engine)
+    if not models.customers.has_item(phone_number=phone_number):
+        return common.error_to_json(Errors.USER_DOES_NOT_EXIST)
 
+    messages = models.customers.get_item(phone_number=phone_number)
     timestamp = int(timestamp)
-    if phone_number not in message_store:
-        return json.dumps(None)
-    else:
-        messages_past = [message for message in message_store[phone_number] if message["timestamp"] > timestamp]
-	if len(messages_past) == 0:
-	    return json.dumps(None)
-	else:
-	    return json.dumps(messages_past)
+
+    return json.dumps([message for message in messages if int(message["timestamp"]) > timestamp])
+
 
 @app.route('/mark_transaction_started/<phone_number>')
 def mark_transaction_started(phone_number):
@@ -113,27 +145,6 @@ def get_unhelped_transactions():
     return [user_data for user_data in message_store \
             if "transaction_status" in user_data \
             and user_data["transaction_status"] == TRANSACTION_STARTED]
-
-@app.route('/customer/<phone_number>', methods=['POST', 'GET'])
-def customer(phone_number):
-    if request.method == 'POST':
-        if models.customers.has_item(phone_number=phone_number):
-            return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
-
-        data_dict = json.loads(request.data)
-
-        if not verify_dict_contains_keys(data_dict, ["first_name", "last_name"]):
-            return common.error_to_json(Errors.DATA_NOT_PRESENT)
-
-        customer = Customer(data_dict["first_name"], data_dict["last_name"], phone_number)
-        models.customers.put_item(data=customer.get_data())
-
-        return json.dumps({"result": 0})
-    elif request.method == 'GET':
-        if not models.customers.has_item(phone_number=phone_number):
-            return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
-
-        return models.customers.get_item(phone_number=phone_number)
 
 # Helper functions
 def verify_dict_contains_keys(dic, keys):
