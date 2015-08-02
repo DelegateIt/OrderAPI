@@ -1,107 +1,45 @@
 import unittest
+
+import boto.dynamodb2
+from boto.dynamodb2.table import Table
+
 import re
 import requests, json
 import subprocess, os, signal
-import psycopg2
-import gc
 
-db = psycopg2.connect(host="restservicetestdb.cwfe0qmzkgyc.us-west-2.rds.amazonaws.com",
-                     port=5432,
-                     user="Delegator",
-                     password="WeAreDelegators99",
-                     database="DelegateItDB")
+# Connection to DynamoDB
+conn = boto.dynamodb2.connect_to_region(
+        "us-west-2",
+        aws_access_key_id="AKIAJPVNCRLPXP6HA3ZQ",
+        aws_secret_access_key="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")
 
-cur = db.cursor()
+# Tables
+customers = Table("DelegateIt_Customers", connection=conn)
 
 def clear():
-    # Clear the db
-    """cur.execute("SET foreign_key_checks = 0;")
-    kill_all_locked_processes()
-
-    print "Finished 1"
-    cur.execute("TRUNCATE TABLE messages;")
-    print "next"
-    kill_all_locked_processes()
-    print "Finished truncate 1"
-
-    print "finished dropping"
-    cur.execute("TRUNCATE TABLE customers;")
-    kill_all_locked_processes()
-    cur.execute("SET foreign_key_checks = 1;")
-    print "Finished all" """
-
-    print "clear"
-    #cur.execute("TRUNCATE TABLE messages;")
-    #kill_all_locked_processes()
-    #cur.execute("TRUNCATE TABLE customers * CASCADE;")
-    try:
-        cur.execute("DROP TABLE customers CASCADE;")
-    except Exception as e:
-        print e
-        db.rollback()
-
-    #kill_all_locked_processes()
-    #kill_all_locked_processes()
-    print "Finished clearing"
-
-    #kill_all_locked_processes()
-    #cur.execute("DROP DATABASE DelegateItDB")
-    #print "Done dropping"
-    #kill_all_locked_processes()
-    #cur.execute("CREATE DATABASE DelegateItDB")
-
-
-def kill_all_locked_processes():
-    # Kill all processes that are locked on the mutex
-    """cur.execute("SHOW PROCESSLIST;")
-    query_result = cur.fetchall()
-
-    for row in query_result:
-        if re.search("Waiting.*lock", row[6]):
-            print row
-            cur.execute("KILL %s" % row[0])
-        else:
-            print "<SAFE> %s" % str(row)"""
-
-    cur.execute("SELECT relation::regclass, * FROM pg_locks WHERE NOT GRANTED;")
-    query_result = cur.fetchall()
-
-    for row in query_result:
-        print row
-        cur.execute("SELECT pg_cancel_backend(%s);" % row[12]);
-
+    for customer in customers.scan():
+        customer.delete()
 
 class TestBasicRestFunctionality(unittest.TestCase):
     def setUp(self):
-        print "setting up"
         clear()
-        print "done setting up"
 
         # Start up the rest_handler
-        """cls.proc = subprocess.Popen(["python", "../rest_handler.py"]
+        """self.proc = subprocess.Popen(["python", "../rest_handler.py"],
             shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)"""
 
     def tearDown(self):
         clear()
 
-        # Close connections
-        cur.close()
-        db.close()
-
-        """if cls.proc.pid is not None:
-            os.kill(cls.proc.pid, signal.SIGTERM)
+        """if self.proc.pid is not None:
+            os.kill(self.proc.pid, signal.SIGTERM)"""
 
         # Uncomment for debugging
-        if cls.proc.returncode != 0:
+        """if cls.proc.returncode != 0:
             stdout, stderr = cls.proc.communicate()
             stdout = cls.proc.stdout.read()
             stderr = cls.proc.stderr.read()
             print "stdout: %s\nstderr: %s" % (stdout, stderr)"""
-
-    @classmethod
-    def tearDownClass(cls):
-        # Make sure connection is garbage collected
-        gc.collect()
 
     def test_create_customer(self):
         print "Testing create customer"

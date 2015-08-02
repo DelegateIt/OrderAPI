@@ -1,77 +1,61 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref, sessionmaker
-from sqlalchemy.pool import NullPool
-from sqlalchemy.dialects.postgresql import BIGINT
+import boto.dynamodb2
+from boto.dynamodb2.table import Table
 
+import time
 import json
+
+import jsonpickle
 
 ##############################
 # Global vars, consts, extra #
 ##############################
 
-Base = declarative_base()
+# Connection to DynamoDB
+conn = boto.dynamodb2.connect_to_region(
+        "us-west-2",
+        aws_access_key_id="AKIAJPVNCRLPXP6HA3ZQ",
+        aws_secret_access_key="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")
 
-# Create the engine and add all tables to it
-#engine = create_engine("postgresql+psycopg2://Delegator:WeAreDelegators99@restservicetestdb.cwfe0qmzkgyc.us-west-2.rds.amazonaws.com/DelegateItDB",
-            #poolclass=NullPool)
+# Tables
+customers = Table("DelegateIt_Customers", connection=conn)
 
-engine = create_engine("postgresql+psycopg2://Delegator:WeAreDelegators99@restservicetestdb.cwfe0qmzkgyc.us-west-2.rds.amazonaws.com/DelegateItDB",
-        poolclass=NullPool)
+class Customer():
+    def __init__(self, first_name, last_name, phone_number, messages=None):
+        self.customer_id = get_current_timestamp()
+        self.first_name  = first_name
+        self.last_name   = last_name
+        self.phone_number = phone_number
+        self.messages    = messages if messages is not None else []
 
-Session = sessionmaker()
+    def add_message(self, new_message):
+        self.messages.append(new_message)
 
+    def get_data(self):
+        return self.__dict__
 
-class Customer(Base):
-    __tablename__ = "customers"
-
-    # TODO: add nullable=False
-    id = Column(Integer, primary_key=True)
-    first_name = Column(String(50), nullable=True)
-    last_name  = Column(String(50), nullable=True)
-    phone_number = Column(String(50), nullable=True, unique=True) # TODO: use python phone numbers parsing library
-    messages = relationship("Message", order_by="Message.id", backref="customer",
-                                    cascade="all, delete, delete-orphan")
+    def __getitem__(self, val):
+        return self.__dict__[val]
 
     def __repr__(self):
         return "<Customer(first_name='%s', last_name='%s', phone_number='%s', messages=[%s])>" % (
-            self.first_name, self.last_name, self.phone_number, ", ".join([str(message) for message in self.messages]))
+            self.first_name, self.last_name, self.phone_number,
+            ",\n\t".join([str(message) for message in self.messages]))
 
-    def to_json(self):
-        return json.dumps({"first_name": self.first_name, "last_name": self.last_name, "phone_number": self.phone_number})
+class Message():
+    def __init__(self, content):
+        self.content = content
+        self.timestamp = get_current_timestamp()
 
-
-class Message(Base):
-    __tablename__ = "messages"
-
-    id = Column(Integer, primary_key=True)
-    content = Column(String(1000), nullable=False)
-    customer_id = Column(Integer, ForeignKey('customers.id'))
-    timestamp = Column(BIGINT)
+    def __getitem__(self, val):
+        return self.__dict__[val]
 
     def __repr__(self):
-        return "<Message(content='%s', customer_id='%s')>" % (
-            self.content, self.customer_id)
+        return "<Message(content='%s', timestamp='%s')>" % (
+            self.content, self.timestamp)
 
-    def to_json(self):
-        return json.dummps({"content": self.content, "timestamp": self.timestamp})
+####################
+# Helper Functions #
+####################
 
-# ********************* #
-# Initialize all tables #
-# ********************* #
-
-def init():
-    Base.metadata.create_all(engine)
-
-if __name__ == "__main__":
-    Base.metadata.create_all(engine)
-    session = Session()
-
-    customer = Customer(first_name="George", last_name="Farcasiu", phone_number="8176808185")
-    customer.messages = [Message(content="Message content!!")]
-
-    session.add(customer)
-    session.commit()
-
-    for row in session.query(Customer).filter_by(phone_number="8176808185"):
-        print row
+def get_current_timestamp():
+    return int(time.time() * 10**6)
