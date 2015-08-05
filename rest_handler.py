@@ -76,27 +76,27 @@ def send_message(phone_number):
 @app.route('/get_messages/<phone_number>', methods=['GET'])
 def get_messages(phone_number):
     if not models.customers.has_item(phone_number=phone_number):
-        return common.error_to_json(Errors.USER_DOES_NOT_EXIST)
+        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
     customer = models.customers.get_item(phone_number=phone_number)
 
-    if customer.get("messsages") is None:
+    if customer["messages"] == None:
         return json.dumps(None)
     else:
-        return json.dumps(customer["messages"])
+        return convert_messages_to_json(customer["messages"])
 
-@app.route('/get_messages_past_time/<phone_number>/<timestamp>')
-def get_messages_past_time(phone_number, timestamp):
+@app.route('/get_messages_past_timestamp/<phone_number>/<timestamp>', methods=['GET'])
+def get_messages_past_timestamp(phone_number, timestamp):
     if not models.customers.has_item(phone_number=phone_number):
         return common.error_to_json(Errors.USER_DOES_NOT_EXIST)
 
-    messages = models.customers.get_item(phone_number=phone_number)
+    messages = models.customers.get_item(phone_number=phone_number)["messages"]
     timestamp = int(timestamp)
 
-    return json.dumps([message for message in messages if int(message["timestamp"]) > timestamp])
+    return convert_messages_to_json([message for message in messages if int(message["timestamp"]) > timestamp])
 
 
-@app.route('/mark_transaction_started/<phone_number>')
+@app.route('/transaction/<phone_number>')
 def mark_transaction_started(phone_number):
     session = models.Session(bind=models.engine)
 
@@ -110,49 +110,20 @@ def mark_transaction_started(phone_number):
 
     return json.dumps({"success": True})
 
-@app.route('/mark_transaction_helped/<phone_number>')
-def mark_transaction_helped(phone_number):
-    session = models.Session(bind=models.engine)
+####################
+# Helper functions #
+####################
 
-    if phone_number in message_store:
-        user_data = message_store[phone_number]
-    else:
-        return json.dumps({"success": False})
-
-    with transaction_lock:
-        user_data["transaction_status"] = TRANSACTION_HELPED
-
-    return json.dumps({"success": True})
-
-@app.route('/mark_transaction_completed/<phone_number>')
-def mark_transaction_complete(phone_number):
-    session = models.Session(bind=models.engine)
-
-    if phone_number in message_store:
-        user_data = message_store[phone_number]
-    else:
-        return json.dumps({"success": False})
-
-    with transaction_lock:
-        user_data["transaction_status"] = TRANSACTION_COMPLETE
-
-    return json.dumps({"success": True})
-
-@app.route('/get_unhelped_transactions/')
-def get_unhelped_transactions():
-    session = models.Session(bind=models.engine)
-
-    return [user_data for user_data in message_store \
-            if "transaction_status" in user_data \
-            and user_data["transaction_status"] == TRANSACTION_STARTED]
-
-# Helper functions
 def verify_dict_contains_keys(dic, keys):
     for cur_key in dic:
         if cur_key not in keys:
             return False
 
     return True
+
+def convert_messages_to_json(messages):
+    return json.dumps([{"content": message["content"], "timestamp": int(message["timestamp"])}
+        for message in messages])
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8080, debug=True, threaded=True)
