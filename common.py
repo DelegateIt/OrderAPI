@@ -1,5 +1,8 @@
-from enum import Enum
 import json
+
+##########
+# Errors #
+##########
 
 class ErrorType():
     def __init__(self, returncode, err_message):
@@ -18,3 +21,12 @@ def error_to_json(error):
             "result": error.returncode,
             "error_message": error.err_message
         })
+
+################
+# Transactions #
+################
+
+class TransactionStatus():
+    STARTED   = 0
+    HELPED    = 1
+    COMPLETED = 2

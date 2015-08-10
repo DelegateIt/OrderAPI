@@ -17,7 +17,9 @@ conn = boto.dynamodb2.connect_to_region(
         aws_secret_access_key="QF8ExTXm2BgsOREzeXMeC5rHq62XMy9ThEnhMsNC")
 
 # Tables
-customers = Table("DelegateIt_Customers", connection=conn)
+customers    = Table("DelegateIt_Customers",    connection=conn)
+delegators   = Table("DelegateIt_Delegators",   connection=conn)
+transactions = Table("DelegateIt_Transactions", connection=conn)
 
 class Customer():
     def __init__(self, phone_number=None, first_name=None, last_name=None, messages=None):
@@ -71,6 +73,53 @@ class Message():
         return "<Message(content='%s', timestamp='%s')>" % (
             self.content, self.timestamp)
 
+class Delegator():
+    def __init__(self, phone_number=None, first_name=None, last_name=None, num_transactions=None):
+        self.phone_number = phone_number
+        self.first_name   = first_name
+        self.last_name    = last_name
+
+        if num_transactions is not None:
+            self.num_transactions = 0
+
+    def get_data(self):
+        return vars(self)
+
+    def __getitem__(self, val):
+        return self.__dict__[val]
+
+    def __repr__(self):
+        return "<Delegator(first_name='%s', last_name='%s', phone_number='%s')>" % (
+            self.first_name, self.last_name, self.phone_number)
+
+class Transaction():
+    def __init__(self, customer_phone_number=None, status=None, delegator_phone_number=None):
+        self.customer_phone_number = customer_phone_number
+        self.status = status
+
+        if delegator_phone_number is not None:
+            self.delegator_phone_number = delegator_phone_number
+
+    def get_data(self):
+        return vars(self)
+
+    def to_json(self):
+        return json.dumps(get_data)
+
+    def __getitem__(self, val):
+        return self.__dict__[val]
+
+    def __repr__(self):
+        to_return = "<Transaction(customer_phone_number='%s', status='%s'" % (
+            self.customer_phone_number, self.status)
+
+        if self.delegator_phone_number is not None:
+            to_return += ", delegator_phone_number='%s')>" % self.delegator_phone_number
+        else:
+            to_return += ">"
+
+        return to_return
+
 ####################
 # Helper Functions #
 ####################
@@ -91,8 +140,3 @@ def create_customer_from_item(item):
                 content=message["content"], timestamp=message["timestamp"]))
 
     return customer
-
-
-if __name__ == "__main__":
-    customer = Customer(first_name="George", last_name="Farcasiu", phone_number="8176808185", messages=[Message("This is a message")])
-    print customer.get_data()

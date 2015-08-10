@@ -6,8 +6,8 @@ import json
 import models
 import common
 
-from models import Customer, Message
-from common import Errors
+from models import Customer, Message, Delegator, Transaction
+from common import Errors, TransactionStatus
 
 app = Flask(__name__)
 app.debug = True
@@ -21,7 +21,7 @@ def index():
 @app.route('/customer/<phone_number>', methods=['POST', 'GET'])
 def customer(phone_number):
     if request.method == 'POST':
-        if models.customers.has_item(phone_number=phone_number):
+        if models.customers.has_item(phone_number=phone_number, consistent=True):
             return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
 
         data_dict = json.loads(request.data)
@@ -34,12 +34,13 @@ def customer(phone_number):
 
         return json.dumps({"result": 0})
     elif request.method == 'GET':
-        if not models.customers.has_item(phone_number=phone_number):
+        if not models.customers.has_item(phone_number=phone_number, consistent=True):
             return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-        customer = models.customers.get_item(phone_number=phone_number)
+        customer = models.customers.get_item(phone_number=phone_number, consistent=True)
 
         return json.dumps({
+                "result": 0,
                 "first_name":   customer["first_name"],
                 "last_name":    customer["last_name"],
                 "phone_number": customer["phone_number"]})
@@ -54,11 +55,11 @@ def send_message(phone_number):
     elif data_dict["platform_type"] not in VALID_PLATFORMS:
         return common.error_to_json(Errors.UNSUPPORTED_PLATFORM)
 
-    if not models.customers.has_item(phone_number=phone_number):
+    if not models.customers.has_item(phone_number=phone_number, consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    message = Message(data_dict["content"])
-    customer = models.customers.get_item(phone_number=phone_number)
+    message = Message(content=data_dict["content"])
+    customer = models.customers.get_item(phone_number=phone_number, consistent=True)
 
     if customer["messages"] is None:
         customer["messages"] = []
@@ -75,40 +76,51 @@ def send_message(phone_number):
 
 @app.route('/get_messages/<phone_number>', methods=['GET'])
 def get_messages(phone_number):
-    if not models.customers.has_item(phone_number=phone_number):
+    if not models.customers.has_item(phone_number=phone_number, consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    customer = models.customers.get_item(phone_number=phone_number)
+    customer = models.customers.get_item(phone_number=phone_number, consistent=True)
 
-    if customer["messages"] == None:
-        return json.dumps(None)
-    else:
-        return convert_messages_to_json(customer["messages"])
+    return convert_messages_to_json(customer["messages"])
 
 @app.route('/get_messages_past_timestamp/<phone_number>/<timestamp>', methods=['GET'])
 def get_messages_past_timestamp(phone_number, timestamp):
-    if not models.customers.has_item(phone_number=phone_number):
-        return common.error_to_json(Errors.USER_DOES_NOT_EXIST)
+    if not models.customers.has_item(phone_number=phone_number, consistent=True):
+        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    messages = models.customers.get_item(phone_number=phone_number)["messages"]
+    messages = models.customers.get_item(phone_number=phone_number, consistent=True)["messages"]
     timestamp = int(timestamp)
 
     return convert_messages_to_json([message for message in messages if int(message["timestamp"]) > timestamp])
 
+@app.route('/transaction/<customer_phone_number>', methods=['GET', 'POST'])
+def transaction(customer_phone_number):
+    if not models.customers.has_item(phone_number=customer_phone_number, consistent=True):
+        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-@app.route('/transaction/<phone_number>')
-def mark_transaction_started(phone_number):
-    session = models.Session(bind=models.engine)
+    if request.method == 'POST':
+        data_dict = json.loads(request.data)
 
-    if phone_number in message_store:
-        user_data = message_store[phone_number]
-    else:
-        return json.dumps({"success": False})
+        transaction = Transaction(
+                customer_phone_number = customer_phone_number,
+                status = TransactionStatus.STARTED if not data_dict.has_key("status") else data_dict["status"],
+                delegator_phone_number =  data_dict["delegator_phone_number"] if data_dict.has_key("delegator_phone_number") else None)
 
-    with transaction_lock:
-        user_data["transaction_status"] = TRANSACTION_STARTED
+        models.transactions.put_item(data=transaction.get_data())
 
-    return json.dumps({"success": True})
+        return json.dumps({"result": 0})
+    elif request.method == 'GET':
+        transaction = models.transactions.get_item(customer_phone_number=customer_phone_number, consistent=True)
+
+        return json.dumps({
+            "result": 0,
+            "customer_phone_number": transaction["customer_phone_number"],
+            "status": int(transaction["status"]),
+            "delegator_phone_number": transaction["delegator_phone_number"]})
+
+@app.route('/change_transaction_status/<phone_number>')
+def change_transaction_status(phone_number):
+    pass
 
 ####################
 # Helper functions #
@@ -122,8 +134,14 @@ def verify_dict_contains_keys(dic, keys):
     return True
 
 def convert_messages_to_json(messages):
-    return json.dumps([{"content": message["content"], "timestamp": int(message["timestamp"])}
-        for message in messages])
+    if messages is None:
+        return json.dumps({"result": 0, "messages": None})
+
+    return json.dumps({
+        "result": 0,
+        "messages": [{
+            "content": message["content"],
+            "timestamp": int(message["timestamp"])} for message in messages]})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8080, debug=True, threaded=True)
