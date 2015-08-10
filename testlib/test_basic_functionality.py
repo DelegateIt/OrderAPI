@@ -32,8 +32,7 @@ class TestBasicRestFunctionality(unittest.TestCase):
         clear()
 
     def tearDown(self):
-        #clear()
-        pass
+        clear()
 
     def test_create_customer(self):
         customer_json_data = json.dumps({
@@ -152,17 +151,48 @@ class TestBasicRestFunctionality(unittest.TestCase):
             "last_name":  "Farcasiu"
         })
 
+        transaction_update_json_data = json.dumps({
+            "status": "helped"
+        })
+
         requests.post("%s/customer/%s" % (server_url, phone_number), customer_json_data)
         transaction_create_response = requests.post("%s/transaction/%s" % (server_url, phone_number), json.dumps({})).json()
         transaction_get_response = requests.get("%s/transaction/%s" % (server_url, phone_number)).json()
+        transaction_update_response = requests.put("%s/transaction/%s" % (server_url, phone_number), transaction_update_json_data).json()
 
         # Verify that the response
         self.assertEquals(transaction_create_response["result"], 0)
         self.assertEquals(transaction_get_response["result"], 0)
+        self.assertEquals(transaction_update_response["result"], 0)
 
-        self.assertEquals(transaction_get_response["customer_phone_number"], phone_number)
-        self.assertEquals(transaction_get_response["status"], 0)
-        self.assertEquals(transaction_get_response["delegator_phone_number"], None)
+        self.assertEquals(transaction_get_response["transaction"]["customer_phone_number"], phone_number)
+        self.assertEquals(transaction_get_response["transaction"]["status"], "started") # old value
+        self.assertEquals(transaction_get_response["transaction"]["delegator_phone_number"], None)
+
+        # Verify that information in the db is correct
+        transaction = transactions.get_item(customer_phone_number=phone_number)
+        self.assertEquals(transaction["customer_phone_number"], phone_number)
+        self.assertEquals(transaction["status"], "helped")
+
+    def test_get_transactions_with_status(self):
+        phone_number_1 = "8176808185"
+        phone_number_2 = "8176808184"
+
+        customer_json_data = json.dumps({
+            "first_name": "George",
+            "last_name":  "Farcasiu"
+        })
+
+        requests.post("%s/customer/%s" % (server_url, phone_number_1), customer_json_data)
+        requests.post("%s/customer/%s" % (server_url, phone_number_2), customer_json_data)
+        requests.post("%s/transaction/%s" % (server_url, phone_number_1), json.dumps({"status": "helped"}))
+        requests.post("%s/transaction/%s" % (server_url, phone_number_2), json.dumps({}))
+        query_response = requests.get("%s/get_transactions_with_status/%s" % (server_url, "helped")).json()
+
+        # Verify that the responses are correct
+        self.assertEquals(query_response["result"], 0)
+        self.assertEquals(len(query_response["transactions"]), 1)
+        self.assertEquals(query_response["transactions"][0]["status"], "helped")
 
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(TestBasicRestFunctionality)

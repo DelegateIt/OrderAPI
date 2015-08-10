@@ -93,7 +93,7 @@ def get_messages_past_timestamp(phone_number, timestamp):
 
     return convert_messages_to_json([message for message in messages if int(message["timestamp"]) > timestamp])
 
-@app.route('/transaction/<customer_phone_number>', methods=['GET', 'POST'])
+@app.route('/transaction/<customer_phone_number>', methods=['GET', 'POST', 'PUT'])
 def transaction(customer_phone_number):
     if not models.customers.has_item(phone_number=customer_phone_number, consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
@@ -109,18 +109,34 @@ def transaction(customer_phone_number):
         models.transactions.put_item(data=transaction.get_data())
 
         return json.dumps({"result": 0})
+    elif request.method == 'PUT':
+        data_dict = json.loads(request.data)
+
+        if not models.transactions.has_item(customer_phone_number=customer_phone_number, consistent=True):
+            return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+
+        transaction = models.transactions.get_item(customer_phone_number=customer_phone_number)
+
+        for key in data_dict:
+            transaction[key] = data_dict[key]
+
+        transaction.save()
+
+        return json.dumps({"result": 0})
     elif request.method == 'GET':
         transaction = models.transactions.get_item(customer_phone_number=customer_phone_number, consistent=True)
 
         return json.dumps({
             "result": 0,
-            "customer_phone_number": transaction["customer_phone_number"],
-            "status": int(transaction["status"]),
-            "delegator_phone_number": transaction["delegator_phone_number"]})
+            "transaction": {
+                "customer_phone_number": transaction["customer_phone_number"],
+                "status": transaction["status"],
+                "delegator_phone_number": transaction["delegator_phone_number"]}
+            })
 
-@app.route('/change_transaction_status/<phone_number>')
-def change_transaction_status(phone_number):
-    pass
+@app.route("/get_transactions_with_status/<status>", methods=['GET'])
+def get_transactions_with_status(status):
+    return convert_transactions_to_json(models.transactions.query_2(index="status-index", status__eq=status))
 
 ####################
 # Helper functions #
@@ -141,7 +157,19 @@ def convert_messages_to_json(messages):
         "result": 0,
         "messages": [{
             "content": message["content"],
-            "timestamp": int(message["timestamp"])} for message in messages]})
+            "timestamp": int(message["timestamp"])}
+                for message in messages]
+        })
+
+def convert_transactions_to_json(transactions):
+    return json.dumps({
+        "result": 0,
+        "transactions": [{
+            "customer_phone_number": cur_transaction["customer_phone_number"],
+            "status": cur_transaction["status"],
+            "delegator_phone_number": None if cur_transaction["delegator_phone_number"] is None else cur_transaction["delegator_phone_number"]}
+                for cur_transaction in transactions]
+        })
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=80, debug=True, threaded=True)
