@@ -136,7 +136,7 @@ def transaction(customer_phone_number):
 
 @app.route("/get_transactions_with_status/<status>", methods=['GET'])
 def get_transactions_with_status(status):
-    return convert_transactions_to_json(models.transactions.query_2(index="status-index", status__eq=status))
+    return convert_transactions_to_json(models.transactions.query_2(index="status-index", status__eq=status, consistent=True))
 
 ####################
 # Helper functions #
