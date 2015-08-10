@@ -20,7 +20,7 @@ delegators   = Table("DelegateIt_Delegators", connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
 
 # Service configs
-server_url = "http://127.0.0.1:8080"
+server_url = "http://127.0.0.1:80"
 
 def clear():
     for table in [customers, delegators, transactions]:

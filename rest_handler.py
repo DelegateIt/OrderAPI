@@ -144,4 +144,4 @@ def convert_messages_to_json(messages):
             "timestamp": int(message["timestamp"])} for message in messages]})
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8080, debug=True, threaded=True)
+    app.run(host="0.0.0.0", port=80, debug=True, threaded=True)
