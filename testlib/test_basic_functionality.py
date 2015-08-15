@@ -167,7 +167,7 @@ class TestBasicRestFunctionality(unittest.TestCase):
 
         self.assertEquals(transaction_get_response["transaction"]["customer_phone_number"], phone_number)
         self.assertEquals(transaction_get_response["transaction"]["status"], "started") # old value
-        self.assertEquals(transaction_get_response["transaction"]["delegator_phone_number"], None)
+        self.assertEquals(transaction_get_response["transaction"].get("delegator_phone_number"), None)
 
         # Verify that information in the db is correct
         transaction = transactions.get_item(customer_phone_number=phone_number)

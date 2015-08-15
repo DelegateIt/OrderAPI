@@ -1,10 +1,10 @@
 import boto.dynamodb2
 from boto.dynamodb2.table import Table
 
+import jsonpickle
+
 import time
 import json
-
-import jsonpickle
 
 ##############################
 # Global vars, consts, extra #
@@ -59,9 +59,10 @@ class Customer():
         return to_return
 
 class Message():
-    def __init__(self, content=None, timestamp=None):
+    def __init__(self, content=None, platform_type=None):
         self.content = content
-        self.timestamp = get_current_timestamp() if timestamp is None else timestamp
+        self.timestamp = get_current_timestamp()
+        self.platform_type = platform_type
 
     def get_data(self):
         return vars(self)
@@ -96,6 +97,7 @@ class Transaction():
     def __init__(self, customer_phone_number=None, status=None, delegator_phone_number=None):
         self.customer_phone_number = customer_phone_number
         self.status = status
+        self.timestamp = get_current_timestamp()
 
         if delegator_phone_number is not None:
             self.delegator_phone_number = delegator_phone_number

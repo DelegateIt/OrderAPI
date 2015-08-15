@@ -1,4 +1,5 @@
-import json
+import jsonpickle
+import decimal
 
 ##########
 # Errors #
@@ -18,10 +19,20 @@ class Errors():
     TRANSACTION_DOES_NOT_EXIST = ErrorType(5, "The specified transaction does not exist")
 
 def error_to_json(error):
-    return json.dumps({
+    return jsonpickle.encode({
             "result": error.returncode,
             "error_message": error.err_message
         })
+
+class BotoDecimalHandler(jsonpickle.handlers.BaseHandler):
+    """
+    Automatically convert Decimal types (returned by DynamoDB) to ints
+    """
+    def flatten(self, obj, data):
+        data = int(obj)
+        return data
+
+jsonpickle.handlers.register(decimal.Decimal, BotoDecimalHandler)
 
 ################
 # Transactions #
