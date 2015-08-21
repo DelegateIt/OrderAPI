@@ -1,0 +1,9 @@
+server {
+    listen 80;
+    server_name 52.24.58.77;
+
+    location / {
+        include uwsgi_params;
+        uwsgi_pass unix:/home/ubuntu/GatorRestService/deployment/GatorRestService.sock;
+    }
+}
