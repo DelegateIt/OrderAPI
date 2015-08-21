@@ -134,6 +134,10 @@ def get_transactions_with_status(status):
         "transactions": [transaction._data for transaction in query_result]},
         unpicklable=False)
 
+@app.route("/sms_callback", methods=["POST"])
+def sms_callback():
+    print jsonpicke.decode(request.data)
+
 ####################
 # Helper functions #
 ####################
