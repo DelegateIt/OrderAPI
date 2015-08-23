@@ -205,6 +205,35 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(len(query_response["transactions"]), 1)
         self.assertEquals(query_response["transactions"][0]["status"], "helped")
 
+    def test_delegator(self):
+        delegator_json = json.dumps({
+            "phone_number": "8176808185",
+            "email": "farcasiu.george@gmail.com",
+            "first_name": "George",
+            "last_name": "Farcasiu"
+        })
+
+        delegator_create_rsp = requests.post("%s/delegator" % (server_url), delegator_json).json()
+        uuid = delegator_create_rsp["uuid"]
+
+        delegator_get_rsp = requests.get("%s/delegator/%s" % (server_url, uuid)).json()
+
+        # Verify that the rsp is correct
+        self.assertIsNotNone(uuid)
+        self.assertEquals(delegator_create_rsp["result"], 0)
+        self.assertEquals(delegator_get_rsp["uuid"], uuid)
+        self.assertEquals(delegator_get_rsp["phone_number"], "8176808185")
+        self.assertEquals(delegator_get_rsp["email"], "farcasiu.george@gmail.com")
+        self.assertEquals(delegator_get_rsp["first_name"], "George")
+        self.assertEquals(delegator_get_rsp["last_name"], "Farcasiu")
+        self.assertEquals(delegator_get_rsp["num_transactions"], 0)
+
+        # Verify that the db contains the correct information
+        delegator = delegators.get_item(uuid=uuid, consistent=True)
+        self.assertEquals(delegator["phone_number"], "8176808185")
+        self.assertEquals(delegator["first_name"], "George")
+        self.assertEquals(delegator["last_name"], "Farcasiu")
+
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(TestBasicRestFunctionality)
     unittest.TextTestRunner(verbosity=2).run(suite)

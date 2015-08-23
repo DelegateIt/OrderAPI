@@ -83,17 +83,25 @@ class Message():
             self.content, self.timestamp)
 
 class Delegator():
-    def __init__(self, phone_number=None, first_name=None, last_name=None, num_transactions=None):
+    def __init__(self, phone_number=None, email=None, first_name=None, last_name=None, num_transactions=None):
         self.uuid = get_uuid()
         self.phone_number = phone_number
+        self.email = email
         self.first_name   = first_name
         self.last_name    = last_name
-
-        if num_transactions is not None:
-            self.num_transactions = 0
+        self.num_transactions = 0 if num_transactions is None else num_transactions
 
     def get_data(self):
         return vars(self)
+
+    def is_unique(self):
+        if self.phone_number is None or self.email is None:
+            return False
+
+        phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
+        email_is_uniq   = delegators.query_count(index="email-index", email__eq=self.email) == 0
+
+        return phone_number_is_uniq and email_is_uniq
 
     def __getitem__(self, val):
         return self.__dict__[val]

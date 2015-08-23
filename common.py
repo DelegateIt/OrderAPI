@@ -12,11 +12,12 @@ class ErrorType():
 
 class Errors():
     # NOTE: do not change the returncode of these functions
-    CUSTOMER_DOES_NOT_EXIST    = ErrorType(1, "The specified phone number is not linked to a valid customer")
-    DATA_NOT_PRESENT           = ErrorType(2, "The request could not be completed without the required data")
-    UNSUPPORTED_PLATFORM       = ErrorType(3, "The platform you specified is not supported")
-    CUSTOMER_ALREADY_EXISTS    = ErrorType(4, "The specified customer already exists")
-    TRANSACTION_DOES_NOT_EXIST = ErrorType(5, "The specified transaction does not exist")
+    CUSTOMER_DOES_NOT_EXIST    = ErrorType(0, "The specified uuid is not linked to a customer")
+    DATA_NOT_PRESENT           = ErrorType(1, "The request could not be completed without the required data")
+    CUSTOMER_ALREADY_EXISTS    = ErrorType(2, "The specified customer already exists")
+    TRANSACTION_DOES_NOT_EXIST = ErrorType(3, "The specified transaction does not exist")
+    DELEGATOR_ALREADY_EXISTS   = ErrorType(4, "The specified delegator already exists")
+    DELEGATOR_DOES_NOT_EXIST   = ErrorType(5, "The specified uuid is not linked to a delegator")
 
 def error_to_json(error):
     return jsonpickle.encode({
@@ -41,4 +42,5 @@ jsonpickle.handlers.register(decimal.Decimal, BotoDecimalHandler)
 class TransactionStatus():
     STARTED   = "started"
     HELPED    = "helped"
+    CONFIRMED = "confirmed"
     COMPLETED = "completed"

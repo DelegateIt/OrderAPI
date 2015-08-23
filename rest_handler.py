@@ -46,6 +46,36 @@ def customer(uuid):
     to_return.update(customer._data)
     return jsonpickle.encode(to_return, unpicklable=False)
 
+@app.route('/delegator', methods=['POST'])
+def create_delegator():
+    data_dict = jsonpickle.decode(request.data)
+
+    if not verify_dict_contains_keys(data_dict, ["phone_number", "email", "first_name", "last_name"]):
+        return common.error_to_json(Errors.DATA_NOT_PRESENT)
+
+    delegator = Delegator(
+            first_name=data_dict["first_name"],
+            last_name=data_dict["last_name"],
+            phone_number=data_dict["phone_number"],
+            email=data_dict["email"])
+
+    if not delegator.is_unique():
+        return common.error_to_json(Errors.DELEGATOR_ALREADY_EXISTS)
+
+    models.delegators.put_item(data=delegator.get_data())
+
+    return jsonpickle.encode({"result": 0, "uuid": delegator.uuid}, unpicklable=False)
+
+@app.route('/delegator/<uuid>', methods=['GET'])
+def delegator(uuid):
+    if not models.delegators.has_item(uuid=uuid, consistent=True):
+        return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
+
+    delegator = models.delegators.get_item(uuid=uuid, consistent=True)
+
+    to_return = {"result": 0}
+    to_return.update(delegator._data)
+    return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/send_message/<uuid>', methods=['POST'])
 def send_message(uuid):
