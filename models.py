@@ -67,10 +67,11 @@ class Customer():
         return to_return
 
 class Message():
-    def __init__(self, content=None, platform_type=None):
+    def __init__(self, transaction_uuid=None, content=None, platform_type=None):
+        self.transaction_uuid = transaction_uuid
         self.content = content
-        self.timestamp = get_current_timestamp()
         self.platform_type = platform_type
+        self.timestamp = get_current_timestamp()
 
     def get_data(self):
         return vars(self)

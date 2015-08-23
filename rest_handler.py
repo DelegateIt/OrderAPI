@@ -77,18 +77,23 @@ def delegator(uuid):
     to_return.update(delegator._data)
     return jsonpickle.encode(to_return, unpicklable=False)
 
-@app.route('/send_message/<uuid>', methods=['POST'])
-def send_message(uuid):
+@app.route('/send_message/<transaction_uuid>', methods=['POST'])
+def send_message(transaction_uuid):
     data_dict = jsonpickle.decode(request.data)
 
     if not verify_dict_contains_keys(data_dict, ["content", "platform_type"]):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
-    if not models.customers.has_item(uuid=uuid, consistent=True):
-        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+    if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
+        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    message = Message(content=data_dict["content"], platform_type=data_dict["platform_type"])
-    customer = models.customers.get_item(uuid=uuid, consistent=True)
+    transaction = models.transactions.get_item(uuid=transaction_uuid)
+    customer = models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
+
+    message = Message(
+        transaction_uuid=transaction_uuid,
+        content=data_dict["content"],
+        platform_type=data_dict["platform_type"])
 
     if customer["messages"] is None:
         customer["messages"] = []
@@ -103,27 +108,42 @@ def send_message(uuid):
             "timestamp": message.timestamp
         }, unpicklable=False)
 
-@app.route('/get_messages/<uuid>', methods=['GET'])
-def get_messages(uuid):
-    if not models.customers.has_item(uuid=uuid, consistent=True):
-        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+@app.route('/get_messages/<transaction_uuid>', methods=['GET'])
+def get_messages(transaction_uuid):
+    if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
+        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    customer = models.customers.get_item(uuid=uuid, consistent=True)
+    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+    customer = models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
 
-    return jsonpickle.encode({"result": 0, "messages": customer["messages"]}, unpicklable=False)
+    to_return = {"result": 0}
 
-@app.route('/get_messages_past_timestamp/<uuid>/<timestamp>', methods=['GET'])
-def get_messages_past_timestamp(uuid, timestamp):
-    if not models.customers.has_item(uuid=uuid, consistent=True):
-        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+    if customer["messages"] is not None:
+        to_return.update({"messages": [message for message in customer["messages"]
+            if message["transaction_uuid"] == transaction_uuid]})
+    else:
+        to_return.update({"messages": None})
 
-    messages = models.customers.get_item(uuid=uuid, consistent=True)["messages"]
+    return jsonpickle.encode(to_return, unpicklable=False)
+
+@app.route('/get_messages_past_timestamp/<transaction_uuid>/<timestamp>', methods=['GET'])
+def get_messages_past_timestamp(transaction_uuid, timestamp):
+    if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
+        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+
+    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+    messages = models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)["messages"]
     timestamp = int(timestamp)
 
-    return jsonpickle.encode({
-        "result": 0,
-        "messages": [message for message in messages if int(message["timestamp"]) > timestamp]},
-        unpicklable=False)
+    to_return = {"result": 0}
+
+    if messages is not None:
+        to_return.update({"messages": [message for message in messages
+            if int(message["timestamp"]) > timestamp and message["transaction_uuid"] == transaction_uuid]})
+    else:
+        to_return.update({"messages": None})
+
+    return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/transaction', methods=['POST'])
 def create_transaction():

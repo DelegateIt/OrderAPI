@@ -77,17 +77,24 @@ class TestBasicRestFunctionality(unittest.TestCase):
             "last_name":  "Farcasiu"
         })
 
+        customer_response_data = requests.post("%s/customer" % server_url, customer_json_data).json()
+        customer_uuid = customer_response_data["uuid"]
+
+        transaction_json_data = json.dumps({
+            "customer_uuid": customer_uuid
+        })
+
+        transaction_response_data = requests.post("%s/transaction" % server_url, transaction_json_data).json()
+        transaction_uuid = transaction_response_data["uuid"]
+
         message_json_data = json.dumps({
             "platform_type": "sms",
             "content": "test_send_message content"
         })
 
-        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
-        uuid = customer_response_data["uuid"]
-
-        message_get_response_data_1  = requests.get("%s/get_messages/%s" % (server_url, uuid)).json()
-        message_send_response_data = requests.post("%s/send_message/%s" % (server_url, uuid), message_json_data).json()
-        message_get_response_data_2  = requests.get("%s/get_messages/%s" % (server_url, uuid)).json()
+        message_get_response_data_1  = requests.get("%s/get_messages/%s" % (server_url, transaction_uuid)).json()
+        message_send_response_data = requests.post("%s/send_message/%s" % (server_url, transaction_uuid), message_json_data).json()
+        message_get_response_data_2  = requests.get("%s/get_messages/%s" % (server_url, transaction_uuid)).json()
 
         # Verify that responses are correct
         self.assertEquals(customer_response_data["result"], 0)
@@ -98,11 +105,12 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertNotEquals(message_send_response_data["timestamp"], None)
 
         self.assertEquals(len(message_get_response_data_2["messages"]), 1)
+        self.assertEquals(message_get_response_data_2["messages"][0]["transaction_uuid"], transaction_uuid)
         self.assertEquals(message_get_response_data_2["messages"][0]["content"], "test_send_message content")
         self.assertIsNotNone(message_get_response_data_2["messages"][0].get("timestamp"))
 
         # Check the db to make sure our data is correct
-        customer = customers.get_item(uuid=uuid, consistent=True)
+        customer = customers.get_item(uuid=customer_uuid, consistent=True)
         self.assertIsNotNone(customer.get("messages"))
         self.assertEquals(len(customer["messages"]), 1)
         self.assertEquals(customer["messages"][0]["content"], "test_send_message content")
@@ -110,12 +118,22 @@ class TestBasicRestFunctionality(unittest.TestCase):
 
         self.assertEquals(message_get_response_data_2["messages"][0]["timestamp"], customer["messages"][0]["timestamp"])
 
-    def test_get_message_past_timestamp(self):
+    def test_get_messages_past_timestamp(self):
         customer_json_data = json.dumps({
             "phone_number": "8176808185",
             "first_name": "George",
             "last_name":  "Farcasiu"
         })
+
+        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
+        customer_uuid = customer_response_data["uuid"]
+
+        transaction_json_data = json.dumps({
+            "customer_uuid": customer_uuid
+        })
+
+        transaction_response_data = requests.post("%s/transaction" % server_url, transaction_json_data).json()
+        transaction_uuid = transaction_response_data["uuid"]
 
         message_json_data_1 = json.dumps({
             "platform_type": "sms",
@@ -127,13 +145,10 @@ class TestBasicRestFunctionality(unittest.TestCase):
             "content": "test_send_message content 2"
         })
 
-        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
-        uuid = customer_response_data["uuid"]
+        message_response_data_1 = requests.post("%s/send_message/%s" % (server_url, transaction_uuid), message_json_data_1).json()
+        message_response_data_2 = requests.post("%s/send_message/%s" % (server_url, transaction_uuid), message_json_data_2).json()
 
-        message_response_data_1 = requests.post("%s/send_message/%s" % (server_url, uuid), message_json_data_1).json()
-        message_response_data_2 = requests.post("%s/send_message/%s" % (server_url, uuid), message_json_data_2).json()
-
-        message_get_response_data = requests.get("%s/get_messages_past_timestamp/%s/%s" % (server_url, uuid, message_response_data_1["timestamp"])).json()
+        message_get_response_data = requests.get("%s/get_messages_past_timestamp/%s/%s" % (server_url, transaction_uuid, message_response_data_1["timestamp"])).json()
 
         # Verify that response is correct
         self.assertEquals(customer_response_data["result"], 0)
