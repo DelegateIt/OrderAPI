@@ -29,7 +29,7 @@ def index():
 
 @app.route('/customer', methods=['POST'])
 def create_customer():
-    data_dict = jsonpickle.decode(request.data)
+    data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not verify_dict_contains_keys(data_dict, ["phone_number", "first_name", "last_name"]):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
@@ -59,7 +59,7 @@ def customer(uuid):
 
 @app.route('/delegator', methods=['POST'])
 def create_delegator():
-    data_dict = jsonpickle.decode(request.data)
+    data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not verify_dict_contains_keys(data_dict, ["phone_number", "email", "first_name", "last_name"]):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
@@ -90,7 +90,7 @@ def delegator(uuid):
 
 @app.route('/send_message/<transaction_uuid>', methods=['POST'])
 def send_message(transaction_uuid):
-    data_dict = jsonpickle.decode(request.data)
+    data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not verify_dict_contains_keys(data_dict, ["content", "platform_type"]):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
@@ -158,7 +158,7 @@ def get_messages_past_timestamp(transaction_uuid, timestamp):
 
 @app.route('/transaction', methods=['POST'])
 def create_transaction():
-    data_dict = jsonpickle.decode(request.data)
+    data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not verify_dict_contains_keys(data_dict, ["customer_uuid"]):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
@@ -168,8 +168,8 @@ def create_transaction():
 
     transaction = Transaction(
             customer_uuid = data_dict["customer_uuid"],
-            status = TransactionStatus.STARTED if not data_dict.has_key("status") else data_dict["status"],
-            delegator_uuid =  data_dict["delegator_uuid"] if data_dict.has_key("delegator_uuid") else None)
+            status = TransactionStatus.STARTED if not "status" in data_dict else data_dict["status"],
+            delegator_uuid =  data_dict["delegator_uuid"] if "delegator_uuid" in data_dict else None)
 
     models.transactions.put_item(data=transaction.get_data())
 
@@ -181,7 +181,7 @@ def transaction(uuid):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     if request.method == 'PUT':
-        data_dict = jsonpickle.decode(request.data)
+        data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
         transaction = models.transactions.get_item(uuid=uuid)
 
