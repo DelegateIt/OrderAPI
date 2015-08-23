@@ -16,43 +16,49 @@ app.debug = True
 def index():
     return "GatorRestService is up and running!"
 
-@app.route('/customer/<phone_number>', methods=['POST', 'GET'])
-def customer(phone_number):
-    if request.method == 'POST':
-        if models.customers.has_item(phone_number=phone_number, consistent=True):
-            return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
+@app.route('/customer', methods=['POST'])
+def create_customer():
+    data_dict = jsonpickle.decode(request.data)
 
-        data_dict = jsonpickle.decode(request.data)
+    if not verify_dict_contains_keys(data_dict, ["phone_number", "first_name", "last_name"]):
+        return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
-        if not verify_dict_contains_keys(data_dict, ["first_name", "last_name"]):
-            return common.error_to_json(Errors.DATA_NOT_PRESENT)
+    customer = Customer(
+            first_name=data_dict["first_name"],
+            last_name=data_dict["last_name"],
+            phone_number=data_dict["phone_number"])
 
-        customer = Customer(first_name=data_dict["first_name"], last_name=data_dict["last_name"], phone_number=phone_number)
-        models.customers.put_item(data=customer.get_data())
+    if not customer.is_unique():
+        return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
 
-        return jsonpickle.encode({"result": 0}, unpicklable=False)
-    elif request.method == 'GET':
-        if not models.customers.has_item(phone_number=phone_number, consistent=True):
-            return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+    models.customers.put_item(data=customer.get_data())
 
-        customer = models.customers.get_item(phone_number=phone_number, consistent=True)
+    return jsonpickle.encode({"result": 0, "uuid": customer.uuid}, unpicklable=False)
 
-        to_return = {"result": 0}
-        to_return.update(customer._data)
-        return jsonpickle.encode(to_return, unpicklable=False)
+@app.route('/customer/<uuid>', methods=['GET'])
+def customer(uuid):
+    if not models.customers.has_item(uuid=uuid, consistent=True):
+        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-@app.route('/send_message/<phone_number>', methods=['POST'])
-def send_message(phone_number):
+    customer = models.customers.get_item(uuid=uuid, consistent=True)
+
+    to_return = {"result": 0}
+    to_return.update(customer._data)
+    return jsonpickle.encode(to_return, unpicklable=False)
+
+
+@app.route('/send_message/<uuid>', methods=['POST'])
+def send_message(uuid):
     data_dict = jsonpickle.decode(request.data)
 
     if not verify_dict_contains_keys(data_dict, ["content", "platform_type"]):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
-    if not models.customers.has_item(phone_number=phone_number, consistent=True):
+    if not models.customers.has_item(uuid=uuid, consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
     message = Message(content=data_dict["content"], platform_type=data_dict["platform_type"])
-    customer = models.customers.get_item(phone_number=phone_number, consistent=True)
+    customer = models.customers.get_item(uuid=uuid, consistent=True)
 
     if customer["messages"] is None:
         customer["messages"] = []
@@ -67,21 +73,21 @@ def send_message(phone_number):
             "timestamp": message.timestamp
         }, unpicklable=False)
 
-@app.route('/get_messages/<phone_number>', methods=['GET'])
-def get_messages(phone_number):
-    if not models.customers.has_item(phone_number=phone_number, consistent=True):
+@app.route('/get_messages/<uuid>', methods=['GET'])
+def get_messages(uuid):
+    if not models.customers.has_item(uuid=uuid, consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    customer = models.customers.get_item(phone_number=phone_number, consistent=True)
+    customer = models.customers.get_item(uuid=uuid, consistent=True)
 
     return jsonpickle.encode({"result": 0, "messages": customer["messages"]}, unpicklable=False)
 
-@app.route('/get_messages_past_timestamp/<phone_number>/<timestamp>', methods=['GET'])
-def get_messages_past_timestamp(phone_number, timestamp):
-    if not models.customers.has_item(phone_number=phone_number, consistent=True):
+@app.route('/get_messages_past_timestamp/<uuid>/<timestamp>', methods=['GET'])
+def get_messages_past_timestamp(uuid, timestamp):
+    if not models.customers.has_item(uuid=uuid, consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    messages = models.customers.get_item(phone_number=phone_number, consistent=True)["messages"]
+    messages = models.customers.get_item(uuid=uuid, consistent=True)["messages"]
     timestamp = int(timestamp)
 
     return jsonpickle.encode({
@@ -89,29 +95,34 @@ def get_messages_past_timestamp(phone_number, timestamp):
         "messages": [message for message in messages if int(message["timestamp"]) > timestamp]},
         unpicklable=False)
 
-@app.route('/transaction/<customer_phone_number>', methods=['GET', 'POST', 'PUT'])
-def transaction(customer_phone_number):
-    if not models.customers.has_item(phone_number=customer_phone_number, consistent=True):
+@app.route('/transaction', methods=['POST'])
+def create_transaction():
+    data_dict = jsonpickle.decode(request.data)
+
+    if not verify_dict_contains_keys(data_dict, ["customer_uuid"]):
+        return common.error_to_json(Errors.DATA_NOT_PRESENT)
+
+    if not models.customers.has_item(uuid=data_dict["customer_uuid"], consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    if request.method == 'POST':
+    transaction = Transaction(
+            customer_uuid = data_dict["customer_uuid"],
+            status = TransactionStatus.STARTED if not data_dict.has_key("status") else data_dict["status"],
+            delegator_uuid =  data_dict["delegator_uuid"] if data_dict.has_key("delegator_uuid") else None)
+
+    models.transactions.put_item(data=transaction.get_data())
+
+    return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
+
+@app.route('/transaction/<uuid>', methods=['GET', 'PUT'])
+def transaction(uuid):
+    if not models.transactions.has_item(uuid=uuid, consistent=True):
+        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+
+    if request.method == 'PUT':
         data_dict = jsonpickle.decode(request.data)
 
-        transaction = Transaction(
-                customer_phone_number = customer_phone_number,
-                status = TransactionStatus.STARTED if not data_dict.has_key("status") else data_dict["status"],
-                delegator_phone_number =  data_dict["delegator_phone_number"] if data_dict.has_key("delegator_phone_number") else None)
-
-        models.transactions.put_item(data=transaction.get_data())
-
-        return jsonpickle.encode({"result": 0}, unpicklable=False)
-    elif request.method == 'PUT':
-        data_dict = jsonpickle.decode(request.data)
-
-        if not models.transactions.has_item(customer_phone_number=customer_phone_number, consistent=True):
-            return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
-
-        transaction = models.transactions.get_item(customer_phone_number=customer_phone_number)
+        transaction = models.transactions.get_item(uuid=uuid)
 
         for key in data_dict:
             transaction[key] = data_dict[key]
@@ -120,7 +131,7 @@ def transaction(customer_phone_number):
 
         return jsonpickle.encode({"result": 0}, unpicklable=False)
     elif request.method == 'GET':
-        transaction = models.transactions.get_item(customer_phone_number=customer_phone_number, consistent=True)
+        transaction = models.transactions.get_item(uuid=uuid, consistent=True)
 
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
@@ -136,15 +147,15 @@ def get_transactions_with_status(status):
 
 @app.route("/sms_callback", methods=["POST"])
 def sms_callback():
-    print jsonpicke.decode(request.data)
+    pass
 
 ####################
 # Helper functions #
 ####################
 
 def verify_dict_contains_keys(dic, keys):
-    for cur_key in dic:
-        if cur_key not in keys:
+    for cur_key in keys:
+        if cur_key not in dic:
             return False
 
     return True

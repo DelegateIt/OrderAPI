@@ -5,6 +5,7 @@ import jsonpickle
 
 import time
 import json
+import uuid
 
 ##############################
 # Global vars, consts, extra #
@@ -23,6 +24,7 @@ transactions = Table("DelegateIt_Transactions", connection=conn)
 
 class Customer():
     def __init__(self, phone_number=None, first_name=None, last_name=None, messages=None):
+        self.uuid = get_uuid()
         self.phone_number = phone_number
         self.first_name   = first_name
         self.last_name    = last_name
@@ -43,6 +45,12 @@ class Customer():
             data["messages"] = [message.get_data() for message in data["messages"]]
 
         return data
+
+    def is_unique(self):
+        if self.phone_number is None:
+            return False
+
+        return customers.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
 
     def __getitem__(self, val):
         return self.__dict__[val]
@@ -76,6 +84,7 @@ class Message():
 
 class Delegator():
     def __init__(self, phone_number=None, first_name=None, last_name=None, num_transactions=None):
+        self.uuid = get_uuid()
         self.phone_number = phone_number
         self.first_name   = first_name
         self.last_name    = last_name
@@ -94,13 +103,14 @@ class Delegator():
             self.first_name, self.last_name, self.phone_number)
 
 class Transaction():
-    def __init__(self, customer_phone_number=None, status=None, delegator_phone_number=None):
-        self.customer_phone_number = customer_phone_number
+    def __init__(self, customer_uuid=None, status=None, delegator_uuid=None):
+        self.uuid = get_uuid()
+        self.customer_uuid = customer_uuid
         self.status = status
         self.timestamp = get_current_timestamp()
 
-        if delegator_phone_number is not None:
-            self.delegator_phone_number = delegator_phone_number
+        if delegator_uuid is not None:
+            self.delegator_uuid = delegator_uuid
 
     def get_data(self):
         return vars(self)
@@ -115,8 +125,8 @@ class Transaction():
         to_return = "<Transaction(customer_phone_number='%s', status='%s'" % (
             self.customer_phone_number, self.status)
 
-        if self.delegator_phone_number is not None:
-            to_return += ", delegator_phone_number='%s')>" % self.delegator_phone_number
+        if self.delegator_uuid is not None:
+            to_return += ", delegator_uuid='%s')>" % self.delegator_uuid
         else:
             to_return += ">"
 
@@ -129,16 +139,5 @@ class Transaction():
 def get_current_timestamp():
     return int(time.time() * 10**6)
 
-def create_customer_from_item(item):
-    customer = Customer()
-
-    for key in customer.get_data():
-        customer[key] = item[key]
-
-    if item.get("messages") is not None:
-        customer["messages"] = []
-        for message in item["messages"]:
-            customer["messages"].append(Message(
-                content=message["content"], timestamp=message["timestamp"]))
-
-    return customer
+def get_uuid():
+    return str(uuid.uuid4().int >> 64)

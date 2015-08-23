@@ -36,42 +36,43 @@ class TestBasicRestFunctionality(unittest.TestCase):
 
     def test_create_customer(self):
         customer_json_data = json.dumps({
+            "phone_number": "8176808185",
             "first_name": "George",
             "last_name":  "Farcasiu"
         })
 
-        phone_number = "8176808185"
-
-        customer_response_data = requests.post("%s/customer/%s" % (server_url, phone_number), customer_json_data).json()
+        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
 
         # Verify that the response is correct
         self.assertEquals(customer_response_data["result"], 0)
+        self.assertIsNotNone(customer_response_data["uuid"])
 
         # Check the db to make sure our data is correct
-        customer = customers.get_item(phone_number=phone_number, consistent=True)
+        customer = customers.get_item(uuid=customer_response_data["uuid"], consistent=True)
         self.assertEquals(customer["first_name"], "George")
         self.assertEquals(customer["last_name"],  "Farcasiu")
 
     def test_get_customer(self):
         customer_json_data = json.dumps({
+            "phone_number": "8176808185",
             "first_name": "George",
             "last_name":  "Farcasiu"
         })
 
-        phone_number = "8176808185"
 
-        customer_post_data = requests.post("%s/customer/%s" % (server_url, phone_number), customer_json_data).json()
-        customer_get_data = requests.get("%s/customer/%s" % (server_url, phone_number)).json()
+        customer_post_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
+        customer_get_data = requests.get("%s/customer/%s" % (server_url, customer_post_data["uuid"])).json()
 
         # Verify that the response is correct
         self.assertEquals(customer_post_data["result"], 0)
         self.assertEquals(customer_get_data["result"], 0)
         self.assertEquals(customer_get_data["first_name"], "George")
         self.assertEquals(customer_get_data["last_name"], "Farcasiu")
-        self.assertEquals(customer_get_data["phone_number"], phone_number)
+        self.assertEquals(customer_get_data["phone_number"], "8176808185")
 
     def test_send_message(self):
         customer_json_data = json.dumps({
+            "phone_number": "8176808185",
             "first_name": "George",
             "last_name":  "Farcasiu"
         })
@@ -81,12 +82,12 @@ class TestBasicRestFunctionality(unittest.TestCase):
             "content": "test_send_message content"
         })
 
-        phone_number = "8176808185"
+        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
+        uuid = customer_response_data["uuid"]
 
-        customer_response_data = requests.post("%s/customer/%s" % (server_url, phone_number), customer_json_data).json()
-        message_get_response_data_1  = requests.get("%s/get_messages/%s" % (server_url, phone_number)).json()
-        message_send_response_data = requests.post("%s/send_message/%s" % (server_url, phone_number), message_json_data).json()
-        message_get_response_data_2  = requests.get("%s/get_messages/%s" % (server_url, phone_number)).json()
+        message_get_response_data_1  = requests.get("%s/get_messages/%s" % (server_url, uuid)).json()
+        message_send_response_data = requests.post("%s/send_message/%s" % (server_url, uuid), message_json_data).json()
+        message_get_response_data_2  = requests.get("%s/get_messages/%s" % (server_url, uuid)).json()
 
         # Verify that responses are correct
         self.assertEquals(customer_response_data["result"], 0)
@@ -101,7 +102,7 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertIsNotNone(message_get_response_data_2["messages"][0].get("timestamp"))
 
         # Check the db to make sure our data is correct
-        customer = customers.get_item(phone_number=phone_number, consistent=True)
+        customer = customers.get_item(uuid=uuid, consistent=True)
         self.assertIsNotNone(customer.get("messages"))
         self.assertEquals(len(customer["messages"]), 1)
         self.assertEquals(customer["messages"][0]["content"], "test_send_message content")
@@ -111,6 +112,7 @@ class TestBasicRestFunctionality(unittest.TestCase):
 
     def test_get_message_past_timestamp(self):
         customer_json_data = json.dumps({
+            "phone_number": "8176808185",
             "first_name": "George",
             "last_name":  "Farcasiu"
         })
@@ -125,13 +127,13 @@ class TestBasicRestFunctionality(unittest.TestCase):
             "content": "test_send_message content 2"
         })
 
-        phone_number = "8176808185"
+        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
+        uuid = customer_response_data["uuid"]
 
-        customer_response_data = requests.post("%s/customer/%s" % (server_url, phone_number), customer_json_data).json()
-        message_response_data_1 = requests.post("%s/send_message/%s" % (server_url, phone_number), message_json_data_1).json()
-        message_response_data_2 = requests.post("%s/send_message/%s" % (server_url, phone_number), message_json_data_2).json()
+        message_response_data_1 = requests.post("%s/send_message/%s" % (server_url, uuid), message_json_data_1).json()
+        message_response_data_2 = requests.post("%s/send_message/%s" % (server_url, uuid), message_json_data_2).json()
 
-        message_get_response_data = requests.get("%s/get_messages_past_timestamp/%s/%s" % (server_url, phone_number, message_response_data_1["timestamp"])).json()
+        message_get_response_data = requests.get("%s/get_messages_past_timestamp/%s/%s" % (server_url, uuid, message_response_data_1["timestamp"])).json()
 
         # Verify that response is correct
         self.assertEquals(customer_response_data["result"], 0)
@@ -144,9 +146,8 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertIsNotNone(message_get_response_data["messages"][0]["timestamp"])
 
     def test_transaction(self):
-        phone_number = "8176808185"
-
         customer_json_data = json.dumps({
+            "phone_number": "8176808185",
             "first_name": "George",
             "last_name":  "Farcasiu"
         })
@@ -155,38 +156,48 @@ class TestBasicRestFunctionality(unittest.TestCase):
             "status": "helped"
         })
 
-        requests.post("%s/customer/%s" % (server_url, phone_number), customer_json_data)
-        transaction_create_response = requests.post("%s/transaction/%s" % (server_url, phone_number), json.dumps({})).json()
-        transaction_get_response = requests.get("%s/transaction/%s" % (server_url, phone_number)).json()
-        transaction_update_response = requests.put("%s/transaction/%s" % (server_url, phone_number), transaction_update_json_data).json()
+        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
+        customer_uuid = customer_response_data["uuid"]
+
+        transaction_create_response = requests.post("%s/transaction" % server_url,
+                json.dumps({"customer_uuid": customer_uuid})).json()
+        transaction_uuid = transaction_create_response["uuid"]
+
+        transaction_get_response = requests.get("%s/transaction/%s" % (server_url, transaction_uuid)).json()
+        transaction_update_response = requests.put("%s/transaction/%s" % (server_url, transaction_uuid), transaction_update_json_data).json()
 
         # Verify that the response
         self.assertEquals(transaction_create_response["result"], 0)
+        self.assertIsNotNone(transaction_create_response["uuid"])
         self.assertEquals(transaction_get_response["result"], 0)
         self.assertEquals(transaction_update_response["result"], 0)
 
-        self.assertEquals(transaction_get_response["transaction"]["customer_phone_number"], phone_number)
+        self.assertEquals(transaction_get_response["transaction"]["customer_uuid"], customer_uuid)
         self.assertEquals(transaction_get_response["transaction"]["status"], "started") # old value
-        self.assertEquals(transaction_get_response["transaction"].get("delegator_phone_number"), None)
+        self.assertEquals(transaction_get_response["transaction"].get("delegator_uuid"), None)
 
         # Verify that information in the db is correct
-        transaction = transactions.get_item(customer_phone_number=phone_number)
-        self.assertEquals(transaction["customer_phone_number"], phone_number)
+        transaction = transactions.get_item(uuid=transaction_uuid)
+        self.assertEquals(transaction["customer_uuid"], customer_uuid)
         self.assertEquals(transaction["status"], "helped")
 
     def test_get_transactions_with_status(self):
-        phone_number_1 = "8176808185"
-        phone_number_2 = "8176808184"
-
-        customer_json_data = json.dumps({
+        customer_json_data_1 = json.dumps({
+            "phone_number": "8176808180",
             "first_name": "George",
             "last_name":  "Farcasiu"
         })
 
-        requests.post("%s/customer/%s" % (server_url, phone_number_1), customer_json_data)
-        requests.post("%s/customer/%s" % (server_url, phone_number_2), customer_json_data)
-        requests.post("%s/transaction/%s" % (server_url, phone_number_1), json.dumps({"status": "helped"}))
-        requests.post("%s/transaction/%s" % (server_url, phone_number_2), json.dumps({}))
+        customer_json_data_2 = json.dumps({
+            "phone_number": "8176808185",
+            "first_name": "~George",
+            "last_name":  "~Farcasiu"
+        })
+
+        uuid_1 = requests.post("%s/customer" % (server_url), customer_json_data_1).json()["uuid"]
+        uuid_2 = requests.post("%s/customer" % (server_url), customer_json_data_2).json()["uuid"]
+        requests.post("%s/transaction" % (server_url), json.dumps({"customer_uuid": uuid_1, "status": "helped"}))
+        requests.post("%s/transaction" % (server_url), json.dumps({"customer_uuid": uuid_2}))
         query_response = requests.get("%s/get_transactions_with_status/%s" % (server_url, "helped")).json()
 
         # Verify that the responses are correct
