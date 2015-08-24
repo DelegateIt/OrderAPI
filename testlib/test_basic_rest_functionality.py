@@ -2,11 +2,8 @@ import unittest
 
 import boto.dynamodb2
 from boto.dynamodb2.table import Table
-from boto.dynamodb.batch import BatchWrite
 
-import re
-import requests, json
-import subprocess, os, signal
+import apiclient
 
 # Connection to DynamoDB
 conn = boto.dynamodb2.connect_to_region(
@@ -20,8 +17,8 @@ delegators   = Table("DelegateIt_Delegators", connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
 
 # Service configs
-server_url = "http://127.0.0.1:80"
-# server_url = "http://backend-lb-125133299.us-west-2.elb.amazonaws.com"
+# apiclient.default_host = "backend-lb-125133299.us-west-2.elb.amazonaws.com"
+apiclient.default_host = "localhost:80"
 
 def clear():
     for table in [customers, delegators, transactions]:
@@ -36,13 +33,8 @@ class TestBasicRestFunctionality(unittest.TestCase):
         clear()
 
     def test_create_customer(self):
-        customer_json_data = json.dumps({
-            "phone_number": "8176808185",
-            "first_name": "George",
-            "last_name":  "Farcasiu"
-        })
 
-        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
+        customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
 
         # Verify that the response is correct
         self.assertEquals(customer_response_data["result"], 0)
@@ -54,15 +46,8 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(customer["last_name"],  "Farcasiu")
 
     def test_get_customer(self):
-        customer_json_data = json.dumps({
-            "phone_number": "8176808185",
-            "first_name": "George",
-            "last_name":  "Farcasiu"
-        })
-
-
-        customer_post_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
-        customer_get_data = requests.get("%s/customer/%s" % (server_url, customer_post_data["uuid"])).json()
+        customer_post_data = apiclient.create_customer("George","Farcasiu", "8176808185")
+        customer_get_data = apiclient.get_customer(customer_post_data["uuid"])
 
         # Verify that the response is correct
         self.assertEquals(customer_post_data["result"], 0)
@@ -72,30 +57,16 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(customer_get_data["phone_number"], "8176808185")
 
     def test_send_message(self):
-        customer_json_data = json.dumps({
-            "phone_number": "8176808185",
-            "first_name": "George",
-            "last_name":  "Farcasiu"
-        })
-
-        customer_response_data = requests.post("%s/customer" % server_url, customer_json_data).json()
+        customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
         customer_uuid = customer_response_data["uuid"]
 
-        transaction_json_data = json.dumps({
-            "customer_uuid": customer_uuid
-        })
-
-        transaction_response_data = requests.post("%s/transaction" % server_url, transaction_json_data).json()
+        transaction_response_data = apiclient.create_transaction(customer_uuid)
         transaction_uuid = transaction_response_data["uuid"]
 
-        message_json_data = json.dumps({
-            "platform_type": "sms",
-            "content": "test_send_message content"
-        })
 
-        message_get_response_data_1  = requests.get("%s/get_messages/%s" % (server_url, transaction_uuid)).json()
-        message_send_response_data = requests.post("%s/send_message/%s" % (server_url, transaction_uuid), message_json_data).json()
-        message_get_response_data_2  = requests.get("%s/get_messages/%s" % (server_url, transaction_uuid)).json()
+        message_get_response_data_1  = apiclient.get_messages(transaction_uuid)
+        message_send_response_data = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content")
+        message_get_response_data_2  = apiclient.get_messages(transaction_uuid)
 
         # Verify that responses are correct
         self.assertEquals(customer_response_data["result"], 0)
@@ -120,36 +91,16 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(message_get_response_data_2["messages"][0]["timestamp"], customer["messages"][0]["timestamp"])
 
     def test_get_messages_past_timestamp(self):
-        customer_json_data = json.dumps({
-            "phone_number": "8176808185",
-            "first_name": "George",
-            "last_name":  "Farcasiu"
-        })
-
-        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
+        customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
         customer_uuid = customer_response_data["uuid"]
 
-        transaction_json_data = json.dumps({
-            "customer_uuid": customer_uuid
-        })
-
-        transaction_response_data = requests.post("%s/transaction" % server_url, transaction_json_data).json()
+        transaction_response_data = apiclient.create_transaction(customer_uuid)
         transaction_uuid = transaction_response_data["uuid"]
 
-        message_json_data_1 = json.dumps({
-            "platform_type": "sms",
-            "content": "test_send_message content 1"
-        })
+        message_response_data_1 = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content 1")
+        message_response_data_2 = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content 2")
 
-        message_json_data_2 = json.dumps({
-            "platform_type": "sms",
-            "content": "test_send_message content 2"
-        })
-
-        message_response_data_1 = requests.post("%s/send_message/%s" % (server_url, transaction_uuid), message_json_data_1).json()
-        message_response_data_2 = requests.post("%s/send_message/%s" % (server_url, transaction_uuid), message_json_data_2).json()
-
-        message_get_response_data = requests.get("%s/get_messages_past_timestamp/%s/%s" % (server_url, transaction_uuid, message_response_data_1["timestamp"])).json()
+        message_get_response_data = apiclient.get_messages_past_timestamp(transaction_uuid, message_response_data_1["timestamp"])
 
         # Verify that response is correct
         self.assertEquals(customer_response_data["result"], 0)
@@ -162,25 +113,14 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertIsNotNone(message_get_response_data["messages"][0]["timestamp"])
 
     def test_transaction(self):
-        customer_json_data = json.dumps({
-            "phone_number": "8176808185",
-            "first_name": "George",
-            "last_name":  "Farcasiu"
-        })
-
-        transaction_update_json_data = json.dumps({
-            "status": "helped"
-        })
-
-        customer_response_data = requests.post("%s/customer" % (server_url), customer_json_data).json()
+        customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
         customer_uuid = customer_response_data["uuid"]
 
-        transaction_create_response = requests.post("%s/transaction" % server_url,
-                json.dumps({"customer_uuid": customer_uuid})).json()
+        transaction_create_response = apiclient.create_transaction(customer_uuid)
         transaction_uuid = transaction_create_response["uuid"]
 
-        transaction_get_response = requests.get("%s/transaction/%s" % (server_url, transaction_uuid)).json()
-        transaction_update_response = requests.put("%s/transaction/%s" % (server_url, transaction_uuid), transaction_update_json_data).json()
+        transaction_get_response = apiclient.get_transaction(transaction_uuid)
+        transaction_update_response = apiclient.update_transaction(transaction_uuid, "helped")
 
         # Verify that the response
         self.assertEquals(transaction_create_response["result"], 0)
@@ -198,23 +138,11 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(transaction["status"], "helped")
 
     def test_get_transactions_with_status(self):
-        customer_json_data_1 = json.dumps({
-            "phone_number": "8176808180",
-            "first_name": "George",
-            "last_name":  "Farcasiu"
-        })
-
-        customer_json_data_2 = json.dumps({
-            "phone_number": "8176808185",
-            "first_name": "~George",
-            "last_name":  "~Farcasiu"
-        })
-
-        uuid_1 = requests.post("%s/customer" % (server_url), customer_json_data_1).json()["uuid"]
-        uuid_2 = requests.post("%s/customer" % (server_url), customer_json_data_2).json()["uuid"]
-        requests.post("%s/transaction" % (server_url), json.dumps({"customer_uuid": uuid_1, "status": "helped"}))
-        requests.post("%s/transaction" % (server_url), json.dumps({"customer_uuid": uuid_2}))
-        query_response = requests.get("%s/get_transactions_with_status/%s" % (server_url, "helped")).json()
+        uuid_1 = apiclient.create_customer("George","Farcasiu", "8176808180")["uuid"]
+        uuid_2 = apiclient.create_customer("~George","~Farcasiu", "8176808185")["uuid"]
+        apiclient.create_transaction(uuid_1, status="helped")
+        apiclient.create_transaction(uuid_2)
+        query_response = apiclient.get_transactions_with_status("helped")
 
         # Verify that the responses are correct
         self.assertEquals(query_response["result"], 0)
@@ -222,17 +150,10 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(query_response["transactions"][0]["status"], "helped")
 
     def test_delegator(self):
-        delegator_json = json.dumps({
-            "phone_number": "8176808185",
-            "email": "farcasiu.george@gmail.com",
-            "first_name": "George",
-            "last_name": "Farcasiu"
-        })
-
-        delegator_create_rsp = requests.post("%s/delegator" % (server_url), delegator_json).json()
+        delegator_create_rsp = apiclient.create_delegator("George", "Farcasiu", "8176808185", "farcasiu.george@gmail.com")
         uuid = delegator_create_rsp["uuid"]
 
-        delegator_get_rsp = requests.get("%s/delegator/%s" % (server_url, uuid)).json()
+        delegator_get_rsp = apiclient.get_delegator(uuid)
 
         # Verify that the rsp is correct
         self.assertIsNotNone(uuid)
