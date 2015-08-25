@@ -23,26 +23,26 @@ delegators   = Table("DelegateIt_Delegators",   connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
 
 class Customer():
-    def __init__(self, phone_number=None, first_name=None, last_name=None, messages=None):
+    def __init__(self, phone_number=None, first_name=None, last_name=None, transaction_uuids=None):
         self.uuid = get_uuid()
         self.phone_number = phone_number
         self.first_name   = first_name
         self.last_name    = last_name
 
-        if messages is not None:
-            self.messages = messages
+        if transaction_uuids is not None:
+            self.transaction_uuids = transaction_uuids
 
-    def add_message(self, new_message):
-        if not hasattr(self, "messages"):
-            self.messages = []
+    def add_transaction_uuid(self, new_transaction_uuid):
+        if not hasattr(self, "transaction_uuids"):
+            self.transaction_uuids = []
 
-        self.messages.append(new_message)
+        self.transaction_uuids.append(new_transaction)
 
     def get_data(self):
         data = vars(self)
 
-        if data.get("messages") is not None:
-            data["messages"] = [message.get_data() for message in data["messages"]]
+        if data.get("transaction_uuids") is not None:
+            data["transaction_uuids"] = [transaction.get_data() for transaction in data["transaction_uuids"]]
 
         return data
 
@@ -55,20 +55,9 @@ class Customer():
     def __getitem__(self, val):
         return self.__dict__[val]
 
-    def __repr__(self):
-        to_return = "<Customer(first_name='%s', last_name='%s', phone_number='%s'" \
-            % (self.first_name, self.last_name, self.phone_number)
-
-        if hasattr(self, "messages"):
-            to_return += ", messages=[%s])>" % ",\n\t".join([str(message) for message in self.messages])
-        else:
-            to_return += ">"
-
-        return to_return
-
 class Message():
-    def __init__(self, transaction_uuid=None, content=None, platform_type=None):
-        self.transaction_uuid = transaction_uuid
+    def __init__(self, from_customer=None, content=None, platform_type=None):
+        self.from_customer = from_customer
         self.content = content
         self.platform_type = platform_type
         self.timestamp = get_current_timestamp()
@@ -79,21 +68,24 @@ class Message():
     def __getitem__(self, val):
         return self.__dict__[val]
 
-    def __repr__(self):
-        return "<Message(content='%s', timestamp='%s')>" % (
-            self.content, self.timestamp)
-
 class Delegator():
-    def __init__(self, phone_number=None, email=None, first_name=None, last_name=None, num_transactions=None):
+    def __init__(self, phone_number=None, email=None, first_name=None, last_name=None, transactions=None):
         self.uuid = get_uuid()
         self.phone_number = phone_number
         self.email = email
         self.first_name   = first_name
         self.last_name    = last_name
-        self.num_transactions = 0 if num_transactions is None else num_transactions
+
+        if transactions is not None:
+            self.transactions = transactions
 
     def get_data(self):
-        return vars(self)
+        data = vars(self)
+
+        if data.get("transactions") is not None:
+            data["transactions"] = [transaction.get_data() for transaction in data["transactions"]]
+
+        return data
 
     def is_unique(self):
         if self.phone_number is None or self.email is None:
@@ -107,12 +99,8 @@ class Delegator():
     def __getitem__(self, val):
         return self.__dict__[val]
 
-    def __repr__(self):
-        return "<Delegator(first_name='%s', last_name='%s', phone_number='%s')>" % (
-            self.first_name, self.last_name, self.phone_number)
-
 class Transaction():
-    def __init__(self, customer_uuid=None, status=None, delegator_uuid=None):
+    def __init__(self, customer_uuid=None, delegator_uuid=None, status=None, messages=None):
         self.uuid = get_uuid()
         self.customer_uuid = customer_uuid
         self.status = status
@@ -121,25 +109,19 @@ class Transaction():
         if delegator_uuid is not None:
             self.delegator_uuid = delegator_uuid
 
-    def get_data(self):
-        return vars(self)
+        if messages is not None:
+            self.messages = messages
 
-    def to_json(self):
-        return json.dumps(get_data)
+    def get_data(self):
+        data = vars(self)
+
+        if data.get("messages") is not None:
+            data["messages"] = [message.get_data() for message in data["messages"]]
+
+        return data
 
     def __getitem__(self, val):
         return self.__dict__[val]
-
-    def __repr__(self):
-        to_return = "<Transaction(customer_phone_number='%s', status='%s'" % (
-            self.customer_phone_number, self.status)
-
-        if self.delegator_uuid is not None:
-            to_return += ", delegator_uuid='%s')>" % self.delegator_uuid
-        else:
-            to_return += ">"
-
-        return to_return
 
 ####################
 # Helper Functions #

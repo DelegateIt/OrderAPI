@@ -33,8 +33,7 @@ class TestBasicRestFunctionality(unittest.TestCase):
         clear()
 
     def test_create_customer(self):
-
-        customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
+        customer_response_data = apiclient.create_customer("George", "Farcasiu", "8176808185")
 
         # Verify that the response is correct
         self.assertEquals(customer_response_data["result"], 0)
@@ -44,6 +43,7 @@ class TestBasicRestFunctionality(unittest.TestCase):
         customer = customers.get_item(uuid=customer_response_data["uuid"], consistent=True)
         self.assertEquals(customer["first_name"], "George")
         self.assertEquals(customer["last_name"],  "Farcasiu")
+        self.assertEquals(customer["phone_number"], "8176808185")
 
     def test_get_customer(self):
         customer_post_data = apiclient.create_customer("George","Farcasiu", "8176808185")
@@ -52,20 +52,21 @@ class TestBasicRestFunctionality(unittest.TestCase):
         # Verify that the response is correct
         self.assertEquals(customer_post_data["result"], 0)
         self.assertEquals(customer_get_data["result"], 0)
+
         self.assertEquals(customer_get_data["first_name"], "George")
         self.assertEquals(customer_get_data["last_name"], "Farcasiu")
         self.assertEquals(customer_get_data["phone_number"], "8176808185")
+        self.assertIsNone(customer_get_data.get("transactions"))
 
     def test_send_message(self):
-        customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
+        customer_response_data = apiclient.create_customer("George", "Farcasiu", "8176808185")
         customer_uuid = customer_response_data["uuid"]
 
         transaction_response_data = apiclient.create_transaction(customer_uuid)
         transaction_uuid = transaction_response_data["uuid"]
 
-
         message_get_response_data_1  = apiclient.get_messages(transaction_uuid)
-        message_send_response_data = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content")
+        message_send_response_data = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content", from_customer=True)
         message_get_response_data_2  = apiclient.get_messages(transaction_uuid)
 
         # Verify that responses are correct
@@ -77,18 +78,18 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertNotEquals(message_send_response_data["timestamp"], None)
 
         self.assertEquals(len(message_get_response_data_2["messages"]), 1)
-        self.assertEquals(message_get_response_data_2["messages"][0]["transaction_uuid"], transaction_uuid)
         self.assertEquals(message_get_response_data_2["messages"][0]["content"], "test_send_message content")
         self.assertIsNotNone(message_get_response_data_2["messages"][0].get("timestamp"))
+        self.assertTrue(message_get_response_data_2["messages"][0]["from_customer"])
 
         # Check the db to make sure our data is correct
-        customer = customers.get_item(uuid=customer_uuid, consistent=True)
-        self.assertIsNotNone(customer.get("messages"))
-        self.assertEquals(len(customer["messages"]), 1)
-        self.assertEquals(customer["messages"][0]["content"], "test_send_message content")
-        self.assertIsNotNone(customer["messages"][0]["timestamp"])
+        transaction = transactions.get_item(uuid=transaction_uuid, consistent=True)
+        self.assertIsNotNone(transaction.get("messages"))
+        self.assertEquals(len(transaction["messages"]), 1)
+        self.assertEquals(transaction["messages"][0]["content"], "test_send_message content")
+        self.assertIsNotNone(transaction["messages"][0]["timestamp"])
 
-        self.assertEquals(message_get_response_data_2["messages"][0]["timestamp"], customer["messages"][0]["timestamp"])
+        self.assertEquals(message_get_response_data_2["messages"][0]["timestamp"], transaction["messages"][0]["timestamp"])
 
     def test_get_messages_past_timestamp(self):
         customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
@@ -97,8 +98,8 @@ class TestBasicRestFunctionality(unittest.TestCase):
         transaction_response_data = apiclient.create_transaction(customer_uuid)
         transaction_uuid = transaction_response_data["uuid"]
 
-        message_response_data_1 = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content 1")
-        message_response_data_2 = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content 2")
+        message_response_data_1 = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content 1", from_customer=True)
+        message_response_data_2 = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content 2", from_customer=False)
 
         message_get_response_data = apiclient.get_messages_past_timestamp(transaction_uuid, message_response_data_1["timestamp"])
 
@@ -163,7 +164,7 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(delegator_get_rsp["email"], "farcasiu.george@gmail.com")
         self.assertEquals(delegator_get_rsp["first_name"], "George")
         self.assertEquals(delegator_get_rsp["last_name"], "Farcasiu")
-        self.assertEquals(delegator_get_rsp["num_transactions"], 0)
+        self.assertIsNone(delegator_get_rsp.get("transactions"))
 
         # Verify that the db contains the correct information
         delegator = delegators.get_item(uuid=uuid, consistent=True)

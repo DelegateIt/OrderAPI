@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from requests import Request, Session
+import json
 
 import sys
 
@@ -29,7 +30,7 @@ def send_api_request(method, components, json_data=None):
     url = "http://" + default_host + "/" + "/".join(components)
 
     s = Session()
-    req = Request(method, url, json=json_data)
+    req = Request(method=method, url=url, json=json_data)
     prepped = s.prepare_request(req)
 
     resp = s.send(prepped)
@@ -108,10 +109,11 @@ def create_delegator(first_name, last_name, phone_number, email):
 def get_delegator(delegator_uuid):
     return send_api_request("GET", ["delegator", delegator_uuid])
 
-def send_message(transaction_uuid, platform_type, content):
+def send_message(transaction_uuid, platform_type, content, from_customer):
     json_data = {
         "platform_type": platform_type,
-        "content": content
+        "content": content,
+        "from_customer": from_customer
     }
     return send_api_request("POST", ["send_message", transaction_uuid], json_data)
 

@@ -5,6 +5,7 @@ from flask import Flask, request
 import time
 import argparse
 import jsonpickle
+import json
 
 import models
 import common
@@ -92,27 +93,26 @@ def delegator(uuid):
 def send_message(transaction_uuid):
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not verify_dict_contains_keys(data_dict, ["content", "platform_type"]):
+    if not verify_dict_contains_keys(data_dict, ["from_customer", "content", "platform_type"]):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     transaction = models.transactions.get_item(uuid=transaction_uuid)
-    customer = models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
 
     message = Message(
-        transaction_uuid=transaction_uuid,
+        from_customer=data_dict["from_customer"],
         content=data_dict["content"],
         platform_type=data_dict["platform_type"])
 
-    if customer["messages"] is None:
-        customer["messages"] = []
+    if transaction["messages"] is None:
+        transaction["messages"] = []
 
-    customer["messages"].append(message.get_data())
+    transaction["messages"].append(message.get_data())
 
     # Save data to the database
-    customer.save()
+    transaction.save()
 
     return jsonpickle.encode({
             "result": 0,
@@ -125,13 +125,11 @@ def get_messages(transaction_uuid):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
-    customer = models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
 
     to_return = {"result": 0}
 
-    if customer["messages"] is not None:
-        to_return.update({"messages": [message for message in customer["messages"]
-            if message["transaction_uuid"] == transaction_uuid]})
+    if transaction["messages"] is not None:
+        to_return.update({"messages": [message for message in transaction["messages"]]})
     else:
         to_return.update({"messages": None})
 
@@ -142,15 +140,14 @@ def get_messages_past_timestamp(transaction_uuid, timestamp):
     if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
-    messages = models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)["messages"]
+    messages = models.transactions.get_item(uuid=transaction_uuid, consistent=True)["messages"]
     timestamp = int(timestamp)
 
     to_return = {"result": 0}
 
     if messages is not None:
         to_return.update({"messages": [message for message in messages
-            if int(message["timestamp"]) > timestamp and message["transaction_uuid"] == transaction_uuid]})
+            if int(message["timestamp"]) > timestamp]})
     else:
         to_return.update({"messages": None})
 
@@ -166,12 +163,22 @@ def create_transaction():
     if not models.customers.has_item(uuid=data_dict["customer_uuid"], consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
+    customer = models.customers.get_item(uuid=data_dict["customer_uuid"], consistent=True)
+
     transaction = Transaction(
             customer_uuid = data_dict["customer_uuid"],
             status = TransactionStatus.STARTED if not "status" in data_dict else data_dict["status"],
-            delegator_uuid =  data_dict["delegator_uuid"] if "delegator_uuid" in data_dict else None)
+            delegator_uuid = data_dict.get("delegator_uuid"))
 
+    # Add the transaction to the transaction table
     models.transactions.put_item(data=transaction.get_data())
+
+    # Add the transaction uuid to the customer
+    if customer["transaction_uuids"] is None:
+        customer["transaction_uuids"] = []
+
+    customer["transaction_uuids"].append(transaction.uuid)
+    customer.save()
 
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
