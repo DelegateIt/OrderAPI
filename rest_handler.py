@@ -224,6 +224,7 @@ def get_transactions_with_status(status):
 
 @app.route('/sms_callback', methods=['POST'])
 def sms_callback():
+    print "data: %s" % request.data.decode("utf-8")
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     from_phone_number = data_dict["from"]["endpoint"]
@@ -232,6 +233,7 @@ def sms_callback():
     customer = None
     if models.customers.query_count(index="phone_number-index", phone_number__eq=from_phone_number) == 0:
         cur_customer = Customer(phone_number=from_phone_number)
+        models.customers.put_item(data=cur_customer.get_data())
         customer = models.customers.get_item(uuid=cur_customer["uuid"], consistent=True)
 
     for cur_customer in models.customers.query_2(index="phone_number-index", phone_number__eq=from_phone_number):
