@@ -6,6 +6,7 @@ import time
 import argparse
 import jsonpickle
 import json
+import sys
 
 import models
 import common
@@ -32,13 +33,17 @@ def index():
 def create_customer():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not verify_dict_contains_keys(data_dict, ["phone_number", "first_name", "last_name"]):
+    if not verify_dict_contains_keys(data_dict, ["phone_number"]):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
-    customer = Customer(
+    customer = None
+    if verify_dict_contains_keys(data_dict, ["first_name", "last_name"]):
+        customer = Customer(
+            phone_number=data_dict["phone_number"],
             first_name=data_dict["first_name"],
-            last_name=data_dict["last_name"],
-            phone_number=data_dict["phone_number"])
+            last_name=data_dict["last_name"])
+    else:
+        customer = Customer(phone_number=data_dict["phone_number"])
 
     if not customer.is_unique():
         return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
@@ -78,7 +83,7 @@ def create_delegator():
 
     return jsonpickle.encode({"result": 0, "uuid": delegator.uuid}, unpicklable=False)
 
-@app.route('/delegator/<uuid>', methods=['GET'])
+@app.route('/delegator/<uuid>', methods=['GET', 'PUT'])
 def delegator(uuid):
     if not models.delegators.has_item(uuid=uuid, consistent=True):
         return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
@@ -165,10 +170,14 @@ def create_transaction():
 
     customer = models.customers.get_item(uuid=data_dict["customer_uuid"], consistent=True)
 
+    # Auto assign a delegator if one does not exists
+    delegator_uuid = data_dict["delegator_uuid"] \
+        if data_dict.get("delegator_uuid") is not None else find_delegator()
+
     transaction = Transaction(
-            customer_uuid = data_dict["customer_uuid"],
-            status = TransactionStatus.STARTED if not "status" in data_dict else data_dict["status"],
-            delegator_uuid = data_dict.get("delegator_uuid"))
+            customer_uuid=data_dict["customer_uuid"],
+            status=TransactionStatus.STARTED if not "status" in data_dict else data_dict["status"],
+            delegator_uuid=delegator_uuid)
 
     # Add the transaction to the transaction table
     models.transactions.put_item(data=transaction.get_data())
@@ -213,9 +222,60 @@ def get_transactions_with_status(status):
         "transactions": [transaction._data for transaction in query_result]},
         unpicklable=False)
 
-@app.route("/sms_callback", methods=["POST"])
+@app.route('/sms_callback', methods=['POST'])
 def sms_callback():
-    pass
+    data_dict = jsonpickle.decode(request.data.decode("utf-8"))
+
+    from_phone_number = data_dict["from"]["endpoint"]
+    message_content = data_dict["message"]
+
+    customer = None
+    if models.customers.query_count(index="phone_number-index", phone_number__eq=from_phone_number) == 0:
+        cur_customer = Customer(phone_number=from_phone_number)
+        customer = models.customers.get_item(uuid=cur_customer["uuid"], consistent=True)
+
+    for cur_customer in models.customers.query_2(index="phone_number-index", phone_number__eq=from_phone_number):
+        customer = cur_customer
+
+    current_transaction = None
+
+    if customer["transaction_uuids"] is not None:
+        for transaction_uuid in customer["transaction_uuids"]:
+            transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+            if transaction["status"] == TransactionStatus.HELPED:
+                current_transaction = transaction
+
+    if current_transaction is None:
+        delegator_uuid = find_delegator()
+        delegator = models.delegators.get_item(uuid=delegator_uuid, consistent=True)
+
+        temp_t = Transaction(
+            customer_uuid=customer["uuid"],
+            delegator_uuid=find_delegator())
+
+        if customer["transaction_uuids"] is None:
+            customer["transaction_uuids"] = []
+        if delegator["transaction_uuids"] is None:
+            delegator["transaction_uuids"] = []
+
+        customer["transaction_uuids"].append(temp_t["uuid"])
+        delegator["transaction_uuids"].append(temp_t["uuid"])
+
+        delegator.save()
+
+        models.transactions.put_item(data=temp_t.get_data())
+        current_transaction = models.transactions.get_item(uuid=temp_t.uuid)
+
+    message = Message(content=message_content, from_customer=True, platform_type="SMS")
+
+    if current_transaction["messages"] is None:
+        current_transaction["messages"] = []
+    current_transaction["messages"].append(message.get_data())
+
+    customer.save()
+    current_transaction.save()
+
+    return jsonpickle.encode({"result": 0})
 
 ####################
 # Helper functions #
@@ -227,6 +287,27 @@ def verify_dict_contains_keys(dic, keys):
             return False
 
     return True
+
+def find_delegator():
+    all_delegators = models.delegators.scan()
+
+    min_outstanding_trans = sys.maxint
+    delegator_uuid = None
+    for delegator in all_delegators:
+        cur_count = 0
+
+        if delegator["transaction_uuids"]:
+            for transaction_uuid in delegator["transaction_uuids"]:
+                transaction = models.transactions.get_item(uuid=transaction_uuid)
+                if transaction["status"] == TransactionStatus.HELPED:
+                    cur_count += 1
+
+        if cur_count < min_outstanding_trans:
+            min_outstanding_trans = cur_count
+            delegator_uuid = delegator["uuid"]
+
+    return delegator_uuid
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Starts the api server")

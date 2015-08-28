@@ -22,12 +22,19 @@ customers    = Table("DelegateIt_Customers",    connection=conn)
 delegators   = Table("DelegateIt_Delegators",   connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
 
+# Approved phone numbers
+customer_facing_number = "+5123335001"
+
 class Customer():
     def __init__(self, phone_number=None, first_name=None, last_name=None, transaction_uuids=None):
         self.uuid = get_uuid()
         self.phone_number = phone_number
-        self.first_name   = first_name
-        self.last_name    = last_name
+
+        if first_name is not None:
+            self.first_name = first_name
+
+        if last_name is not None:
+            self.last_name = last_name
 
         if transaction_uuids is not None:
             self.transaction_uuids = transaction_uuids
