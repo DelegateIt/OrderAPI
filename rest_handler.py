@@ -252,6 +252,7 @@ def sms_callback():
         delegator = models.delegators.get_item(uuid=delegator_uuid, consistent=True)
 
         temp_t = Transaction(
+            status=TransactionStatus.HELPED,
             customer_uuid=customer["uuid"],
             delegator_uuid=find_delegator())
 
