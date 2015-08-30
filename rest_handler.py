@@ -14,6 +14,8 @@ import common
 from models import Customer, Message, Delegator, Transaction
 from common import Errors, TransactionStatus
 
+from sinchsms import SinchSMS
+
 app = Flask(__name__)
 app.debug = True
 
@@ -104,7 +106,15 @@ def send_message(transaction_uuid):
     if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    transaction = models.transactions.get_item(uuid=transaction_uuid)
+    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+
+    # Go ahead and send the message to the customer
+
+    if not data_dict["from_customer"]:
+        customer_uuid = transaction["customer_uuid"]
+        customer = models.customers.get_item(uuid=customer_uuid, consistent=True)
+
+        send_message_to(customer["phone_number"], data_dict["content"])
 
     message = Message(
         from_customer=data_dict["from_customer"],
@@ -224,7 +234,6 @@ def get_transactions_with_status(status):
 
 @app.route('/sms_callback', methods=['POST'])
 def sms_callback():
-    print "data: %s" % request.data.decode("utf-8")
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     from_phone_number = data_dict["from"]["endpoint"]
@@ -269,6 +278,9 @@ def sms_callback():
         models.transactions.put_item(data=temp_t.get_data())
         current_transaction = models.transactions.get_item(uuid=temp_t.uuid)
 
+        # Notify the delegator of a new transaction
+        send_message_to(delegator["phone_number"], "[ New Transaction From %s]" % customer["phone_number"], from_number="+5123335001")
+
     message = Message(content=message_content, from_customer=True, platform_type="SMS")
 
     if current_transaction["messages"] is None:
@@ -277,6 +289,7 @@ def sms_callback():
 
     customer.save()
     current_transaction.save()
+
 
     return jsonpickle.encode({"result": 0})
 
@@ -310,6 +323,16 @@ def find_delegator():
             delegator_uuid = delegator["uuid"]
 
     return delegator_uuid
+
+
+def send_message_to(phone_number, message_content, from_number=None):
+    client = SinchSMS("d3552d16-2708-461d-8fc4-f5e70d6e3257", "PZco4HkPiECZQiOhDysEUg==")
+
+    if from_number is None:
+        print client.send_message(phone_number, message_content)
+    else:
+        client.send_message(phone_number, message_content, from_number="+5123335001")
+
 
 
 if __name__ == '__main__':
