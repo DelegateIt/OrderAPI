@@ -31,7 +31,7 @@ def after_request(response):
 def index():
     return "GatorRestService is up and running!"
 
-@app.route('/customer', methods=['POST'])
+@app.route('/core/customer', methods=['POST'])
 def create_customer():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
@@ -47,7 +47,7 @@ def create_customer():
 
     return jsonpickle.encode({"result": 0, "uuid": customer.uuid}, unpicklable=False)
 
-@app.route('/customer/<uuid>', methods=['GET'])
+@app.route('/core/customer/<uuid>', methods=['GET'])
 def customer(uuid):
     if not models.customers.has_item(uuid=uuid, consistent=True):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
@@ -58,7 +58,7 @@ def customer(uuid):
     to_return.update(customer._data)
     return jsonpickle.encode(to_return, unpicklable=False)
 
-@app.route('/delegator', methods=['POST'])
+@app.route('/core/delegator', methods=['POST'])
 def create_delegator():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
@@ -78,7 +78,7 @@ def create_delegator():
 
     return jsonpickle.encode({"result": 0, "uuid": delegator.uuid}, unpicklable=False)
 
-@app.route('/delegator/<uuid>', methods=['GET', 'PUT'])
+@app.route('/core/delegator/<uuid>', methods=['GET', 'PUT'])
 def delegator(uuid):
     if not models.delegators.has_item(uuid=uuid, consistent=True):
         return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
@@ -89,7 +89,7 @@ def delegator(uuid):
     to_return.update(delegator._data)
     return jsonpickle.encode(to_return, unpicklable=False)
 
-@app.route('/send_message/<transaction_uuid>', methods=['POST'])
+@app.route('/core/send_message/<transaction_uuid>', methods=['POST'])
 def send_message(transaction_uuid):
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
@@ -119,7 +119,7 @@ def send_message(transaction_uuid):
             "timestamp": message.timestamp
         }, unpicklable=False)
 
-@app.route('/get_messages/<transaction_uuid>', methods=['GET'])
+@app.route('/core/get_messages/<transaction_uuid>', methods=['GET'])
 def get_messages(transaction_uuid):
     if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
@@ -135,7 +135,7 @@ def get_messages(transaction_uuid):
 
     return jsonpickle.encode(to_return, unpicklable=False)
 
-@app.route('/transaction', methods=['POST'])
+@app.route('/core/transaction', methods=['POST'])
 def create_transaction():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
@@ -164,7 +164,7 @@ def create_transaction():
 
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
-@app.route('/transaction/<uuid>', methods=['GET', 'PUT'])
+@app.route('/core/transaction/<uuid>', methods=['GET', 'PUT'])
 def transaction(uuid):
     if not models.transactions.has_item(uuid=uuid, consistent=True):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)

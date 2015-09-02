@@ -70,10 +70,11 @@ def create_customer(first_name, last_name, phone_number):
         "last_name": last_name,
         "phone_number": phone_number
     }
-    return send_api_request("POST", ["customer"], json_data)
+
+    return send_api_request("POST", ["core", "customer"], json_data)
 
 def get_customer(uuid):
-    return send_api_request("GET", ["customer", uuid])
+    return send_api_request("GET", ["core", "customer", uuid])
 
 def create_transaction(customer_uuid, delegator_uuid=None, status=None):
     json_data = {"customer_uuid": customer_uuid}
@@ -81,13 +82,11 @@ def create_transaction(customer_uuid, delegator_uuid=None, status=None):
         json_data["delegator_uuid"] = delegator_uuid
     if status is not None:
         json_data["status"] = status
-    return send_api_request("POST", ["transaction"], json_data)
+
+    return send_api_request("POST", ["core", "transaction"], json_data)
 
 def get_transaction(transaction_uuid):
-    return send_api_request("GET", ["transaction", transaction_uuid])
-
-def get_transactions_with_status(status):
-    return send_api_request("GET", ["get_transactions_with_status", status])
+    return send_api_request("GET", ["core", "transaction", transaction_uuid])
 
 def update_transaction(transaction_uuid, status=None, delegator_uuid=None):
     json_data = {}
@@ -95,7 +94,8 @@ def update_transaction(transaction_uuid, status=None, delegator_uuid=None):
         json_data["status"] = status
     if delegator_uuid is not None:
         json_data["delegator_uuid"] = delegator_uuid
-    return send_api_request("PUT", ["transaction", transaction_uuid], json_data)
+
+    return send_api_request("PUT", ["core", "transaction", transaction_uuid], json_data)
 
 def create_delegator(first_name, last_name, phone_number, email):
     json_data = {
@@ -104,10 +104,11 @@ def create_delegator(first_name, last_name, phone_number, email):
         "first_name": first_name,
         "last_name": last_name
     }
-    return send_api_request("POST", ["delegator"], json_data)
+
+    return send_api_request("POST", ["core", "delegator"], json_data)
 
 def get_delegator(delegator_uuid):
-    return send_api_request("GET", ["delegator", delegator_uuid])
+    return send_api_request("GET", ["core", "delegator", delegator_uuid])
 
 def send_message(transaction_uuid, platform_type, content, from_customer):
     json_data = {
@@ -115,13 +116,11 @@ def send_message(transaction_uuid, platform_type, content, from_customer):
         "content": content,
         "from_customer": from_customer
     }
-    return send_api_request("POST", ["send_message", transaction_uuid], json_data)
+
+    return send_api_request("POST", ["core", "send_message", transaction_uuid], json_data)
 
 def get_messages(transaction_uuid):
-    return send_api_request("GET", ["get_messages", transaction_uuid])
-
-def get_messages_past_timestamp(transaction_uuid, timestamp):
-    return send_api_request("GET", ["get_messages_past_timestamp", transaction_uuid, timestamp])
+    return send_api_request("GET", ["core", "get_messages", transaction_uuid])
 
 ######END api wrapper
 
@@ -155,7 +154,7 @@ if __name__ == "__main__":
         needs_help = True
 
     if needs_help:
-        print("DelegateIt api python wrapper.")
+        print("DelegateIt API python wrapper.")
         print("Usage:")
         print("\tscript.py method_name [method_arg_1] [method_arg_2] ...")
         print("Examples:")
