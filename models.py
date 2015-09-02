@@ -22,34 +22,34 @@ customers    = Table("DelegateIt_Customers",    connection=conn)
 delegators   = Table("DelegateIt_Delegators",   connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
 
-# Approved phone numbers
-customer_facing_number = "+5123335001"
-
 class Customer():
-    def __init__(self, phone_number=None, first_name=None, last_name=None, transaction_uuids=None):
+    def __init__(self, phone_number=None, first_name=None, last_name=None,
+            active_transaction_uuids=None, inactive_transaction_uuids=None):
         self.uuid = get_uuid()
         self.phone_number = phone_number
+        self.first_name = first_name
+        self.last_name = last_name
 
-        if first_name is not None:
-            self.first_name = first_name
+        self.active_transaction_uuids = active_transaction_uuids
+        self.inactive_transaction_uuids = inactive_transaction_uuids
 
-        if last_name is not None:
-            self.last_name = last_name
-
-        if transaction_uuids is not None:
-            self.transaction_uuids = transaction_uuids
-
-    def add_transaction_uuid(self, new_transaction_uuid):
-        if not hasattr(self, "transaction_uuids"):
-            self.transaction_uuids = []
-
-        self.transaction_uuids.append(new_transaction)
+    @staticmethod
+    def create_from_dict(data):
+        return Customer(
+            phone_number=data.get("phone_number"),
+            first_name=data.get("first_name"),
+            last_name=data.get("last_name"),
+            active_transaction_uuids=data.get("active_transaction_uuids"),
+            inactive_transaction_uuids=data.get("inactive_transaction_uuids"))
 
     def get_data(self):
-        data = vars(self)
+        data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
 
-        if data.get("transaction_uuids") is not None:
-            data["transaction_uuids"] = [transaction.get_data() for transaction in data["transaction_uuids"]]
+        if data.get("active_transaction_uuids") is not None:
+            data["active_transaction_uuids"] = [transaction.get_data() for transaction in data["active_transaction_uuids"]]
+
+        if data.get("inactive_transaction_uuids") is not None:
+            data["inactive_transaction_uuids"] = [transaction.get_data() for transaction in data["inactive_transaction_uuids"]]
 
         return data
 
@@ -59,8 +59,54 @@ class Customer():
 
         return customers.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
 
-    def __getitem__(self, val):
-        return self.__dict__[val]
+class Delegator():
+    def __init__(self, phone_number=None, email=None, first_name=None, last_name=None,
+            active_transaction_uuids=None, inactive_transaction_uuids=None):
+        self.uuid = get_uuid()
+        self.phone_number = phone_number
+        self.email = email
+        self.first_name   = first_name
+        self.last_name    = last_name
+
+        self.active_transaction_uuids = active_transaction_uuids
+        self.inactive_transaction_uuids = inactive_transaction_uuids
+
+    def get_data(self):
+        data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
+
+        if data.get("active_transaction_uuids") is not None:
+            data["active_transaction_uuids"] = [transaction.get_data() for transaction in data["active_transaction_uuids"]]
+
+        if data.get("inactive_transaction_uuids") is not None:
+            data["inactive_transaction_uuids"] = [transaction.get_data() for transaction in data["inactive_transaction_uuids"]]
+
+        return data
+
+    def is_unique(self):
+        if self.phone_number is None or self.email is None:
+            return False
+
+        phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
+        email_is_uniq        = delegators.query_count(index="email-index", email__eq=self.email) == 0
+
+        return phone_number_is_uniq and email_is_uniq
+
+class Transaction():
+    def __init__(self, customer_uuid=None, delegator_uuid=None, status=None, messages=None):
+        self.uuid = get_uuid()
+        self.customer_uuid = customer_uuid
+        self.delegator_uuid = delegator_uuid
+        self.status = status
+        self.timestamp = get_current_timestamp()
+        self.messages = messages
+
+    def get_data(self):
+        data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
+
+        if data.get("messages") is not None:
+            data["messages"] = [message.get_data() for message in data["messages"]]
+
+        return data
 
 class Message():
     def __init__(self, from_customer=None, content=None, platform_type=None):
@@ -70,65 +116,7 @@ class Message():
         self.timestamp = get_current_timestamp()
 
     def get_data(self):
-        return vars(self)
-
-    def __getitem__(self, val):
-        return self.__dict__[val]
-
-class Delegator():
-    def __init__(self, phone_number=None, email=None, first_name=None, last_name=None, transactions=None):
-        self.uuid = get_uuid()
-        self.phone_number = phone_number
-        self.email = email
-        self.first_name   = first_name
-        self.last_name    = last_name
-
-        if transactions is not None:
-            self.transactions = transactions
-
-    def get_data(self):
-        data = vars(self)
-
-        if data.get("transactions") is not None:
-            data["transactions"] = [transaction.get_data() for transaction in data["transactions"]]
-
-        return data
-
-    def is_unique(self):
-        if self.phone_number is None or self.email is None:
-            return False
-
-        phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
-        email_is_uniq   = delegators.query_count(index="email-index", email__eq=self.email) == 0
-
-        return phone_number_is_uniq and email_is_uniq
-
-    def __getitem__(self, val):
-        return self.__dict__[val]
-
-class Transaction():
-    def __init__(self, customer_uuid=None, delegator_uuid=None, status=None, messages=None):
-        self.uuid = get_uuid()
-        self.customer_uuid = customer_uuid
-        self.status = status
-        self.timestamp = get_current_timestamp()
-
-        if delegator_uuid is not None:
-            self.delegator_uuid = delegator_uuid
-
-        if messages is not None:
-            self.messages = messages
-
-    def get_data(self):
-        data = vars(self)
-
-        if data.get("messages") is not None:
-            data["messages"] = [message.get_data() for message in data["messages"]]
-
-        return data
-
-    def __getitem__(self, val):
-        return self.__dict__[val]
+        return {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
 
 ####################
 # Helper Functions #

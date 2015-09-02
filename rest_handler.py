@@ -4,9 +4,9 @@ from flask import Flask, request
 
 import time
 import argparse
-import jsonpickle
-import json
 import sys
+
+import jsonpickle
 
 import models
 import common
@@ -35,17 +35,10 @@ def index():
 def create_customer():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not verify_dict_contains_keys(data_dict, ["phone_number"]):
+    if not set(["phone_number"]) <= set(data_dict.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
-    customer = None
-    if verify_dict_contains_keys(data_dict, ["first_name", "last_name"]):
-        customer = Customer(
-            phone_number=data_dict["phone_number"],
-            first_name=data_dict["first_name"],
-            last_name=data_dict["last_name"])
-    else:
-        customer = Customer(phone_number=data_dict["phone_number"])
+    customer = Customer.create_from_dict(data_dict)
 
     if not customer.is_unique():
         return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
@@ -69,7 +62,7 @@ def customer(uuid):
 def create_delegator():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not verify_dict_contains_keys(data_dict, ["phone_number", "email", "first_name", "last_name"]):
+    if not set(["phone_number", "email", "first_name", "last_name"]) <= set(data_dict.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     delegator = Delegator(
@@ -100,21 +93,13 @@ def delegator(uuid):
 def send_message(transaction_uuid):
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not verify_dict_contains_keys(data_dict, ["from_customer", "content", "platform_type"]):
+    if not set(["from_customer", "content", "platform_type"]) <= set(data_dict.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
-
-    # Go ahead and send the message to the customer
-
-    if not data_dict["from_customer"]:
-        customer_uuid = transaction["customer_uuid"]
-        customer = models.customers.get_item(uuid=customer_uuid, consistent=True)
-
-        send_message_to(customer["phone_number"], data_dict["content"])
 
     message = Message(
         from_customer=data_dict["from_customer"],
@@ -150,29 +135,11 @@ def get_messages(transaction_uuid):
 
     return jsonpickle.encode(to_return, unpicklable=False)
 
-@app.route('/get_messages_past_timestamp/<transaction_uuid>/<timestamp>', methods=['GET'])
-def get_messages_past_timestamp(transaction_uuid, timestamp):
-    if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
-        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
-
-    messages = models.transactions.get_item(uuid=transaction_uuid, consistent=True)["messages"]
-    timestamp = int(timestamp)
-
-    to_return = {"result": 0}
-
-    if messages is not None:
-        to_return.update({"messages": [message for message in messages
-            if int(message["timestamp"]) > timestamp]})
-    else:
-        to_return.update({"messages": None})
-
-    return jsonpickle.encode(to_return, unpicklable=False)
-
 @app.route('/transaction', methods=['POST'])
 def create_transaction():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not verify_dict_contains_keys(data_dict, ["customer_uuid"]):
+    if not set(["customer_uuid"]) <= set(data_dict.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     if not models.customers.has_item(uuid=data_dict["customer_uuid"], consistent=True):
@@ -180,14 +147,10 @@ def create_transaction():
 
     customer = models.customers.get_item(uuid=data_dict["customer_uuid"], consistent=True)
 
-    # Auto assign a delegator if one does not exists
-    delegator_uuid = data_dict["delegator_uuid"] \
-        if data_dict.get("delegator_uuid") is not None else find_delegator()
-
+    # NOTE: client can only make transactions in the started state
     transaction = Transaction(
             customer_uuid=data_dict["customer_uuid"],
-            status=TransactionStatus.STARTED if not "status" in data_dict else data_dict["status"],
-            delegator_uuid=delegator_uuid)
+            status=TransactionStatus.STARTED)
 
     # Add the transaction to the transaction table
     models.transactions.put_item(data=transaction.get_data())
@@ -209,10 +172,8 @@ def transaction(uuid):
     if request.method == 'PUT':
         data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-        transaction = models.transactions.get_item(uuid=uuid)
-
-        for key in data_dict:
-            transaction[key] = data_dict[key]
+        transaction = models.transactions.get_item(uuid=uuid, consistent=True)
+        transaction._data.update(data_dict)
 
         transaction.save()
 
@@ -223,115 +184,9 @@ def transaction(uuid):
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
 
-@app.route("/get_transactions_with_status/<status>", methods=['GET'])
-def get_transactions_with_status(status):
-    # NOTE: does not need to be consistent, b/c it will be called frequently
-    query_result = models.transactions.query_2(index="status-index", status__eq=status)
-    return jsonpickle.encode({
-        "result": 0,
-        "transactions": [transaction._data for transaction in query_result]},
-        unpicklable=False)
-
-@app.route('/sms_callback', methods=['POST'])
-def sms_callback():
-    data_dict = jsonpickle.decode(request.data.decode("utf-8"))
-
-    from_phone_number = data_dict["from"]["endpoint"]
-    message_content = data_dict["message"]
-
-    customer = None
-    if models.customers.query_count(index="phone_number-index", phone_number__eq=from_phone_number) == 0:
-        cur_customer = Customer(phone_number=from_phone_number)
-        models.customers.put_item(data=cur_customer.get_data())
-        customer = models.customers.get_item(uuid=cur_customer["uuid"], consistent=True)
-
-    for cur_customer in models.customers.query_2(index="phone_number-index", phone_number__eq=from_phone_number):
-        customer = cur_customer
-
-    current_transaction = None
-
-    if customer["transaction_uuids"] is not None:
-        for transaction_uuid in customer["transaction_uuids"]:
-            transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
-            if transaction["status"] == TransactionStatus.HELPED:
-                current_transaction = transaction
-
-    if current_transaction is None:
-        delegator_uuid = find_delegator()
-        delegator = models.delegators.get_item(uuid=delegator_uuid, consistent=True)
-
-        temp_t = Transaction(
-            status=TransactionStatus.HELPED,
-            customer_uuid=customer["uuid"],
-            delegator_uuid=find_delegator())
-
-        if customer["transaction_uuids"] is None:
-            customer["transaction_uuids"] = []
-        if delegator["transaction_uuids"] is None:
-            delegator["transaction_uuids"] = []
-
-        customer["transaction_uuids"].append(temp_t["uuid"])
-        delegator["transaction_uuids"].append(temp_t["uuid"])
-
-        delegator.save()
-
-        models.transactions.put_item(data=temp_t.get_data())
-        current_transaction = models.transactions.get_item(uuid=temp_t.uuid)
-
-        # Notify the delegator of a new transaction
-        send_message_to(delegator["phone_number"], "[ New Transaction From %s]" % customer["phone_number"], from_number="5123335001")
-
-    message = Message(content=message_content, from_customer=True, platform_type="SMS")
-
-    if current_transaction["messages"] is None:
-        current_transaction["messages"] = []
-    current_transaction["messages"].append(message.get_data())
-
-    customer.save()
-    current_transaction.save()
-
-
-    return jsonpickle.encode({"result": 0})
-
 ####################
 # Helper functions #
 ####################
-
-def verify_dict_contains_keys(dic, keys):
-    for cur_key in keys:
-        if cur_key not in dic:
-            return False
-
-    return True
-
-def find_delegator():
-    all_delegators = models.delegators.scan()
-
-    min_outstanding_trans = sys.maxint
-    delegator_uuid = None
-    for delegator in all_delegators:
-        cur_count = 0
-
-        if delegator["transaction_uuids"]:
-            for transaction_uuid in delegator["transaction_uuids"]:
-                transaction = models.transactions.get_item(uuid=transaction_uuid)
-                if transaction["status"] == TransactionStatus.HELPED:
-                    cur_count += 1
-
-        if cur_count < min_outstanding_trans:
-            min_outstanding_trans = cur_count
-            delegator_uuid = delegator["uuid"]
-
-    return delegator_uuid
-
-
-def send_message_to(phone_number, message_content, from_number=None):
-    client = SinchSMS("d3552d16-2708-461d-8fc4-f5e70d6e3257", "PZco4HkPiECZQiOhDysEUg==")
-
-    if from_number is None:
-        client.send_message(phone_number, message_content)
-    else:
-        client.send_message(phone_number, message_content, from_number=from_number)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Starts the api server")
