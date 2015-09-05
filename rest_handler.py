@@ -78,6 +78,14 @@ def create_delegator():
 
     return jsonpickle.encode({"result": 0, "uuid": delegator.uuid}, unpicklable=False)
 
+@app.route('/core/delegator', methods=['GET'])
+def list_delegators():
+    query = models.delegators.scan()
+    return jsonpickle.encode({
+        "result": 0,
+        "delegators": [delegator._data for delegator in query]},
+        unpicklable=False)
+
 @app.route('/core/delegator/<uuid>', methods=['GET', 'PUT'])
 def delegator(uuid):
     if not models.delegators.has_item(uuid=uuid, consistent=True):
