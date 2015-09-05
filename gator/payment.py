@@ -15,9 +15,9 @@ def get_chargeable_transaction(transaction_uuid):
     if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         raise PaymentException("Transaction does not exist")
     db_transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
-    if "receipt" not in db_transaction._data:
+    if "receipt" not in db_transaction:
         raise PaymentException("The transaction has not been finalized")
-    if db_transaction._data['receipt']['paid_for']:
+    if "stripe_charge_id" in db_transaction['receipt']:
         raise PaymentException("The transaction has already been paid for")
     return db_transaction
 
@@ -29,9 +29,8 @@ def calculate_total(receipt):
 
 def charge_transaction(transaction_uuid, stripe_token, email):
     #TODO email receipt
-    #TODO store charge id
     db_transaction = get_chargeable_transaction(transaction_uuid)
-    db_customer = gator.models.customers.get_item(uuid=db_transaction._data['customer_uuid'])
+    db_customer = gator.models.customers.get_item(uuid=db_transaction['customer_uuid'])
 
     stripe_customer = stripe.Customer.create(
         source=stripe_token,
@@ -39,16 +38,16 @@ def charge_transaction(transaction_uuid, stripe_token, email):
         email=email
     )
 
-    stripe.Charge.create(
+    stripe_charge = stripe.Charge.create(
         amount=calculate_total(db_transaction['receipt']), #in cents
         currency="usd",
         customer=stripe_customer.id
     )
 
-    db_customer._data['stripe_id'] = stripe_customer.id
-    db_customer._data['email'] = email
+    db_customer['stripe_id'] = stripe_customer.id
+    db_customer['email'] = email
     db_customer.save()
-    db_transaction._data['receipt']['paid_for'] = True
+    db_transaction['receipt']['stripe_charge_id'] = stripe_charge.id
     db_transaction.save()
 
 @app.route('/core/payment/uiform/<transaction_uuid>', methods=['GET'])
