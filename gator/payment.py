@@ -55,22 +55,22 @@ def charge_transaction(transaction_uuid, stripe_token, email):
 def ui_form(transaction_uuid):
     try:
         transaction = get_chargeable_transaction(transaction_uuid)
-    except PaymentException as e:
+        amount = calculate_total(transaction['receipt'])
+        return render_template('payment.html', uuid=transaction_uuid, amount=amount, total=float(amount)/100.0, items=transaction['receipt']['items'])
+    except Exception as e:
         logging.exception(e)
-        return render_template('payment-error.html', message=str(e))
-    amount = calculate_total(transaction['receipt'])
-    return render_template('payment.html', uuid=transaction_uuid, amount=amount, total=float(amount)/100.0, items=transaction['receipt']['items'])
+        return render_template('payment-error.html', message=str(e)), 500
 
 @app.route('/core/payment/uicharge/<transaction_uuid>', methods=['POST'])
 def ui_charge(transaction_uuid):
-    email = request.form['stripeEmail']
-    token = request.form['stripeToken']
     try:
+        email = request.form['stripeEmail']
+        token = request.form['stripeToken']
         charge_transaction(transaction_uuid, token, email)
+        return render_template('payment-success.html')
     except stripe.error.CardError as e:
-        return render_template('payment-error.html', message=str(e))
-    except PaymentException as e:
+        return render_template('payment-error.html', message=str(e)), 500
+    except Exception as e:
         logging.exception(e)
-        return render_template('payment-error.html', message=str(e))
-    return render_template('payment-success.html')
+        return render_template('payment-error.html', message=str(e)), 500
 
