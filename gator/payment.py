@@ -55,7 +55,8 @@ def ui_form(transaction_uuid):
     try:
         transaction = get_chargeable_transaction(transaction_uuid)
         amount = calculate_total(transaction['receipt'])
-        return render_template('payment.html', uuid=transaction_uuid, amount=amount, total=float(amount)/100.0, items=transaction['receipt']['items'])
+        return render_template('payment.html', uuid=transaction_uuid, amount=amount, total=float(amount)/100.0,
+                items=transaction['receipt']['items'], notes=transaction['receipt']['notes'])
     except Exception as e:
         logging.exception(e)
         return render_template('payment-error.html', message=str(e)), 500

@@ -103,10 +103,11 @@ class Transaction():
         self.receipt = None
         #receipt = {
         #    paid: boolean,
+        #    notes: string, #Any additional information
         #    items: [
         #        {
         #            name: string,
-        #            cents: int, cost of item in pennies
+        #            cents: int #cost of item in pennies
         #        }, ...
         #    ]
         #}

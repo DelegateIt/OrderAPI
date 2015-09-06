@@ -11,8 +11,14 @@
                 <li class="list-group-item">{{ item.name }}</li>
                 {% endfor %}
             </ul>
-            <div style="padding: 10px">
-                <label>Total</label>: ${{ total|round(2) }}
+            <div class="panel-body">
+                <div><label>Total</label>: ${{ total|round(2) }}</div>
+                {% if notes != "" %}
+                <div style="padding-top:15px">
+                    <label>Notes:</label>
+                    <pre style="word-wrap:normal">{{ notes }}</pre>
+                </div>
+                {% endif %}
             </div>
             <div class="panel-footer">
                 <form action="/core/payment/uicharge/{{ uuid }}" method="POST">
