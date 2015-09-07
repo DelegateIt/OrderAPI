@@ -99,7 +99,7 @@ def send_message(transaction_uuid):
     if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    transaction = models.transactions.get_item(uuid=transaction_uuid)
+    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
 
     message = Message(
         from_customer=data_dict["from_customer"],
@@ -190,7 +190,7 @@ def transaction(uuid):
     if request.method == 'PUT':
         data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-        transaction = models.transactions.get_item(uuid=uuid)
+        transaction = models.transactions.get_item(uuid=uuid, consistent=True)
 
         for key in data_dict:
             transaction[key] = data_dict[key]
