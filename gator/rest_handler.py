@@ -10,7 +10,7 @@ import gator.common
 
 from gator import app
 from gator.models import Customer, Message, Delegator, Transaction
-from gator.common import Errors, TransactionStatus
+from gator.common import Errors, TransactionStates
 
 @app.after_request
 def after_request(response):
@@ -113,7 +113,7 @@ def send_message(transaction_uuid):
     transaction["messages"].append(message.get_data())
 
     # Save data to the database
-    transaction.save()
+    transaction.partial_save()
 
     return jsonpickle.encode({
             "result": 0,
@@ -151,20 +151,21 @@ def create_transaction():
     # NOTE: client can only make transactions in the started state
     transaction = Transaction(
             customer_uuid=data_dict["customer_uuid"],
-            status=TransactionStatus.STARTED)
+            status=TransactionStates.STARTED)
 
     # Add the transaction to the transaction table
     gator.models.transactions.put_item(data=transaction.get_data())
 
     # Add the transaction uuid to the customer
-    if customer["transaction_uuids"] is None:
-        customer["transaction_uuids"] = []
+    if customer["active_transaction_uuids"] is None:
+        customer["active_transaction_uuids"] = []
 
-    customer["transaction_uuids"].append(transaction.uuid)
-    customer.save()
+    customer["active_transaction_uuids"].append(transaction.uuid)
+    customer.partial_save()
 
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
+# TODO: write a test for PUT
 @app.route('/core/transaction/<uuid>', methods=['GET', 'PUT'])
 def transaction(uuid):
     if not gator.models.transactions.has_item(uuid=uuid, consistent=True):
@@ -173,10 +174,49 @@ def transaction(uuid):
     if request.method == 'PUT':
         data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
+        # NOTE: do not allow both data fields to be changed in one operation
+        # b/c it takes more logic to do that
+        if not set(data_dict.keys()) < set(["delegator_uuid", "status", "receipt"]):
+            return gator.common.error_to_json(Errors.INVALID_DATA_PRESENT)
+
         transaction = gator.models.transactions.get_item(uuid=uuid, consistent=True)
+
+        # Update the state of associated delegator objects
+        if "delegator_uuid" in data_dict:
+            old_delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
+            new_delegator = gator.models.delegators.get_item(uuid=data_dict["delegator_uuid"], consistent=True)
+
+            if transaction["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES:
+                old_delegator["active_transaction_uuids"].remove(transaction["uuid"])
+                new_delegator["active_transaction_uuids"].append(transaction["uuid"])
+            else:
+                old_delegator["inactive_transaction_uuids"].remove(transaction["uuid"])
+                new_delegator["inactive_transaction_uuids"].append(transaction["uuid"])
+
+            old_delegator.partial_save()
+            new_delegator.partial_save()
+
+        # Change the state
+        if "status" in data_dict:
+            old_status_is_active = transaction["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES
+            new_status_is_active = data_dict["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES
+
+            if old_status_is_active != new_status_is_active:
+                cur_delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
+                if old_status_is_active:
+                    cur_delegator["active_transaction_uuids"].remove(transaction["uuid"])
+                    cur_delegator["inactive_transaction_uuids"].append(transaction["uuid"])
+                else:
+                    cur_delegator["inactive_transaction_uuids"].remove(transaction["uuid"])
+                    cur_delegator["active_transaction_uuids"].append(transaction["uuid"])
+
+                cur_delegator.partial_save()
+
+        # Update the transaction itself
         transaction._data.update(data_dict)
 
-        transaction.save()
+        # Save changes to the database
+        transaction.partial_save()
 
         return jsonpickle.encode({"result": 0}, unpicklable=False)
     elif request.method == 'GET':

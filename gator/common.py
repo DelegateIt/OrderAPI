@@ -11,13 +11,14 @@ class ErrorType():
         self.err_message = err_message
 
 class Errors():
-    # NOTE: do not change the returncode of these functions
+    # NOTE: do not change the returncode of these variables
     CUSTOMER_DOES_NOT_EXIST    = ErrorType(0, "The specified uuid is not linked to a customer")
     DATA_NOT_PRESENT           = ErrorType(1, "The request could not be completed without the required data")
     CUSTOMER_ALREADY_EXISTS    = ErrorType(2, "The specified customer already exists")
     TRANSACTION_DOES_NOT_EXIST = ErrorType(3, "The specified transaction does not exist")
     DELEGATOR_ALREADY_EXISTS   = ErrorType(4, "The specified delegator already exists")
     DELEGATOR_DOES_NOT_EXIST   = ErrorType(5, "The specified uuid is not linked to a delegator")
+    INVALID_DATA_PRESENT       = ErrorType(6, "The request contained superfluous data")
 
 def error_to_json(error):
     return jsonpickle.encode({
@@ -39,8 +40,12 @@ jsonpickle.handlers.register(decimal.Decimal, BotoDecimalHandler)
 # Transactions #
 ################
 
-class TransactionStatus():
+class TransactionStates():
     STARTED   = "started"
     HELPED    = "helped"
+    PROPOSED  = "proposed"
     CONFIRMED = "confirmed"
+    PENDING   = "pending"
     COMPLETED = "completed"
+
+    ACTIVE_TRANSACTION_STATES = [STARTED, HELPED, PROPOSED]
