@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="row">
+    <div class="col-md-4">
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-danger">
+            <div class="panel-heading"><h3>Something didn't go quite right</h3></div>
+            <div class="panel-body">
+                {{ message }}
+            <div>
+        </div>
+    </div>
+    <div class="col-md-4">
+    </div>
+</div>
+{% endblock %}

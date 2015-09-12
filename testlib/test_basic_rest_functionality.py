@@ -91,28 +91,6 @@ class TestBasicRestFunctionality(unittest.TestCase):
 
         self.assertEquals(message_get_response_data_2["messages"][0]["timestamp"], transaction["messages"][0]["timestamp"])
 
-    def test_get_messages_past_timestamp(self):
-        customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
-        customer_uuid = customer_response_data["uuid"]
-
-        transaction_response_data = apiclient.create_transaction(customer_uuid)
-        transaction_uuid = transaction_response_data["uuid"]
-
-        message_response_data_1 = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content 1", from_customer=True)
-        message_response_data_2 = apiclient.send_message(transaction_uuid, platform_type="sms", content="test_send_message content 2", from_customer=False)
-
-        message_get_response_data = apiclient.get_messages_past_timestamp(transaction_uuid, message_response_data_1["timestamp"])
-
-        # Verify that response is correct
-        self.assertEquals(customer_response_data["result"], 0)
-        self.assertEquals(message_response_data_1["result"], 0)
-        self.assertEquals(message_response_data_2["result"], 0)
-        self.assertEquals(message_get_response_data["result"], 0)
-
-        self.assertEquals(len(message_get_response_data["messages"]), 1)
-        self.assertEquals(message_get_response_data["messages"][0]["content"], "test_send_message content 2")
-        self.assertIsNotNone(message_get_response_data["messages"][0]["timestamp"])
-
     def test_transaction(self):
         customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
         customer_uuid = customer_response_data["uuid"]
@@ -137,18 +115,6 @@ class TestBasicRestFunctionality(unittest.TestCase):
         transaction = transactions.get_item(uuid=transaction_uuid)
         self.assertEquals(transaction["customer_uuid"], customer_uuid)
         self.assertEquals(transaction["status"], "helped")
-
-    def test_get_transactions_with_status(self):
-        uuid_1 = apiclient.create_customer("George","Farcasiu", "8176808180")["uuid"]
-        uuid_2 = apiclient.create_customer("~George","~Farcasiu", "8176808185")["uuid"]
-        apiclient.create_transaction(uuid_1, status="helped")
-        apiclient.create_transaction(uuid_2)
-        query_response = apiclient.get_transactions_with_status("helped")
-
-        # Verify that the responses are correct
-        self.assertEquals(query_response["result"], 0)
-        self.assertEquals(len(query_response["transactions"]), 1)
-        self.assertEquals(query_response["transactions"][0]["status"], "helped")
 
     def test_delegator(self):
         delegator_create_rsp = apiclient.create_delegator("George", "Farcasiu", "8176808185", "farcasiu.george@gmail.com")
