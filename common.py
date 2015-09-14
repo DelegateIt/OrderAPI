@@ -49,3 +49,16 @@ class TransactionStates():
     COMPLETED = "completed"
 
     ACTIVE_TRANSACTION_STATES = [STARTED, HELPED, PROPOSED]
+
+####################
+# Helper Functions #
+####################
+
+def get_public_ip():
+    return requests.get("https://api.ipify.org/?format=json").json()["ip"]
+
+def get_uuid():
+    return str(uuid.uuid4().int >> 64)
+
+def get_current_timestamp():
+    return int(time.time() * 10**6)

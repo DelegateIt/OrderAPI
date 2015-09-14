@@ -7,6 +7,8 @@ import time
 import json
 import uuid
 
+import common
+
 ##############################
 # Global vars, consts, extra #
 ##############################
@@ -21,11 +23,12 @@ conn = boto.dynamodb2.connect_to_region(
 customers    = Table("DelegateIt_Customers",    connection=conn)
 delegators   = Table("DelegateIt_Delegators",   connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
+handlers     = Table("DelegateIt_Handlers",     connection=conn)
 
 class Customer():
     def __init__(self, phone_number=None, first_name=None, last_name=None,
             active_transaction_uuids=None, inactive_transaction_uuids=None):
-        self.uuid = get_uuid()
+        self.uuid = common.get_uuid()
         self.phone_number = phone_number
         self.first_name = first_name
         self.last_name = last_name
@@ -62,7 +65,7 @@ class Customer():
 class Delegator():
     def __init__(self, phone_number=None, email=None, first_name=None, last_name=None,
             active_transaction_uuids=None, inactive_transaction_uuids=None):
-        self.uuid = get_uuid()
+        self.uuid = common.get_uuid()
         self.phone_number = phone_number
         self.email = email
         self.first_name   = first_name
@@ -93,11 +96,11 @@ class Delegator():
 
 class Transaction():
     def __init__(self, customer_uuid=None, delegator_uuid=None, status=None, messages=None):
-        self.uuid = get_uuid()
+        self.uuid = common.get_uuid()
         self.customer_uuid = customer_uuid
         self.delegator_uuid = delegator_uuid
         self.status = status
-        self.timestamp = get_current_timestamp()
+        self.timestamp = common.get_current_timestamp()
         self.messages = messages
 
     def get_data(self):
@@ -112,18 +115,7 @@ class Message():
     def __init__(self, from_customer=None, content=None, platform_type=None):
         self.from_customer = from_customer
         self.content = content
-        self.platform_type = platform_type
-        self.timestamp = get_current_timestamp()
+        self.platform_type = platform_type self.timestamp = common.get_current_timestamp()
 
     def get_data(self):
         return {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
-
-####################
-# Helper Functions #
-####################
-
-def get_current_timestamp():
-    return int(time.time() * 10**6)
-
-def get_uuid():
-    return str(uuid.uuid4().int >> 64)

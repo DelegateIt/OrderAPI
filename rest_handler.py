@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from flask import Flask, request
+from flask.ext.socketio import SocketIO, send, join_room, leave_room
 
 import time
 import argparse
@@ -11,13 +12,20 @@ import jsonpickle
 import models
 import common
 
-from models import Customer, Message, Delegator, Transaction
+from models import Customer, Message, Delegator, Transaction, Handler
 from common import Errors, TransactionStates
-
 from sinchsms import SinchSMS
+
+###############
+# Global Vars #
+###############
 
 app = Flask(__name__)
 app.debug = True
+
+socketio = SocketIO(app)
+
+MY_IP = common.get_public_ip()
 
 @app.after_request
 def after_request(response):
@@ -78,7 +86,7 @@ def create_delegator():
 
     return jsonpickle.encode({"result": 0, "uuid": delegator.uuid}, unpicklable=False)
 
-@app.route('/core/delegator/<uuid>', methods=['GET', 'PUT'])
+@app.route('/core/delegator/<uuid>', methods=['GET'])
 def delegator(uuid):
     if not models.delegators.has_item(uuid=uuid, consistent=True):
         return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
@@ -224,6 +232,51 @@ def transaction(uuid):
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
 
+@app.route("/streams/transaction_change/<transaction_uuid>")
+def transaction_change(transaction_uuid):
+    if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
+        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+
+    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+
+    # Send the data back to the client
+    send(jsonpickle.encode(transaction._data), room=transaction_uuid)
+
+    return jsonpickle.encode({"result": 0})
+
+@socketio.on("register_transaction")
+def on_register_transaction(data):
+    transaction_uuid = data["transaction_uuid"]
+
+    # Register a room for this transaction_uuid
+    join_room(transaction_uuid)
+
+    # Update global state
+    if not models.handlers.has_item(transaction_uuid=transaction_uuid, consistent=True):
+        models.handlers.put_item(data={
+            "transaction_uuid": transaction_uuid,
+            "handlers": [MY_IP]})
+    else:
+        handlers = models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
+        handlers["handlers"].append(MY_IP)
+        handler.partial_save()
+
+@socketio.on("forget_transaction")
+def on_forget_transaction(data):
+    transaction_uuid = data["transaction_uuid"]
+
+    # Leave the room for this transaction_uuid
+    leave_room(transaction_uuid)
+
+    # Clean up global state
+    handlers = models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
+
+    if len(handlers["handlers"]) == 1:
+        handlers.delete()
+    else:
+        handlers["handlers"].remove(MY_IP)
+        handlers.partial_save()
+
 ####################
 # Helper functions #
 ####################
@@ -234,4 +287,4 @@ if __name__ == '__main__':
     parser.add_argument("--host", "-bh", dest="host", default="0.0.0.0", help="The hostname to bind to")
 
     args = parser.parse_args()
-    app.run(host=args.host, port=args.port, debug=True, threaded=True)
+    socketio.run(host=args.host, port=args.port, debug=True, threaded=True)
