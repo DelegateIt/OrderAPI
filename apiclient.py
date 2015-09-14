@@ -122,6 +122,9 @@ def send_message(transaction_uuid, platform_type, content, from_customer):
 def get_messages(transaction_uuid):
     return send_api_request("GET", ["core", "get_messages", transaction_uuid])
 
+def transaction_change(transaction_uuid):
+    return send_api_request("GET", ["streams", "transaction_change", transaction_uuid])
+
 ######END api wrapper
 
 if __name__ == "__main__":
