@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 from flask import Flask, request
 from flask.ext.socketio import SocketIO, send, join_room, leave_room
@@ -12,9 +12,8 @@ import jsonpickle
 import models
 import common
 
-from models import Customer, Message, Delegator, Transaction, Handler
+from models import Customer, Message, Delegator, Transaction
 from common import Errors, TransactionStates
-from sinchsms import SinchSMS
 
 ###############
 # Global Vars #
@@ -283,8 +282,8 @@ def on_forget_transaction(data):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Starts the api server")
-    parser.add_argument("--port", "-bp", dest="port", type=int, default=80, help="The port to bind to")
+    parser.add_argument("--port", "-bp", dest="port", type=int, default=8080, help="The port to bind to")
     parser.add_argument("--host", "-bh", dest="host", default="0.0.0.0", help="The hostname to bind to")
 
     args = parser.parse_args()
-    socketio.run(host=args.host, port=args.port, debug=True, threaded=True)
+    socketio.run(host=args.host, port=args.port)

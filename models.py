@@ -115,7 +115,8 @@ class Message():
     def __init__(self, from_customer=None, content=None, platform_type=None):
         self.from_customer = from_customer
         self.content = content
-        self.platform_type = platform_type self.timestamp = common.get_current_timestamp()
+        self.platform_type = platform_type 
+	self.timestamp = common.get_current_timestamp()
 
     def get_data(self):
         return {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
