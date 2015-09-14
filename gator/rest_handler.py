@@ -1,30 +1,23 @@
-#!/usr/bin/env python
 
-from flask import Flask, request
+from flask import request
 from flask.ext.socketio import SocketIO, send, join_room, leave_room
-
-import time
-import argparse
-import sys
 
 import jsonpickle
 
-import models
-import common
+import gator.models
+import gator.common
 
-from models import Customer, Message, Delegator, Transaction
-from common import Errors, TransactionStates
+from gator import app
+from gator.models import Customer, Message, Delegator, Transaction
+from gator.common import Errors, TransactionStates
 
 ###############
 # Global Vars #
 ###############
 
-app = Flask(__name__)
-app.debug = True
-
 socketio = SocketIO(app)
 
-MY_IP = common.get_public_ip()
+MY_IP = gator.common.get_public_ip()
 
 @app.after_request
 def after_request(response):
@@ -43,23 +36,23 @@ def create_customer():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set(["phone_number"]) <= set(data_dict.keys()):
-        return common.error_to_json(Errors.DATA_NOT_PRESENT)
+        return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     customer = Customer.create_from_dict(data_dict)
 
     if not customer.is_unique():
-        return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
+        return gator.common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
 
-    models.customers.put_item(data=customer.get_data())
+    gator.models.customers.put_item(data=customer.get_data())
 
     return jsonpickle.encode({"result": 0, "uuid": customer.uuid}, unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['GET'])
 def customer(uuid):
-    if not models.customers.has_item(uuid=uuid, consistent=True):
-        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+    if not gator.models.customers.has_item(uuid=uuid, consistent=True):
+        return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    customer = models.customers.get_item(uuid=uuid, consistent=True)
+    customer = gator.models.customers.get_item(uuid=uuid, consistent=True)
 
     to_return = {"result": 0}
     to_return.update(customer._data)
@@ -70,7 +63,7 @@ def create_delegator():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set(["phone_number", "email", "first_name", "last_name"]) <= set(data_dict.keys()):
-        return common.error_to_json(Errors.DATA_NOT_PRESENT)
+        return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     delegator = Delegator(
             first_name=data_dict["first_name"],
@@ -79,18 +72,26 @@ def create_delegator():
             email=data_dict["email"])
 
     if not delegator.is_unique():
-        return common.error_to_json(Errors.DELEGATOR_ALREADY_EXISTS)
+        return gator.common.error_to_json(Errors.DELEGATOR_ALREADY_EXISTS)
 
-    models.delegators.put_item(data=delegator.get_data())
+    gator.models.delegators.put_item(data=delegator.get_data())
 
     return jsonpickle.encode({"result": 0, "uuid": delegator.uuid}, unpicklable=False)
 
+@app.route('/core/delegator', methods=['GET'])
+def list_delegators():
+    query = gator.models.delegators.scan()
+    return jsonpickle.encode({
+        "result": 0,
+        "delegators": [delegator._data for delegator in query]},
+        unpicklable=False)
+
 @app.route('/core/delegator/<uuid>', methods=['GET'])
 def delegator(uuid):
-    if not models.delegators.has_item(uuid=uuid, consistent=True):
-        return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
+    if not gator.models.delegators.has_item(uuid=uuid, consistent=True):
+        return gator.common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
 
-    delegator = models.delegators.get_item(uuid=uuid, consistent=True)
+    delegator = gator.models.delegators.get_item(uuid=uuid, consistent=True)
 
     to_return = {"result": 0}
     to_return.update(delegator._data)
@@ -101,12 +102,12 @@ def send_message(transaction_uuid):
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set(["from_customer", "content", "platform_type"]) <= set(data_dict.keys()):
-        return common.error_to_json(Errors.DATA_NOT_PRESENT)
+        return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
 
-    if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
-        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+    if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
+        return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+    transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
 
     message = Message(
         from_customer=data_dict["from_customer"],
@@ -128,10 +129,10 @@ def send_message(transaction_uuid):
 
 @app.route('/core/get_messages/<transaction_uuid>', methods=['GET'])
 def get_messages(transaction_uuid):
-    if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
-        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+    if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
+        return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+    transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
 
     to_return = {"result": 0}
 
@@ -147,12 +148,12 @@ def create_transaction():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set(["customer_uuid"]) <= set(data_dict.keys()):
-        return common.error_to_json(Errors.DATA_NOT_PRESENT)
+        return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
 
-    if not models.customers.has_item(uuid=data_dict["customer_uuid"], consistent=True):
-        return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+    if not gator.models.customers.has_item(uuid=data_dict["customer_uuid"], consistent=True):
+        return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    customer = models.customers.get_item(uuid=data_dict["customer_uuid"], consistent=True)
+    customer = gator.models.customers.get_item(uuid=data_dict["customer_uuid"], consistent=True)
 
     # NOTE: client can only make transactions in the started state
     transaction = Transaction(
@@ -160,7 +161,7 @@ def create_transaction():
             status=TransactionStates.STARTED)
 
     # Add the transaction to the transaction table
-    models.transactions.put_item(data=transaction.get_data())
+    gator.models.transactions.put_item(data=transaction.get_data())
 
     # Add the transaction uuid to the customer
     if customer["active_transaction_uuids"] is None:
@@ -174,23 +175,23 @@ def create_transaction():
 # TODO: write a test for PUT
 @app.route('/core/transaction/<uuid>', methods=['GET', 'PUT'])
 def transaction(uuid):
-    if not models.transactions.has_item(uuid=uuid, consistent=True):
-        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+    if not gator.models.transactions.has_item(uuid=uuid, consistent=True):
+        return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     if request.method == 'PUT':
         data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
         # NOTE: do not allow both data fields to be changed in one operation
         # b/c it takes more logic to do that
-        if not set(data_dict.keys()) < set(["delegator_uuid", "status"]):
-            return common.error_to_json(Errors.INVALID_DATA_PRESENT)
+        if not set(data_dict.keys()) < set(["delegator_uuid", "status", "receipt"]):
+            return gator.common.error_to_json(Errors.INVALID_DATA_PRESENT)
 
-        transaction = models.transactions.get_item(uuid=uuid, consistent=True)
+        transaction = gator.models.transactions.get_item(uuid=uuid, consistent=True)
 
         # Update the state of associated delegator objects
         if "delegator_uuid" in data_dict:
-            old_delegator = models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
-            new_delegator = models.delegators.get_item(uuid=data_dict["delegator_uuid"], consistent=True)
+            old_delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
+            new_delegator = gator.models.delegators.get_item(uuid=data_dict["delegator_uuid"], consistent=True)
 
             if transaction["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES:
                 old_delegator["active_transaction_uuids"].remove(transaction["uuid"])
@@ -208,7 +209,7 @@ def transaction(uuid):
             new_status_is_active = data_dict["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES
 
             if old_status_is_active != new_status_is_active:
-                cur_delegator = models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
+                cur_delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
                 if old_status_is_active:
                     cur_delegator["active_transaction_uuids"].remove(transaction["uuid"])
                     cur_delegator["inactive_transaction_uuids"].append(transaction["uuid"])
@@ -226,7 +227,7 @@ def transaction(uuid):
 
         return jsonpickle.encode({"result": 0}, unpicklable=False)
     elif request.method == 'GET':
-        transaction = models.transactions.get_item(uuid=uuid, consistent=True)
+        transaction = gator.models.transactions.get_item(uuid=uuid, consistent=True)
 
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
@@ -276,14 +277,3 @@ def on_forget_transaction(data):
         handlers["handlers"].remove(MY_IP)
         handlers.partial_save()
 
-####################
-# Helper functions #
-####################
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Starts the api server")
-    parser.add_argument("--port", "-bp", dest="port", type=int, default=8080, help="The port to bind to")
-    parser.add_argument("--host", "-bh", dest="host", default="0.0.0.0", help="The hostname to bind to")
-
-    args = parser.parse_args()
-    socketio.run(host=args.host, port=args.port)

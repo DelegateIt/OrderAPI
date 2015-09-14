@@ -32,6 +32,7 @@ class Customer():
         self.phone_number = phone_number
         self.first_name = first_name
         self.last_name = last_name
+        self.stripe_id = None
 
         self.active_transaction_uuids = active_transaction_uuids
         self.inactive_transaction_uuids = inactive_transaction_uuids
@@ -102,6 +103,17 @@ class Transaction():
         self.status = status
         self.timestamp = common.get_current_timestamp()
         self.messages = messages
+        self.receipt = None
+        #receipt = {
+        #    paid: boolean,
+        #    notes: string, #Any additional information
+        #    items: [
+        #        {
+        #            name: string,
+        #            cents: int #cost of item in pennies
+        #        }, ...
+        #    ]
+        #}
 
     def get_data(self):
         data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
