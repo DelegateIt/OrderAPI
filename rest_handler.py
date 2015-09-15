@@ -239,7 +239,7 @@ def transaction_change(transaction_uuid):
     transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
 
     # Send the data back to the client
-    send(jsonpickle.encode(transaction._data), room=transaction_uuid)
+    socketio.send(jsonpickle.encode(transaction._data), room=transaction_uuid)
 
     return jsonpickle.encode({"result": 0})
 
@@ -256,9 +256,9 @@ def on_register_transaction(data):
             "transaction_uuid": transaction_uuid,
             "handlers": [MY_IP]})
     else:
-        handlers = models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
-        handlers["handlers"].append(MY_IP)
-        handler.partial_save()
+        cur_handlers = models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
+        cur_handlers["handlers"].append(MY_IP)
+        cur_handlers.partial_save()
 
 @socketio.on("forget_transaction")
 def on_forget_transaction(data):

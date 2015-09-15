@@ -15,10 +15,11 @@ conn = boto.dynamodb2.connect_to_region(
 customers    = Table("DelegateIt_Customers", connection=conn)
 delegators   = Table("DelegateIt_Delegators", connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
+handlers     = Table("DelegateIt_Handlers", connection=conn)
 
 # Service configs
 # apiclient.default_host = "backend-lb-125133299.us-west-2.elb.amazonaws.com"
-apiclient.default_host = "localhost:80"
+apiclient.default_host = "localhost:8080"
 
 def clear():
     for table in [customers, delegators, transactions]:
