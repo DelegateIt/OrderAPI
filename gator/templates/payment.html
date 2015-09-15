@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="row">
+    <div class="col-md-4">
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h3>Receipt</h3></div>
+            <ul class="list-group">
+                {% for item in items %}
+                <li class="list-group-item">{{ item.name }}</li>
+                {% endfor %}
+            </ul>
+            <div class="panel-body">
+                <div><label>Total</label>: ${{ total|round(2) }}</div>
+                {% if notes != "" %}
+                <div style="padding-top:15px">
+                    <label>Notes:</label>
+                    <pre style="word-wrap:normal">{{ notes }}</pre>
+                </div>
+                {% endif %}
+            </div>
+            <div class="panel-footer">
+                <form action="/core/payment/uicharge/{{ uuid }}" method="POST">
+                    <script
+                        src="https://checkout.stripe.com/checkout.js" class="stripe-button"
+                        data-key="pk_test_ZoK03rN4pxc2hfeYTzjByrdV"
+                        data-name="DelegateIt"
+                        data-description="Your personal concierge service"
+                        data-amount="{{ amount }}"
+                        data-bitcoin="true"
+                        data-locale="auto">
+                    </script>
+                    <input type="hidden" name="amount" value="{{ amount }}">
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+    </div>
+</div>
+{% endblock %}
