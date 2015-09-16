@@ -187,17 +187,24 @@ def transaction(uuid):
 
         # Update the state of associated delegator objects
         if "delegator_uuid" in data_dict:
-            old_delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
-            new_delegator = gator.models.delegators.get_item(uuid=data_dict["delegator_uuid"], consistent=True)
 
+            if "delegator_uuid" in transaction:
+                old_delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
+                if transaction["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES:
+                    old_delegator["active_transaction_uuids"].remove(transaction["uuid"])
+                else:
+                    old_delegator["inactive_transaction_uuids"].remove(transaction["uuid"])
+                old_delegator.partial_save()
+
+            new_delegator = gator.models.delegators.get_item(uuid=data_dict["delegator_uuid"], consistent=True)
             if transaction["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES:
-                old_delegator["active_transaction_uuids"].remove(transaction["uuid"])
+                if "active_transaction_uuids" not in new_delegator:
+                    new_delegator["active_transaction_uuids"] = []
                 new_delegator["active_transaction_uuids"].append(transaction["uuid"])
             else:
-                old_delegator["inactive_transaction_uuids"].remove(transaction["uuid"])
+                if "inactive_transaction_uuids" not in new_delegator:
+                    new_delegator["inactive_transaction_uuids"] = []
                 new_delegator["inactive_transaction_uuids"].append(transaction["uuid"])
-
-            old_delegator.partial_save()
             new_delegator.partial_save()
 
         # Change the state
