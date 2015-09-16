@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 import argparse
-from gator import socketio 
+from gator import socketio, app
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Starts the api server")
@@ -9,4 +9,4 @@ if __name__ == '__main__':
     parser.add_argument("--host", "-bh", dest="host", default="0.0.0.0", help="The hostname to bind to")
 
     args = parser.parse_args()
-    socketio.run(host=args.host, port=args.port)
+    socketio.run(app, host=args.host, port=args.port)

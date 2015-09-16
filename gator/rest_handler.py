@@ -231,10 +231,10 @@ def transaction(uuid):
 
 @app.route("/streams/transaction_change/<transaction_uuid>")
 def transaction_change(transaction_uuid):
-    if not models.transactions.has_item(uuid=transaction_uuid, consistent=True):
-        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+    if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
+        return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+    transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
 
     # Send the data back to the client
     socketio.send(jsonpickle.encode(transaction._data), room=transaction_uuid)
@@ -249,12 +249,12 @@ def on_register_transaction(data):
     join_room(transaction_uuid)
 
     # Update global state
-    if not models.handlers.has_item(transaction_uuid=transaction_uuid, consistent=True):
-        models.handlers.put_item(data={
+    if not gator.models.handlers.has_item(transaction_uuid=transaction_uuid, consistent=True):
+        gator.models.handlers.put_item(data={
             "transaction_uuid": transaction_uuid,
             "handlers": [MY_IP]})
     else:
-        cur_handlers = models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
+        cur_handlers = gator.models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
         cur_handlers["handlers"].append(MY_IP)
         cur_handlers.partial_save()
 
@@ -266,7 +266,7 @@ def on_forget_transaction(data):
     leave_room(transaction_uuid)
 
     # Clean up global state
-    handlers = models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
+    handlers = gator.models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
 
     if len(handlers["handlers"]) == 1:
         handlers.delete()
