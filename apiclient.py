@@ -44,6 +44,29 @@ def send_api_request(method, components, json_data=None):
         print("Received bad status code {} with response {}".format(json_data["result"], json_data))
     return resp.json()
 
+def populate_with_dummy_data():
+        dlgt = create_delegator("Test", "Delegator", "1112223333", "sfksdfj@ldjfd.com")
+        print("Delegator", dlgt)
+        c1 = create_customer("George", "Bush", "9339405948")
+        c2 = create_customer("John", "Adams", "8766666545")
+        c3 = create_customer("Andrew", "Johnson", "1039403940")
+        c4 = create_customer("Creepy", "Nixon", "4334493844")
+        c5 = create_customer("Frank", "Roosevelt", "3039403941")
+        c6 = create_customer("Barack", "Obama", "5849408948")
+        customers = [c1, c2, c3, c4, c5, c6]
+        transactions = []
+        for c in customers:
+            transactions.append(create_transaction(c["uuid"]))
+        print("Transactions", transactions)
+        for t in transactions:
+            update_transaction(t["uuid"], "helped", dlgt["uuid"])
+        send_message(transactions[0]["uuid"], "test", "I want Pizza", True)
+        send_message(transactions[1]["uuid"], "test", "How's it going?", True)
+        send_message(transactions[2]["uuid"], "test", "Bring me the declaration of independence", True)
+        send_message(transactions[3]["uuid"], "test", "lskjfklsdfjksjf", True)
+        send_message(transactions[4]["uuid"], "test", "I need my lawn mowed pronto", True)
+        send_message(transactions[5]["uuid"], "test", "you.. uh.. got anymore of the dank bud", True)
+
 #######BEGIN api wrapper
 
 def create_customer(first_name, last_name, phone_number):
@@ -132,6 +155,7 @@ if __name__ == "__main__":
         "get_delegator_list": get_delegator_list,
         #End api wrapper methods
         "clear_database": clear_database,
+        "populate": populate_with_dummy_data,
     }
 
     method = "--help"
