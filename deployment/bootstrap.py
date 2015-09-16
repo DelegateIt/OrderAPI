@@ -16,7 +16,7 @@ requests.packages.urllib3.disable_warnings()
 
 # Custom import for common
 import sys
-sys.path.insert(0, os.path.abspath("../"))
+sys.path.insert(0, os.path.abspath("../gator"))
 
 import common
 

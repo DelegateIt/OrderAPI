@@ -1,4 +1,3 @@
-
 from flask import request
 from flask.ext.socketio import SocketIO, send, join_room, leave_room
 
@@ -7,15 +6,13 @@ import jsonpickle
 import gator.models
 import gator.common
 
-from gator import app
+from gator import app, socketio
 from gator.models import Customer, Message, Delegator, Transaction
 from gator.common import Errors, TransactionStates
 
 ###############
 # Global Vars #
 ###############
-
-socketio = SocketIO(app)
 
 MY_IP = gator.common.get_public_ip()
 
