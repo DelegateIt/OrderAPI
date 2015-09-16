@@ -212,12 +212,16 @@ def transaction(uuid):
             old_status_is_active = transaction["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES
             new_status_is_active = data_dict["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES
 
-            if old_status_is_active != new_status_is_active:
+            if old_status_is_active != new_status_is_active and "delegator_uuid" in transaction:
                 cur_delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
                 if old_status_is_active:
+                    if "inactive_transaction_uuids" not in cur_delegator:
+                        cur_delegator["inactive_transaction_uuids"] = []
                     cur_delegator["active_transaction_uuids"].remove(transaction["uuid"])
                     cur_delegator["inactive_transaction_uuids"].append(transaction["uuid"])
                 else:
+                    if "active_transaction_uuids" not in cur_delegator:
+                        cur_delegator["active_transaction_uuids"] = []
                     cur_delegator["inactive_transaction_uuids"].remove(transaction["uuid"])
                     cur_delegator["active_transaction_uuids"].append(transaction["uuid"])
 

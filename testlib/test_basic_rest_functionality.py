@@ -93,24 +93,30 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(message_get_response_data_2["messages"][0]["timestamp"], transaction["messages"][0]["timestamp"])
 
     def test_transaction(self):
+        delegator_create_rsp = apiclient.create_delegator("George", "Farcasiu", "8176808185", "farcasiu.george@gmail.com")
         customer_response_data = apiclient.create_customer("George","Farcasiu", "8176808185")
         customer_uuid = customer_response_data["uuid"]
 
         transaction_create_response = apiclient.create_transaction(customer_uuid)
         transaction_uuid = transaction_create_response["uuid"]
 
-        transaction_get_response = apiclient.get_transaction(transaction_uuid)
+        #Special case when changing the transaction to/from inactive to/from active status
+        update_status = apiclient.update_transaction(transaction_uuid, "completed")
         transaction_update_response = apiclient.update_transaction(transaction_uuid, "helped")
+        update_delegator = apiclient.update_transaction(transaction_uuid, delegator_uuid=delegator_create_rsp["uuid"])
+        transaction_get_response = apiclient.get_transaction(transaction_uuid)
 
         # Verify that the response
         self.assertEquals(transaction_create_response["result"], 0)
         self.assertIsNotNone(transaction_create_response["uuid"])
         self.assertEquals(transaction_get_response["result"], 0)
         self.assertEquals(transaction_update_response["result"], 0)
+        self.assertEquals(update_status["result"], 0)
+        self.assertEquals(update_delegator["result"], 0)
 
         self.assertEquals(transaction_get_response["transaction"]["customer_uuid"], customer_uuid)
-        self.assertEquals(transaction_get_response["transaction"]["status"], "started") # old value
-        self.assertEquals(transaction_get_response["transaction"].get("delegator_uuid"), None)
+        self.assertEquals(transaction_get_response["transaction"]["status"], "helped")
+        self.assertEquals(transaction_get_response["transaction"].get("delegator_uuid"), delegator_create_rsp["uuid"])
 
         # Verify that information in the db is correct
         transaction = transactions.get_item(uuid=transaction_uuid)
