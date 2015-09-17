@@ -227,6 +227,9 @@ def transaction(uuid):
 
                 cur_delegator.partial_save()
 
+        if "receipt" in data_dict and "receipt" in transaction and "stripe_charge_id" in transaction["receipt"]:
+            return gator.common.error_to_json(Errors.TRANSACTION_ALREADY_PAID)
+
         # Update the transaction itself
         transaction._data.update(data_dict)
 

@@ -20,12 +20,6 @@ def get_chargeable_transaction(transaction_uuid):
         raise PaymentException("The transaction has not been finalized")
     return db_transaction
 
-def calculate_total(receipt):
-    amount = 0
-    for item in receipt['items']:
-        amount += item['cents']
-    return amount
-
 def charge_transaction(transaction_uuid, stripe_token, email):
     #TODO email receipt
     db_transaction = get_chargeable_transaction(transaction_uuid)
@@ -33,23 +27,32 @@ def charge_transaction(transaction_uuid, stripe_token, email):
         return #It has already been paid
     db_customer = gator.models.customers.get_item(uuid=db_transaction['customer_uuid'])
 
-    stripe_customer = stripe.Customer.create(
-        source=stripe_token,
-        description="Paid via link",
-        email=email
-    )
+    if "stripe_id" in db_customer:
+        stripe_customer = stripe.Customer.retrieve(db_customer["stripe_id"])
+        stripe_customer.source = stripe_token
+        stripe_customer.email = email
+        stripe_customer.save()
+    else:
+        stripe_customer = stripe.Customer.create(
+            source=stripe_token,
+            description="Paid via link",
+            email=email,
+            metadata={
+                "gator_customer_uuid": db_customer["uuid"],
+            }
+        )
 
     stripe_charge = stripe.Charge.create(
-        amount=calculate_total(db_transaction['receipt']), #in cents
+        amount=db_transaction['receipt']['total'], #in cents
         currency="usd",
         customer=stripe_customer.id
     )
 
     db_customer['stripe_id'] = stripe_customer.id
     db_customer['email'] = email
-    db_customer.save()
+    db_customer.partial_save()
     db_transaction['receipt']['stripe_charge_id'] = stripe_charge.id
-    db_transaction.save()
+    db_transaction.partial_save()
 
 def generate_redirect(success, message=None):
     args = {"success": success}
@@ -65,7 +68,7 @@ def ui_form(transaction_uuid):
         if "stripe_charge_id" in transaction['receipt']:
             return generate_redirect(True)
         else:
-            amount = calculate_total(transaction['receipt'])
+            amount = transaction['receipt']['total']
             return render_template('payment.html', uuid=transaction_uuid, amount=amount, total=float(amount)/100.0,
                     items=transaction['receipt']['items'], notes=transaction['receipt']['notes'])
     except Exception as e:

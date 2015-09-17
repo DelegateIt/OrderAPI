@@ -105,6 +105,7 @@ class Transaction():
         self.messages = messages
         self.receipt = None
         #receipt = {
+        #    total: integer, #Amount of cents that should be paid. NOTE: not equal to the sum of costs due to fees/taxes
         #    paid: boolean,
         #    notes: string, #Any additional information
         #    items: [

@@ -23,6 +23,7 @@ class Errors():
     DELEGATOR_ALREADY_EXISTS   = ErrorType(4, "The specified delegator already exists")
     DELEGATOR_DOES_NOT_EXIST   = ErrorType(5, "The specified uuid is not linked to a delegator")
     INVALID_DATA_PRESENT       = ErrorType(6, "The request contained superfluous data")
+    TRANSACTION_ALREADY_PAID   = ErrorType(7, "The transaction has already been paid for and cannot be modified")
 
 def error_to_json(error):
     return jsonpickle.encode({
