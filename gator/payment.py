@@ -4,6 +4,7 @@ import stripe
 from flask import request, render_template, redirect
 
 import gator.models
+import gator.common
 from gator import app
 
 stripe.api_key = "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH"
@@ -52,6 +53,7 @@ def charge_transaction(transaction_uuid, stripe_token, email):
     db_customer['email'] = email
     db_customer.partial_save()
     db_transaction['receipt']['stripe_charge_id'] = stripe_charge.id
+    db_transaction['status'] = gator.common.TransactionStates.COMPLETED
     db_transaction.partial_save()
 
 def generate_redirect(success, message=None):
