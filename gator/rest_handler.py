@@ -156,6 +156,7 @@ def create_transaction():
     transaction = Transaction(
             customer_uuid=data_dict["customer_uuid"],
             status=TransactionStates.STARTED)
+    transaction.payment_url = gator.payment.create_url(transaction.uuid)
 
     # Add the transaction to the transaction table
     gator.models.transactions.put_item(data=transaction.get_data())

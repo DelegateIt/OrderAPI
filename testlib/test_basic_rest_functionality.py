@@ -115,6 +115,7 @@ class TestBasicRestFunctionality(unittest.TestCase):
         self.assertEquals(update_delegator["result"], 0)
 
         self.assertEquals(transaction_get_response["transaction"]["customer_uuid"], customer_uuid)
+        self.assertIsNotNone(transaction_get_response["transaction"]["payment_url"])
         self.assertEquals(transaction_get_response["transaction"]["status"], "helped")
         self.assertEquals(transaction_get_response["transaction"].get("delegator_uuid"), delegator_create_rsp["uuid"])
 

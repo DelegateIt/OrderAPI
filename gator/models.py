@@ -104,6 +104,7 @@ class Transaction():
         self.timestamp = common.get_current_timestamp()
         self.messages = messages
         self.receipt = None
+        self.payment_url = None
         #receipt = {
         #    total: integer, #Amount of cents that should be paid. NOTE: not equal to the sum of costs due to fees/taxes
         #    paid: boolean,
