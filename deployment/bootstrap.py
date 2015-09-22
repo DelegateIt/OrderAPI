@@ -10,10 +10,6 @@ import uuid
 import os.path
 import io
 
-# Fix issues with unverified requests
-import urllib3
-requests.packages.urllib3.disable_warnings()
-
 # Custom import for common
 import sys
 sys.path.insert(0, os.path.abspath("../gator"))
@@ -48,28 +44,19 @@ def bootstrap():
     with open(egg_path, "r+") as egg_file:
         egg_data = json.load(egg_file)
 
-        # Checks to see if the handler is contained in the egg
-        def handler_is_stale(handler):
-            for old_handler in egg_data["prev_insts"]:
-                print "old handler: %s" % old_handler
-                if old_handler["uuid"] == handler["uuid"] and old_handler["ip"] == handler["ip"]:
-                    return True
-            return False
 
-        # Scan the DB and check to see if any of the handlers were prev instances
-        # of the Rest API on this machine
-        for item in handlers.scan():
-            print item._data
-            new_handlers = filter(handler_is_stale, item["handlers"])
+    # Scan the DB and check to see if any of the handlers were prev instances
+    # of the Rest API on this machine
+    for item in handlers.scan():
+        if egg_data["ip"] in item["handlers"]:
+            item["handlers"].remove(egg_data["ip"])
+            item.partial_save()
 
-            if item["handlers"] != new_handlers:
-                item.partial_save()
-
-        # We have removed all stale data from the DB it is safe to overwrite it
-        egg_data["prev_insts"] = {"ip": public_ip, "uuid": common.get_uuid()}
-        egg_file.truncate(0)
-        egg_file.seek(0)
-        egg_file.write(json.dumps(egg_data))
+    # We have removed all stale data from the DB it is safe to overwrite it
+    egg_data = {"ip": public_ip, "uuid": common.get_uuid()}
+    egg_file.truncate(0)
+    egg_file.seek(0)
+    egg_file.write(json.dumps(egg_data))
 
 if __name__ == "__main__":
     bootstrap()
