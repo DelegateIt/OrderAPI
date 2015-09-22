@@ -38,25 +38,27 @@ def bootstrap():
     # Initialize the file if it doesn't exists
     if not os.path.isfile(egg_path):
         with open(egg_path, "w+") as egg_file:
-            json.dump({"prev_insts": {}}, egg_file)
+            json.dump({"ip": public_ip, "uuid": common.get_uuid()}, egg_file)
 
     # Open if exists, else create the egg
     with open(egg_path, "r+") as egg_file:
         egg_data = json.load(egg_file)
 
+        # Scan the DB and check to see if any of the handlers were the prev instance
+        # of the Rest API on this machine
+        for item in handlers.scan():
+   	    if egg_data["ip"] in item["handlers"]:
+                item["handlers"] = filter(lambda a: a != egg_data["ip"], item["handlers"])
+                if (len(item["handlers"]) == 0):
+                    item.delete()
+                else:
+	            item.partial_save()
 
-    # Scan the DB and check to see if any of the handlers were prev instances
-    # of the Rest API on this machine
-    for item in handlers.scan():
-        if egg_data["ip"] in item["handlers"]:
-            item["handlers"].remove(egg_data["ip"])
-            item.partial_save()
-
-    # We have removed all stale data from the DB it is safe to overwrite it
-    egg_data = {"ip": public_ip, "uuid": common.get_uuid()}
-    egg_file.truncate(0)
-    egg_file.seek(0)
-    egg_file.write(json.dumps(egg_data))
+        # We have removed all stale data from the DB it is safe to overwrite it
+        egg_data = {"ip": public_ip, "uuid": common.get_uuid()}
+        egg_file.truncate(0)
+        egg_file.seek(0)
+        egg_file.write(json.dumps(egg_data))
 
 if __name__ == "__main__":
     bootstrap()

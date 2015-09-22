@@ -10,6 +10,10 @@ from gator import app, socketio
 from gator.models import Customer, Message, Delegator, Transaction
 from gator.common import Errors, TransactionStates
 
+# Fix broken SSL
+import urllib3.contrib.pyopenssl
+urllib3.contrib.pyopenssl.inject_into_urllib3()
+
 ###############
 # Global Vars #
 ###############
