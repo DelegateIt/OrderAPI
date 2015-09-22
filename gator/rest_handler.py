@@ -244,7 +244,11 @@ def transaction(uuid):
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
 
-@app.route("/streams/transaction_change/<transaction_uuid>")
+@app.route("/strems/get_server_ip", methods["GET"])
+def get_server_ip:
+    return jsonpickle.encode({"result": 0, "ip": MY_IP});
+
+@app.route("/streams/transaction_change/<transaction_uuid>", methods["GET"])
 def transaction_change(transaction_uuid):
     if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
@@ -270,8 +274,9 @@ def on_register_transaction(data):
             "handlers": [MY_IP]})
     else:
         cur_handlers = gator.models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
-        cur_handlers["handlers"].append(MY_IP)
-        cur_handlers.partial_save()
+        if MY_IP not in cur_handlers:
+            cur_handlers["handlers"].append(MY_IP)
+            cur_handlers.partial_save()
 
 @socketio.on("forget_transaction")
 def on_forget_transaction(data):
