@@ -3,6 +3,10 @@
 import argparse
 from gator import socketio, app
 
+# Fix broken SSL
+import urllib3.contrib.pyopenssl
+urllib3.contrib.pyopenssl.inject_into_urllib3()
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Starts the api server")
     parser.add_argument("--port", "-bp", dest="port", type=int, default=80, help="The port to bind to")

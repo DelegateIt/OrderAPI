@@ -8,7 +8,8 @@ import sys
 import boto.dynamodb2
 from boto.dynamodb2.table import Table
 
-default_host = "localhost:8000"
+# default_host = "localhost:8000"
+default_host = "backend-lb-125133299.us-west-2.elb.amazonaws.com"
 
 def clear_database(conn=None):
     if conn is None:
