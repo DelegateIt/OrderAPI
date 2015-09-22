@@ -1,13 +1,22 @@
 from flask import request
 from flask.ext.socketio import SocketIO, send, join_room, leave_room
 
-from gator import app
+import jsonpickle
 
-@app.route("/strems/get_server_ip", methods["GET"])
-def get_server_ip:
+import gator.common
+from gator import app, socketio
+
+###############
+# Global Vars #
+###############
+
+MY_IP = gator.common.get_public_ip()
+
+@app.route("/streams/get_server_ip", methods=["GET"])
+def get_server_ip():
     return jsonpickle.encode({"result": 0, "ip": MY_IP});
 
-@app.route("/streams/transaction_change/<transaction_uuid>", methods["GET"])
+@app.route("/streams/transaction_change/<transaction_uuid>", methods=["GET"])
 def transaction_change(transaction_uuid):
     if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)

@@ -9,12 +9,6 @@ from gator import app, socketio
 from gator.models import Customer, Message, Delegator, Transaction
 from gator.common import Errors, TransactionStates
 
-###############
-# Global Vars #
-###############
-
-MY_IP = gator.common.get_public_ip()
-
 @app.after_request
 def after_request(response):
     #TODO - Important Security - replace '*' with name of the server hosting the delegator web client
@@ -242,3 +236,4 @@ def transaction(uuid):
 
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
+

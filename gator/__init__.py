@@ -8,3 +8,4 @@ socketio = SocketIO(app)
 
 import gator.rest_handler
 import gator.payment
+import gator.streams
