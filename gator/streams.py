@@ -26,6 +26,8 @@ def transaction_change(transaction_uuid):
     # Send the data back to the client
     socketio.send(jsonpickle.encode(transaction._data), room=transaction_uuid)
 
+    # TODO : send a text to the client, will be removed later
+
     return jsonpickle.encode({"result": 0})
 
 @socketio.on("register_transaction")
