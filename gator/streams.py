@@ -24,7 +24,7 @@ def transaction_change(transaction_uuid):
     transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
 
     # Send the data back to the client
-    socketio.send(jsonpickle.encode(transaction._data), room=transaction_uuid)
+    socketio.emit(transaction_uuid, jsonpickle.encode(transaction._data), room=transaction_uuid)
 
     # TODO : send a text to the client, will be removed later
 
