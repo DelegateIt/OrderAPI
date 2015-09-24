@@ -9,7 +9,10 @@ from gator import app, socketio
 from gator.models import Customer, Message, Delegator, Transaction
 from gator.common import Errors, TransactionStates
 
-import twilio.twiml
+from twilio.rest import TwilioRestClient
+
+ACCOUNT_SID = "ACb5440a719947d5edf7d760155a39a768"
+AUTH_TOKEN  = "dd9b4240a96556da1abb1e49646c73f3"
 
 @app.after_request
 def after_request(response):
@@ -117,8 +120,13 @@ def send_message(transaction_uuid):
     # If the message was sent by the delegator go ahead and send it to the customer
     # NOTE: will have to change as we introduce more platforms
     if not data_dict["from_customer"]:
-        resp = twilio.twiml.Response()
-        resp.say(data_dict["content"])
+        client = TwilioRestClient(account_sid, auth_token)
+        customer = gator.models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
+
+        message = client.messages.create(
+            body=data_dict["content"],
+            to=customer["phhone_number"],
+            from_="+15123593557")
 
     return jsonpickle.encode({
             "result": 0,
