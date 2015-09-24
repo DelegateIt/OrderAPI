@@ -156,7 +156,6 @@ def create_transaction():
     # NOTE: client can only make transactions in the started state
     transaction = Transaction(
             customer_uuid=data_dict["customer_uuid"],
-            delegator_uuid=find_delegator(),
             status=TransactionStates.STARTED)
     transaction.payment_url = gator.payment.create_url(transaction.uuid)
 
@@ -255,22 +254,28 @@ def transaction(uuid):
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
 
-def find_delegator():
-    all_delegators = models.delegators.scan()
+@app.route("/core/assign_transaction/<delegator_uuid>", methods=["GET"])
+def assign_transaction(delegator_uuid):
+    if not gator.models.delegators.has_item(uuid=delegator_uuid, consistent=True):
+	return gator.common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
 
-    min_outstanding_trans = sys.maxint
-    delegator_uuid = None
-    for delegator in all_delegators:
-        cur_count = 0
+    if gator.models.transactions.query_count(index="status-index", status__eq=TransactionStates.STARTED) == 0:
+        return gator.common.error_to_json(Errors.NO_TRANSACTIONS_AVAILABLE)
 
-        if delegator["transaction_uuids"]:
-            for transaction_uuid in delegator["transaction_uuids"]:
-                transaction = models.transactions.get_item(uuid=transaction_uuid)
-                if transaction["status"] == TransactionStatus.HELPED:
-                    cur_count += 1
+    # Update the transaction
+    transaction = gator.models.transactions.query_2(index="status-index", status__eq=TransactionStates.STARTED).next()
+    transaction["delegator_uuid"] = delegator_uuid
+    transaction["status"] = TransactionStates.HELPED
 
-        if cur_count < min_outstanding_trans:
-            min_outstanding_trans = cur_count
-            delegator_uuid = delegator["uuid"]
+    transaction.partial_save()
 
-    return delegator_uuid
+    # Update the delegator
+    delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
+
+    if delegator.get("active_transaction_uuids") is None:
+        delegator["active_transaction_uuids"] = []
+
+    delegator["active_transaction_uuids"].append(transaction["uuid"])
+    delegator.partial_save()
+    
+    return jsonpickle.encode({"result": 0, "transaction_uuid": transaction["uuid"]}, unpicklable=False)
