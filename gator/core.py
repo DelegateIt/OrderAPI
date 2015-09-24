@@ -9,6 +9,8 @@ from gator import app, socketio
 from gator.models import Customer, Message, Delegator, Transaction
 from gator.common import Errors, TransactionStates
 
+import twilio.twiml
+
 @app.after_request
 def after_request(response):
     #TODO - Important Security - replace '*' with name of the server hosting the delegator web client
@@ -111,6 +113,12 @@ def send_message(transaction_uuid):
 
     # Save data to the database
     transaction.partial_save()
+
+    # If the message was sent by the delegator go ahead and send it to the customer
+    # NOTE: will have to change as we introduce more platforms
+    if not data_dict["from_customer"]:
+        resp = twilio.twiml.Response()
+        resp.say(data_dict["content"])
 
     return jsonpickle.encode({
             "result": 0,
