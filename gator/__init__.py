@@ -9,3 +9,4 @@ socketio = SocketIO(app)
 import gator.core
 import gator.payment
 import gator.streams
+import gator.sms
