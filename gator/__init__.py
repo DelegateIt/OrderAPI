@@ -6,6 +6,7 @@ app.debug = True
 
 socketio = SocketIO(app)
 
-import gator.rest_handler
+import gator.core
 import gator.payment
 import gator.streams
+import gator.sms
