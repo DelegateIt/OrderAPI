@@ -156,6 +156,7 @@ def create_transaction():
     # NOTE: client can only make transactions in the started state
     transaction = Transaction(
             customer_uuid=data_dict["customer_uuid"],
+            delegator_uuid=find_delegator(),
             status=TransactionStates.STARTED)
     transaction.payment_url = gator.payment.create_url(transaction.uuid)
 
@@ -168,6 +169,15 @@ def create_transaction():
 
     customer["active_transaction_uuids"].append(transaction.uuid)
     customer.partial_save()
+
+    # Add the transaction uuid to the delegator
+    delegator = gator.models.delegators.get_item(uuid=transaction.delegator_uuid, consistent=True)
+
+    if delegator["active_transaction_uuids"] is None:
+        delegator["active_transaction_uuids"] = []
+
+    delegator["active_transaction_uuids"].append(transaction.uuid)
+    delegator.partial_save()
 
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
@@ -244,3 +254,23 @@ def transaction(uuid):
 
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
+
+def find_delegator():
+    all_delegators = models.delegators.scan()
+
+    min_outstanding_trans = sys.maxint
+    delegator_uuid = None
+    for delegator in all_delegators:
+        cur_count = 0
+
+        if delegator["transaction_uuids"]:
+            for transaction_uuid in delegator["transaction_uuids"]:
+                transaction = models.transactions.get_item(uuid=transaction_uuid)
+                if transaction["status"] == TransactionStatus.HELPED:
+                    cur_count += 1
+
+        if cur_count < min_outstanding_trans:
+            min_outstanding_trans = cur_count
+            delegator_uuid = delegator["uuid"]
+
+    return delegator_uuid
