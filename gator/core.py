@@ -120,12 +120,12 @@ def send_message(transaction_uuid):
     # If the message was sent by the delegator go ahead and send it to the customer
     # NOTE: will have to change as we introduce more platforms
     if not data_dict["from_customer"]:
-        client = TwilioRestClient(account_sid, auth_token)
+        client = TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN)
         customer = gator.models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
 
-        message = client.messages.create(
+        client.messages.create(
             body=data_dict["content"],
-            to=customer["phhone_number"],
+            to=customer["phone_number"],
             from_="+15123593557")
 
     return jsonpickle.encode({
