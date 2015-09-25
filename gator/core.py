@@ -177,15 +177,6 @@ def create_transaction():
     customer["active_transaction_uuids"].append(transaction.uuid)
     customer.partial_save()
 
-    # Add the transaction uuid to the delegator
-    delegator = gator.models.delegators.get_item(uuid=transaction.delegator_uuid, consistent=True)
-
-    if delegator["active_transaction_uuids"] is None:
-        delegator["active_transaction_uuids"] = []
-
-    delegator["active_transaction_uuids"].append(transaction.uuid)
-    delegator.partial_save()
-
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
 # TODO: write a test for PUT
