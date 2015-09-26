@@ -44,7 +44,7 @@ def on_register_transaction(data):
             "handlers": [MY_IP]})
     else:
         cur_handlers = gator.models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
-        if MY_IP not in cur_handlers:
+        if MY_IP not in cur_handlers["handlers"]:
             cur_handlers["handlers"].append(MY_IP)
             cur_handlers.partial_save()
 
