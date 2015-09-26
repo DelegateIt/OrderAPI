@@ -120,12 +120,12 @@ def send_message(transaction_uuid):
     # If the message was sent by the delegator go ahead and send it to the customer
     # NOTE: will have to change as we introduce more platforms
     if not data_dict["from_customer"]:
-        client = TwilioRestClient(account_sid, auth_token)
+        client = TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN)
         customer = gator.models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
 
-        message = client.messages.create(
+        client.messages.create(
             body=data_dict["content"],
-            to=customer["phhone_number"],
+            to=customer["phone_number"],
             from_="+15123593557")
 
     return jsonpickle.encode({
@@ -177,18 +177,10 @@ def create_transaction():
     customer["active_transaction_uuids"].append(transaction.uuid)
     customer.partial_save()
 
-    # Add the transaction uuid to the delegator
-    delegator = gator.models.delegators.get_item(uuid=transaction.delegator_uuid, consistent=True)
-
-    if delegator["active_transaction_uuids"] is None:
-        delegator["active_transaction_uuids"] = []
-
-    delegator["active_transaction_uuids"].append(transaction.uuid)
-    delegator.partial_save()
-
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
 # TODO: write a test for PUT
+# TODO: This is in need of some good-ole refractoring. Too much is going on in one method
 @app.route('/core/transaction/<uuid>', methods=['GET', 'PUT'])
 def transaction(uuid):
     if not gator.models.transactions.has_item(uuid=uuid, consistent=True):
@@ -231,6 +223,20 @@ def transaction(uuid):
             old_status_is_active = transaction["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES
             new_status_is_active = data_dict["status"] in TransactionStates.ACTIVE_TRANSACTION_STATES
 
+            if old_status_is_active != new_status_is_active and "customer_uuid" in transaction:
+                customer = gator.models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
+                if old_status_is_active:
+                    if "inactive_transaction_uuids" not in customer:
+                        customer["inactive_transaction_uuids"] = []
+                    customer["active_transaction_uuids"].remove(transaction["uuid"])
+                    customer["inactive_transaction_uuids"].append(transaction["uuid"])
+                else:
+                    if "active_transaction_uuids" not in customer:
+                        customer["active_transaction_uuids"] = []
+                    customer["inactive_transaction_uuids"].remove(transaction["uuid"])
+                    customer["active_transaction_uuids"].append(transaction["uuid"])
+                customer.partial_save()
+
             if old_status_is_active != new_status_is_active and "delegator_uuid" in transaction:
                 cur_delegator = gator.models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
                 if old_status_is_active:
@@ -243,7 +249,6 @@ def transaction(uuid):
                         cur_delegator["active_transaction_uuids"] = []
                     cur_delegator["inactive_transaction_uuids"].remove(transaction["uuid"])
                     cur_delegator["active_transaction_uuids"].append(transaction["uuid"])
-
                 cur_delegator.partial_save()
 
         if "receipt" in data_dict and "receipt" in transaction and "stripe_charge_id" in transaction["receipt"]:

@@ -100,10 +100,10 @@ class TestBasicRestFunctionality(unittest.TestCase):
         transaction_create_response = apiclient.create_transaction(customer_uuid)
         transaction_uuid = transaction_create_response["uuid"]
 
+        update_delegator = apiclient.update_transaction(transaction_uuid, delegator_uuid=delegator_create_rsp["uuid"])
         #Special case when changing the transaction to/from inactive to/from active status
         update_status = apiclient.update_transaction(transaction_uuid, "completed")
         transaction_update_response = apiclient.update_transaction(transaction_uuid, "helped")
-        update_delegator = apiclient.update_transaction(transaction_uuid, delegator_uuid=delegator_create_rsp["uuid"])
         transaction_get_response = apiclient.get_transaction(transaction_uuid)
 
         # Verify that the response
@@ -123,6 +123,11 @@ class TestBasicRestFunctionality(unittest.TestCase):
         transaction = transactions.get_item(uuid=transaction_uuid)
         self.assertEquals(transaction["customer_uuid"], customer_uuid)
         self.assertEquals(transaction["status"], "helped")
+
+        # Verify active/inactive lists get updated
+        self.assertTrue(transaction_uuid in apiclient.get_customer(customer_response_data["uuid"])["active_transaction_uuids"])
+        apiclient.update_transaction(transaction_uuid, "completed")
+        self.assertTrue(transaction_uuid in apiclient.get_customer(customer_response_data["uuid"])["inactive_transaction_uuids"])
 
     def test_delegator(self):
         delegator_create_rsp = apiclient.create_delegator("George", "Farcasiu", "8176808185", "farcasiu.george@gmail.com")
