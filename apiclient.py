@@ -23,7 +23,7 @@ def clear_database(conn=None):
     transactions = Table("DelegateIt_Transactions", connection=conn)
     handlers     = Table("DelegateIt_Handlers", connection=conn)
 
-    for table in [customers, delegators, transactions]:
+    for table in [customers, delegators, transactions, handlers]:
         for item in table.scan():
             item.delete()
 
