@@ -21,6 +21,7 @@ def clear_database(conn=None):
     customers    = Table("DelegateIt_Customers", connection=conn)
     delegators   = Table("DelegateIt_Delegators", connection=conn)
     transactions = Table("DelegateIt_Transactions", connection=conn)
+    handlers     = Table("DelegateIt_Handlers", connection=conn)
 
     for table in [customers, delegators, transactions]:
         for item in table.scan():
