@@ -35,6 +35,13 @@ def handle_sms():
 
         transaction = models.transactions.get_item(uuid=transaction.uuid, consistent=True)
 
+        # Send a text to all of the delegators
+        for delegator in gator.models.delegators.scan():
+            twillio_client.messages.create(
+                body="ALERT: New transaction from %s" % customer["phone_number"],
+                to=delegator["phone_number"],
+                from_=delegateit_phonenumber)
+
     # Add the messages to the transaction
     message = models.Message(from_customer=True, content=request.values["Body"], platform_type="SMS")
 

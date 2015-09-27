@@ -14,6 +14,9 @@ from twilio.rest import TwilioRestClient
 ACCOUNT_SID = "ACb5440a719947d5edf7d760155a39a768"
 AUTH_TOKEN  = "dd9b4240a96556da1abb1e49646c73f3"
 
+twillio_client = TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN)
+delegateit_phonenumber = "+15123593557"
+
 @app.after_request
 def after_request(response):
     #TODO - Important Security - replace '*' with name of the server hosting the delegator web client
@@ -120,13 +123,12 @@ def send_message(transaction_uuid):
     # If the message was sent by the delegator go ahead and send it to the customer
     # NOTE: will have to change as we introduce more platforms
     if not data_dict["from_customer"]:
-        client = TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN)
         customer = gator.models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
 
-        client.messages.create(
+        twillio_client.messages.create(
             body=data_dict["content"],
             to=customer["phone_number"],
-            from_="+15123593557")
+            from_=delegateit_phonenumber)
 
     return jsonpickle.encode({
             "result": 0,
@@ -176,6 +178,15 @@ def create_transaction():
 
     customer["active_transaction_uuids"].append(transaction.uuid)
     customer.partial_save()
+
+    # Send a text to all of the delegators
+    for delegator in gator.models.delegators.scan():
+         twillio_client.messages.create(
+            body="ALERT: New transaction from %s" % customer["phone_number"],
+            to=delegator["phone_number"],
+            from_=delegateit_phonenumber)
+
+   for delegator in gator.models.delegators.scan():
 
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
