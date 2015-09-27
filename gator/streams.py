@@ -23,7 +23,7 @@ def get_server_ip():
 @app.route("/streams/transaction_notification/<transaction_uuid>", methods=["GET"])
 def transaction_notification(transaction_uuid):
     if not gator.models.handlers.has_item(transaction_uuid=transaction_uuid, consistent=True):
-        return gator.models.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+        return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     handler = gator.models.handlers.get_item(transaction_uuid=transaction_uuid, consistent=True)
 
@@ -36,7 +36,7 @@ def transaction_notification(transaction_uuid):
 @app.route("/streams/transaction_change/<transaction_uuid>", methods=["GET"])
 def transaction_change(transaction_uuid):
     if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
-        return gator.models.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+        return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
 
