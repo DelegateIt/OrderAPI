@@ -3,7 +3,10 @@ from flask.ext.socketio import SocketIO, send, join_room, leave_room
 
 import jsonpickle
 
+import requests
+
 import gator.common
+from gator.common import Errors
 from gator import app, socketio
 
 ###############
@@ -16,6 +19,19 @@ MY_IP = gator.common.get_public_ip()
 def get_server_ip():
     return jsonpickle.encode({"result": 0, "ip": MY_IP});
 
+@app.route("/streams/transaction_notification/<transaction_uuid>", methods=["GET"])
+def transaction_notification(transaction_uuid):
+    if not gator.models.handlers.has_item(transaction_uuid=transaction_uuid, consistent=True):
+        return gator.common.errror_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+
+    handler = gator.models.handlers.has_item(transaction_uuid=transaction_uuid, consistent=True)
+
+    # Send a get request to all of the handlers that are registered to the specified transaction
+    for ip in handler["handlers"]:
+        requests.get("http://%s/streams/transaction_change/%s" % (ip, transaction_uuid))
+
+    return jsonpickle.encode({"result": 0})
+
 @app.route("/streams/transaction_change/<transaction_uuid>", methods=["GET"])
 def transaction_change(transaction_uuid):
     if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
@@ -25,8 +41,6 @@ def transaction_change(transaction_uuid):
 
     # Send the data back to the client
     socketio.emit(transaction_uuid, jsonpickle.encode(transaction._data), room=transaction_uuid)
-
-    # TODO : send a text to the client, will be removed later
 
     return jsonpickle.encode({"result": 0})
 
