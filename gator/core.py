@@ -270,7 +270,7 @@ def transaction(uuid):
 @app.route("/core/assign_transaction/<delegator_uuid>", methods=["GET"])
 def assign_transaction(delegator_uuid):
     if not gator.models.delegators.has_item(uuid=delegator_uuid, consistent=True):
-	return gator.common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
+        return gator.common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
 
     if gator.models.transactions.query_count(index="status-index", status__eq=TransactionStates.STARTED) == 0:
         return gator.common.error_to_json(Errors.NO_TRANSACTIONS_AVAILABLE)

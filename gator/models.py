@@ -105,17 +105,19 @@ class Transaction():
         self.messages = messages
         self.receipt = None
         self.payment_url = None
-        #receipt = {
-        #    total: integer, #Amount of cents that should be paid. NOTE: not equal to the sum of costs due to fees/taxes
-        #    paid: boolean,
-        #    notes: string, #Any additional information
-        #    items: [
-        #        {
-        #            name: string,
-        #            cents: int #cost of item in pennies
-        #        }, ...
-        #    ]
-        #}
+
+        # RECEIPT STRUCTURE
+        # receipt = {
+        #     total: integer, #Amount of cents that should be paid. NOTE: not equal to the sum of costs due to fees/taxes
+        #     paid: boolean,
+        #     notes: string, #Any additional information
+        #     items: [
+        #         {
+        #             name: string,
+        #             cents: int #cost of item in pennies
+        #         }, ...
+        #     ]
+        # }
 
     def get_data(self):
         data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}

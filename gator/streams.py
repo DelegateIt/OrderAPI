@@ -78,4 +78,3 @@ def on_forget_transaction(data):
     else:
         handlers["handlers"].remove(MY_IP)
         handlers.partial_save()
-

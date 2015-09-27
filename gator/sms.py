@@ -23,7 +23,7 @@ def handle_sms():
 
     transaction = None
     if customer.get("active_transaction_uuids") is not None:
-        transaction = models.transactions.get_item(uuid=customer["active_transaction_uuids"][0])
+        transaction = models.transactions.get_item(uuid=customer["active_transaction_uuids"][0], consistent=True)
     else:
         transaction = models.Transaction(
                 customer_uuid=customer["uuid"],
@@ -53,4 +53,4 @@ def handle_sms():
     transaction.partial_save()
     customer.partial_save()
 
-    return '{"result": 0}'
+    return jsonpickle.encode({"result": 0})
