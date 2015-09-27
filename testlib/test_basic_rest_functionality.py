@@ -8,8 +8,8 @@ import apiclient
 # Connection to DynamoDB
 conn = boto.dynamodb2.connect_to_region(
         "us-west-2",
-        aws_access_key_id="AKIAJPVNCRLPXP6HA3ZQ",
-        aws_secret_access_key="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")
+        aws_access_key_id="",
+        aws_secret_access_key="")
 
 # Tables
 customers    = Table("DelegateIt_Customers", connection=conn)
