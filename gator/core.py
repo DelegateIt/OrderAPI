@@ -186,8 +186,6 @@ def create_transaction():
             to=delegator["phone_number"],
             from_=delegateit_phonenumber)
 
-   for delegator in gator.models.delegators.scan():
-
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
 # TODO: write a test for PUT
