@@ -2,30 +2,82 @@
 
 from requests import Request, Session
 import json
+import os
 
 import sys
 
 import boto.dynamodb2
 from boto.dynamodb2.table import Table
+from boto.dynamodb2.layer1 import DynamoDBConnection
+from boto.dynamodb2.fields import HashKey, RangeKey, KeysOnlyIndex, GlobalAllIndex
 
-# default_host = "localhost:8000"
-default_host = "backend-lb-125133299.us-west-2.elb.amazonaws.com"
+default_host = "localhost:8000"
+
+
+def init_connection():
+    host = "localhost"
+    port = 8040
+
+    #if inside a docker container linked to the db container
+    if "DB_PORT" in os.environ:
+        host = os.environ["DB_PORT"][6:].split(":")[0]
+        port = os.environ["DB_PORT"][6:].split(":")[1]
+
+    return DynamoDBConnection(
+        aws_access_key_id='foo',
+        aws_secret_access_key='bar',
+        host=host,
+        port=port,
+        is_secure=False)
 
 def clear_database(conn=None):
     if conn is None:
-        conn = boto.dynamodb2.connect_to_region(
-                "us-west-2",
-                aws_access_key_id="AKIAJPVNCRLPXP6HA3ZQ",
-                aws_secret_access_key="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")
+        conn = init_connection()
 
-    customers    = Table("DelegateIt_Customers", connection=conn)
-    delegators   = Table("DelegateIt_Delegators", connection=conn)
-    transactions = Table("DelegateIt_Transactions", connection=conn)
-    handlers     = Table("DelegateIt_Handlers", connection=conn)
+    #delete all current tables
+    tables = conn.list_tables()["TableNames"]
+    for name in tables:
+        Table(name, connection=conn).delete()
 
-    for table in [customers, delegators, transactions, handlers]:
-        for item in table.scan():
-            item.delete()
+    #recreate all known tables
+    Table.create("DelegateIt_Customers",
+        schema=[
+            HashKey("uuid"),
+        ],
+        global_indexes=[
+            GlobalAllIndex("phone_number-index", parts=[
+                HashKey("phone_number"),
+            ]),
+        ],
+        connection=conn
+    )
+    Table.create("DelegateIt_Delegators",
+        schema=[
+            HashKey("uuid"),
+        ],
+        global_indexes=[
+            GlobalAllIndex("phone_number-index", parts=[
+                HashKey("phone_number"),
+            ]),
+            GlobalAllIndex("email-index", parts=[
+                HashKey("email"),
+            ]),
+        ],
+        connection=conn
+    )
+    Table.create("DelegateIt_Transactions",
+        schema=[
+            HashKey("uuid"),
+        ],
+        global_indexes=[
+            GlobalAllIndex("status-index", parts=[
+                HashKey("status"),
+            ]),
+        ],
+        connection=conn
+    )
+    Table.create("DelegateIt_Handlers", schema=[HashKey("transaction_uuid")], connection=conn)
+
 
 def send_api_request(method, components, json_data=None):
     components = [str(v) for v in components]
