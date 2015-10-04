@@ -1,4 +1,3 @@
-import boto.dynamodb2
 from boto.dynamodb2.table import Table
 
 import jsonpickle
@@ -7,17 +6,14 @@ import time
 import json
 import uuid
 
+import service
 import common
 
 ##############################
 # Global vars, consts, extra #
 ##############################
 
-# Connection to DynamoDB
-conn = boto.dynamodb2.connect_to_region(
-        "us-west-2",
-        aws_access_key_id="AKIAJPVNCRLPXP6HA3ZQ",
-        aws_secret_access_key="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")
+conn = service.dynamodb
 
 # Tables
 customers    = Table("DelegateIt_Customers",    connection=conn)

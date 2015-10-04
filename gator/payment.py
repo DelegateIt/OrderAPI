@@ -5,12 +5,10 @@ import urllib
 import stripe
 from flask import request, render_template, redirect
 
+import gator.service
 import gator.models
 import gator.common
 from gator import app
-
-google_key = "AIzaSyBr49DAB57RHciOXU2-bNaZl_kfolM3XFk"
-stripe.api_key = "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH"
 
 class PaymentException(Exception):
     def __init__(self, *args, **kwargs):
@@ -67,17 +65,7 @@ def generate_redirect(success, message=None):
 
 def create_url(transaction_uuid):
     long_url = 'http://backend-lb-125133299.us-west-2.elb.amazonaws.com/payment/uiform/' + transaction_uuid
-    api_url = 'https://www.googleapis.com/urlshortener/v1/url?key={}'.format(google_key)
-    data = json.dumps({'longUrl': long_url})
-    req = urllib2.Request(api_url, data)
-    req.add_header('Content-Type', 'application/json')
-    try:
-        response = urllib2.urlopen(req)
-    except urllib2.HTTPError as e:
-        logging.exception(e)
-        return long_url
-    else:
-        return json.loads(response.read())["id"]
+    return gator.service.shorturl.shorten_url(long_url)
 
 @app.route('/payment/uiform/<transaction_uuid>', methods=['GET'])
 def ui_form(transaction_uuid):

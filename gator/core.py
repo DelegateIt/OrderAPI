@@ -2,20 +2,13 @@ from flask import request
 
 import jsonpickle
 
+import gator.service
 import gator.models
 import gator.common
 
 from gator import app, socketio
 from gator.models import Customer, Message, Delegator, Transaction
 from gator.common import Errors, TransactionStates
-
-from twilio.rest import TwilioRestClient
-
-ACCOUNT_SID = "ACb5440a719947d5edf7d760155a39a768"
-AUTH_TOKEN  = "dd9b4240a96556da1abb1e49646c73f3"
-
-twillio_client = TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN)
-delegateit_phonenumber = "+15123593557"
 
 @app.after_request
 def after_request(response):
@@ -125,10 +118,9 @@ def send_message(transaction_uuid):
     if not data_dict["from_customer"]:
         customer = gator.models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
 
-        twillio_client.messages.create(
+        gator.service.sms.send_msg(
             body=data_dict["content"],
-            to=customer["phone_number"],
-            from_=delegateit_phonenumber)
+            to=customer["phone_number"])
 
     return jsonpickle.encode({
             "result": 0,
@@ -181,10 +173,9 @@ def create_transaction():
 
     # Send a text to all of the delegators
     for delegator in gator.models.delegators.scan():
-         twillio_client.messages.create(
+         gator.service.sms.send_msg(
             body="ALERT: New transaction from %s" % customer["phone_number"],
-            to=delegator["phone_number"],
-            from_=delegateit_phonenumber)
+            to=delegator["phone_number"])
 
     return jsonpickle.encode({"result": 0, "uuid": transaction.uuid}, unpicklable=False)
 
