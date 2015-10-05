@@ -72,7 +72,7 @@ def _create_sms():
         return TwilioService("ACb5440a719947d5edf7d760155a39a768", "dd9b4240a96556da1abb1e49646c73f3")
 
 def _create_dynamodb():
-    if is_test_mode():
+    if is_test_mode() or "DB_PORT" in os.environ:
         host = "localhost"
         port = 8040
 
