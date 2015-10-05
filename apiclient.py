@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 
 from requests import Request, Session
 import json
@@ -34,50 +34,11 @@ def clear_database(conn=None):
     if conn is None:
         conn = init_connection()
 
-    #delete all current tables
     tables = conn.list_tables()["TableNames"]
     for name in tables:
-        Table(name, connection=conn).delete()
-
-    #recreate all known tables
-    Table.create("DelegateIt_Customers",
-        schema=[
-            HashKey("uuid"),
-        ],
-        global_indexes=[
-            GlobalAllIndex("phone_number-index", parts=[
-                HashKey("phone_number"),
-            ]),
-        ],
-        connection=conn
-    )
-    Table.create("DelegateIt_Delegators",
-        schema=[
-            HashKey("uuid"),
-        ],
-        global_indexes=[
-            GlobalAllIndex("phone_number-index", parts=[
-                HashKey("phone_number"),
-            ]),
-            GlobalAllIndex("email-index", parts=[
-                HashKey("email"),
-            ]),
-        ],
-        connection=conn
-    )
-    Table.create("DelegateIt_Transactions",
-        schema=[
-            HashKey("uuid"),
-        ],
-        global_indexes=[
-            GlobalAllIndex("status-index", parts=[
-                HashKey("status"),
-            ]),
-        ],
-        connection=conn
-    )
-    Table.create("DelegateIt_Handlers", schema=[HashKey("transaction_uuid")], connection=conn)
-
+        tbl = Table(name, connection=conn)
+        for item in tbl.scan():
+            item.delete()
 
 def send_api_request(method, components, json_data=None):
     components = [str(v) for v in components]
