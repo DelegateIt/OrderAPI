@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 
 import argparse
-from gator import socketio, app
+from gator import app
 
 # Fix broken SSL
 import urllib3.contrib.pyopenssl
@@ -13,4 +13,4 @@ if __name__ == '__main__':
     parser.add_argument("--host", "-bh", dest="host", default="0.0.0.0", help="The hostname to bind to")
 
     args = parser.parse_args()
-    socketio.run(app, host=args.host, port=args.port)
+    app.run(host=args.host, port=args.port)

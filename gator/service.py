@@ -72,20 +72,12 @@ def _create_sms():
         return TwilioService("ACb5440a719947d5edf7d760155a39a768", "dd9b4240a96556da1abb1e49646c73f3")
 
 def _create_dynamodb():
-    if is_test_mode() or "DB_PORT" in os.environ:
-        host = "localhost"
-        port = 8040
-
-        #if inside a docker container linked to the db container
-        if "DB_PORT" in os.environ:
-            host = os.environ["DB_PORT"][6:].split(":")[0]
-            port = os.environ["DB_PORT"][6:].split(":")[1]
-
+    if is_test_mode():
         return DynamoDBConnection(
             aws_access_key_id='foo',
             aws_secret_access_key='bar',
-            host=host,
-            port=port,
+            host="localhost",
+            port=8040,
             is_secure=False)
     else:
         return boto.dynamodb2.connect_to_region(
