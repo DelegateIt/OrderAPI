@@ -24,7 +24,7 @@
                 <form action="/payment/uicharge/{{ uuid }}" method="POST">
                     <script
                         src="https://checkout.stripe.com/checkout.js" class="stripe-button"
-                        data-key="pk_test_ZoK03rN4pxc2hfeYTzjByrdV"
+                        data-key="{{ stripe_pub_key }}"
                         data-name="DelegateIt"
                         data-description="Your personal concierge service"
                         data-amount="{{ amount }}"

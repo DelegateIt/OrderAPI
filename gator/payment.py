@@ -77,7 +77,8 @@ def ui_form(transaction_uuid):
             amount = transaction['receipt']['total']
             notes = "" if "notes" not in transaction['receipt'] else transaction['receipt']['notes']
             return render_template('payment.html', uuid=transaction_uuid, amount=amount, total=float(amount)/100.0,
-                    items=transaction['receipt']['items'], notes=notes)
+                    items=transaction['receipt']['items'], notes=notes,
+                    stripe_pub_key=gator.config.store["stripe"]["public_key"])
     except Exception as e:
         logging.exception(e)
         return generate_redirect(False, str(e))

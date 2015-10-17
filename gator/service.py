@@ -14,6 +14,8 @@ from twilio.rest import TwilioRestClient
 import boto.dynamodb2
 from boto.dynamodb2.layer1 import DynamoDBConnection
 
+import gator.config
+
 # Global services. Initalized at bottom
 sms = None
 shorturl = None
@@ -60,44 +62,38 @@ class GoogleUrlService(object):
 # Service Initialization #
 ##########################
 
-_is_test_mode = True
-
-def is_test_mode():
-    return _is_test_mode
-
 def _create_sms():
-    if is_test_mode():
-        return SmsService()
+    cnfg = gator.config.store["twilio"]
+    if cnfg["account_sid"] is not None and cnfg["auth_token"] is not None:
+        return TwilioService(cnfg["account_sid"], cnfg["auth_token"])
     else:
-        return TwilioService("ACb5440a719947d5edf7d760155a39a768", "dd9b4240a96556da1abb1e49646c73f3")
+        return SmsService()
 
 def _create_dynamodb():
-    if is_test_mode():
+    cnfg = gator.config.store["dynamodb"]
+    if cnfg["endpoint"] is not None:
         return DynamoDBConnection(
             aws_access_key_id='foo',
             aws_secret_access_key='bar',
-            host="localhost",
-            port=8040,
+            host=cnfg["endpoint"]["hostname"],
+            port=cnfg["endpoint"]["port"],
             is_secure=False)
     else:
         return boto.dynamodb2.connect_to_region(
-                         "us-west-2",
-                         aws_access_key_id="AKIAJPVNCRLPXP6HA3ZQ",
-                         aws_secret_access_key="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")
+                         cnfg["region"],
+                         aws_access_key_id=cnfg["access_key"],
+                         aws_secret_access_key=cnfg["secret_key"])
 
 
 def _create_urlshortener():
-    if is_test_mode():
+    key = gator.config.store["google"]["api_key"]
+    if key is None:
         return ShortUrlService()
     else:
-        return GoogleUrlService("AIzaSyBr49DAB57RHciOXU2-bNaZl_kfolM3XFk")
+        return GoogleUrlService(key)
 
 def _setup_stripe():
-    if is_test_mode():
-        stripe.api_key = "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH"
-    else:
-        #TODO Replace with production key
-        stripe.api_key = "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH"
+        stripe.api_key = gator.config.store["stripe"]["secret_key"]
 
 sms = _create_sms()
 dynamodb = _create_dynamodb()

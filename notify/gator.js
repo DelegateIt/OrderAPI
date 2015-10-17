@@ -1,11 +1,14 @@
 var http = require("http");
+var fs = require("fs");
 
 module.exports = {};
 
-module.exports.apiHostName = ("GATOR_PRODUCTION" in process.env && process.env.GATOR_PRODUCTION == "true") ?
-            "backend-lb-125133299.us-west-2.elb.amazonaws.com" : "localhost";
-module.exports.apiHostPort = ("GATOR_PRODUCTION" in process.env && process.env.GATOR_PRODUCTION == "true") ?
-            80 : 8000;
+module.exports.config = {};
+
+module.exports.loadConfig = function(filepath) {
+    contents = fs.readFileSync(filepath, 'utf8')
+    module.exports.config = JSON.parse(contents);
+};
 
 module.exports.request = function(host, port, path, method, json, callback) {
     var options = {
@@ -45,8 +48,8 @@ module.exports.request = function(host, port, path, method, json, callback) {
 
 module.exports.updateHandler = function(callback) {
     module.exports.request(
-            module.exports.apiHostName,
-            module.exports.apiHostPort,
+            module.exports.config.api_host.name,
+            module.exports.config.api_host.port,
             '/notify/handler',
             'POST',
             null,
@@ -56,8 +59,8 @@ module.exports.updateHandler = function(callback) {
 
 module.exports.getHandlers = function(callback) {
     module.exports.request(
-            module.exports.apiHostName,
-            module.exports.apiHostPort,
+            module.exports.config.api_host.name,
+            module.exports.config.api_host.port,
             '/notify/handler',
             'GET',
             null,
@@ -66,8 +69,8 @@ module.exports.getHandlers = function(callback) {
 
 module.exports.notifyHandlers = function(transactionUuid, callback) {
     module.exports.request(
-            module.exports.apiHostName,
-            module.exports.apiHostPort,
+            module.exports.config.api_host.name,
+            module.exports.config.api_host.port,
             '/notify/broadcast/' + transactionUuid,
             'POST',
             null,
@@ -77,3 +80,12 @@ module.exports.notifyHandlers = function(transactionUuid, callback) {
 var getTime = function() {
     return Math.floor(new Date() / 1000);
 };
+
+var tryLoadingEnvConfig = function() {
+    if ("GATOR_CONFIG_PATH" in process.env)
+        module.exports.loadConfig(process.env["GATOR_CONFIG_PATH"]);
+    else
+        console.warn("'GATOR_CONFIG_PATH' not found in the environment variables; cannot load config");
+};
+tryLoadingEnvConfig();
+

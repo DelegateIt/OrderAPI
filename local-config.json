@@ -1,0 +1,32 @@
+{
+    "google": {
+        "api_key": null
+    }, 
+    "api_host": {
+        "name": "localhost", 
+        "port": 8000
+    }, 
+    "dynamodb": {
+        "access_key": null, 
+        "region": "us-west-2", 
+        "endpoint": {
+            "hostname": "localhost", 
+            "port": 8040
+        }, 
+        "secret_key": null
+    }, 
+    "notifier_host": {
+        "port": 8060
+    }, 
+    "stripe": {
+        "public_key": null, 
+        "secret_key": null
+    }, 
+    "twilio": {
+        "auth_token": null, 
+        "account_sid": null
+    }, 
+    "mode": "test",
+    "fake": true
+}
+
