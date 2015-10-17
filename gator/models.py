@@ -6,8 +6,8 @@ import time
 import json
 import uuid
 
-import service
-import common
+from gator import service
+from gator import common
 
 ##############################
 # Global vars, consts, extra #

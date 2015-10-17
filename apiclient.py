@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.4
 
 from requests import Request, Session
 import json
@@ -41,9 +41,11 @@ def clear_database(conn=None):
 def send_api_request(method, components, json_data=None):
     components = [str(v) for v in components]
     url = "http://" + default_host + "/" + "/".join(components)
+    if json_data is not None:
+        json_data = json.dumps(json_data)
 
     s = Session()
-    req = Request(method=method, url=url, json=json_data)
+    req = Request(method=method, url=url, data=json_data)
     prepped = s.prepare_request(req)
 
     resp = s.send(prepped)

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.4
 """ The misc and utility file
 
 Put things in here that are scripts or tangential

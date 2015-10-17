@@ -7,7 +7,7 @@ if the system is in test or production mode
 import os
 import json
 import logging
-import urllib2
+import requests
 
 import stripe
 from twilio.rest import TwilioRestClient
@@ -48,15 +48,15 @@ class GoogleUrlService(object):
 
     def shorten_url(self, long_url):
         data = json.dumps({'longUrl': long_url})
-        req = urllib2.Request(self.api_url, data)
-        req.add_header('Content-Type', 'application/json')
+        headers = {'Content-Type': 'application/json'}
+
         try:
-            response = urllib2.urlopen(req)
-        except urllib2.HTTPError as e:
+            resp = requests.get(self.api_url, data=data, headers=headers, timeout=0.5)
+        except requests.exceptions.RequestException as e:
             logging.exception(e)
             return long_url
         else:
-            return json.loads(response.read())["id"]
+            return resp.json()["id"]
 
 ##########################
 # Service Initialization #

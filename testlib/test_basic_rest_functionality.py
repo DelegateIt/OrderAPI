@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.4
+
 import unittest
 
 import boto.dynamodb2
@@ -6,10 +8,7 @@ from boto.dynamodb2.table import Table
 import apiclient
 
 # Connection to DynamoDB
-conn = boto.dynamodb2.connect_to_region(
-        "us-west-2",
-        aws_access_key_id="",
-        aws_secret_access_key="")
+conn = apiclient.init_connection()
 
 # Tables
 customers    = Table("DelegateIt_Customers", connection=conn)
@@ -17,14 +16,8 @@ delegators   = Table("DelegateIt_Delegators", connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
 handlers     = Table("DelegateIt_Handlers", connection=conn)
 
-# Service configs
-# apiclient.default_host = "backend-lb-125133299.us-west-2.elb.amazonaws.com"
-apiclient.default_host = "localhost:8080"
-
 def clear():
-    for table in [customers, delegators, transactions]:
-        for item in table.scan():
-            item.delete()
+    apiclient.clear_database(conn)
 
 class TestBasicRestFunctionality(unittest.TestCase):
     def setUp(self):
