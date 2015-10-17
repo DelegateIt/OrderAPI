@@ -72,6 +72,7 @@ def _create_sms():
 def _create_dynamodb():
     cnfg = gator.config.store["dynamodb"]
     if cnfg["endpoint"] is not None:
+        logging.info("Connecting to local dynamodb instance")
         return DynamoDBConnection(
             aws_access_key_id='foo',
             aws_secret_access_key='bar',
@@ -79,6 +80,7 @@ def _create_dynamodb():
             port=cnfg["endpoint"]["port"],
             is_secure=False)
     else:
+        logging.info("Connecting to aws dynamodb instance")
         return boto.dynamodb2.connect_to_region(
                          cnfg["region"],
                          aws_access_key_id=cnfg["access_key"],
