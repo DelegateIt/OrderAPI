@@ -3,6 +3,7 @@ import jsonpickle
 import requests
 from flask import request
 
+import gator.config
 from gator import app
 from gator import common
 from gator import models
@@ -31,9 +32,10 @@ def notify_handlers(transaction_uuid):
     payload = jsonpickle.encode({"result": 0, "transaction": transaction})
     handlers = models.handlers.scan()
     headers = {"Content-Type": "application/json"}
+    port = gator.config.store["notifier_host"]["recv_port"]
 
     for handler in handlers:
-        url = "http://%s:8060/transaction_change" % (handler["ip_address"])
+        url = "http://%s:%s/transaction_change" % (handler["ip_address"], port)
         try:
             requests.post(url, data=payload, headers=headers)
         except requests.exceptions.ConnectionError:

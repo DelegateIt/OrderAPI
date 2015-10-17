@@ -7,10 +7,12 @@ import os
 store = {
     "api_host": {
         "name": "localhost",
-        "port": 8000,
+        "bind_port": 8000,
+        "recv_port": 8000,
     },
     "notifier_host": {
-        "port": 8060,
+        "bind_port": 8060,
+        "recv_port": 8060,
     },
     "dynamodb": {
         "region": "us-west-2",

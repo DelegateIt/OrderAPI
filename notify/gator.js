@@ -49,7 +49,7 @@ module.exports.request = function(host, port, path, method, json, callback) {
 module.exports.updateHandler = function(callback) {
     module.exports.request(
             module.exports.config.api_host.name,
-            module.exports.config.api_host.port,
+            module.exports.config.api_host.bind_port,
             '/notify/handler',
             'POST',
             null,
@@ -60,7 +60,7 @@ module.exports.updateHandler = function(callback) {
 module.exports.getHandlers = function(callback) {
     module.exports.request(
             module.exports.config.api_host.name,
-            module.exports.config.api_host.port,
+            module.exports.config.api_host.bind_port,
             '/notify/handler',
             'GET',
             null,
@@ -70,7 +70,7 @@ module.exports.getHandlers = function(callback) {
 module.exports.notifyHandlers = function(transactionUuid, callback) {
     module.exports.request(
             module.exports.config.api_host.name,
-            module.exports.config.api_host.port,
+            module.exports.config.api_host.bind_port,
             '/notify/broadcast/' + transactionUuid,
             'POST',
             null,
