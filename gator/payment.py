@@ -1,6 +1,5 @@
 import json
 import logging
-import urllib2
 import urllib
 import stripe
 from flask import request, render_template, redirect

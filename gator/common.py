@@ -2,7 +2,6 @@ import decimal
 import uuid
 import time
 
-import requests
 import jsonpickle
 
 ##########
@@ -59,9 +58,6 @@ class TransactionStates():
 ####################
 # Helper Functions #
 ####################
-
-def get_public_ip():
-    return requests.get("https://api.ipify.org/?format=json").json()["ip"]
 
 def get_uuid():
     return str(uuid.uuid4().int >> 64)
