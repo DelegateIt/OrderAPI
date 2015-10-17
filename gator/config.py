@@ -34,7 +34,6 @@ store = {
         "secret_key": None,
         "public_key": None,
     },
-    "mode": "test",
 }
 
 def load_from_disk(filepath):
