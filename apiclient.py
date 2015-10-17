@@ -60,14 +60,14 @@ def send_api_request(method, components, json_data=None):
     return resp.json()
 
 def populate_with_dummy_data():
-        dlgt = create_delegator("Test", "Delegator", "1112223333", "sfksdfj@ldjfd.com")
+        dlgt = create_delegator("Test", "Delegator", "phone#1", "sfksdfj@ldjfd.com")
         print("Delegator", dlgt)
-        c1 = create_customer("George", "Bush", "9339405948")
-        c2 = create_customer("John", "Adams", "8766666545")
-        c3 = create_customer("Andrew", "Johnson", "1039403940")
-        c4 = create_customer("Creepy", "Nixon", "4334493844")
-        c5 = create_customer("Frank", "Roosevelt", "3039403941")
-        c6 = create_customer("Barack", "Obama", "5849408948")
+        c1 = create_customer("George", "Bush", "phone#2")
+        c2 = create_customer("John", "Adams", "phone#3")
+        c3 = create_customer("Andrew", "Johnson", "phone#4")
+        c4 = create_customer("Creepy", "Nixon", "phone#5")
+        c5 = create_customer("Frank", "Roosevelt", "phone#6")
+        c6 = create_customer("Barack", "Obama", "phone#7")
         customers = [c1, c2, c3, c4, c5, c6]
         transactions = []
         for c in customers:
