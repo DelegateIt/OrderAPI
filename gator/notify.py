@@ -37,8 +37,8 @@ def notify_handlers(transaction_uuid):
     for handler in handlers:
         url = "http://%s:%s/transaction_change" % (handler["ip_address"], port)
         try:
-            requests.post(url, data=payload, headers=headers)
-        except requests.exceptions.ConnectionError:
+            requests.post(url, data=payload, headers=headers, timeout=0.5)
+        except requests.exceptions.RequestException:
             pass #Ignore the exception. The handler is stale
 
 @app.route("/notify/handler", methods=["POST"])
