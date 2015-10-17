@@ -5,7 +5,7 @@
     "api_host": {
         "name": "localhost", 
         "bind_port": 8000,
-        "recv_port": 8000
+        "recv_port": 80
     }, 
     "dynamodb": {
         "access_key": null, 
@@ -27,8 +27,6 @@
     "twilio": {
         "auth_token": null, 
         "account_sid": null
-    }, 
-    "mode": "test",
-    "fake": true
+    }
 }
 

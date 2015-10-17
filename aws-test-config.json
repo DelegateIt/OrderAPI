@@ -1,0 +1,31 @@
+{
+    "google": {
+        "api_key": "AIzaSyBr49DAB57RHciOXU2-bNaZl_kfolM3XFk"
+    }, 
+    "api_host": {
+        "name": "gator-api.elasticbeanstalk.com",
+        "bind_port": 8000,
+        "recv_port": 80
+    }, 
+    "dynamodb": {
+        "access_key": "AKIAJD434IN2GYC4VDCQ",
+        "region": "us-west-2",
+        "endpoint": null,
+        "secret_key": "TNPcZXHs9SUHkm7xq4bPIsy9YnhhjdzzpIR+WbBs"
+    }, 
+    "notifier_host": {
+        "bind_port": 8060,
+        "recv_port": 8060
+    },
+    "stripe": {
+        "public_key": "pk_test_ZoK03rN4pxc2hfeYTzjByrdV", 
+        "secret_key": "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH"
+    }, 
+    "twilio": {
+
+        "auth_token": "dd9b4240a96556da1abb1e49646c73f3", 
+        "account_sid": "ACb5440a719947d5edf7d760155a39a768"
+    }, 
+    "mode": "test"
+}
+
