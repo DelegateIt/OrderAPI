@@ -6,15 +6,11 @@ import os
 
 import sys
 
-import boto.dynamodb2
-from boto.dynamodb2.table import Table
-from boto.dynamodb2.layer1 import DynamoDBConnection
-from boto.dynamodb2.fields import HashKey, RangeKey, KeysOnlyIndex, GlobalAllIndex
-
 default_host = "localhost:8000"
 
 
 def init_connection():
+    from boto.dynamodb2.layer1 import DynamoDBConnection
     host = "localhost"
     port = 8040
 
@@ -31,6 +27,8 @@ def init_connection():
         is_secure=False)
 
 def clear_database(conn=None):
+    from boto.dynamodb2.table import Table
+
     if conn is None:
         conn = init_connection()
 
