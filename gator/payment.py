@@ -64,7 +64,8 @@ def generate_redirect(success, message=None):
     return redirect(url, code=302)
 
 def create_url(transaction_uuid):
-    long_url = 'http://backend-lb-125133299.us-west-2.elb.amazonaws.com/payment/uiform/' + transaction_uuid
+    host = gator.config.store["api_host"]["name"]
+    long_url = 'http://%s/payment/uiform/%s' % (host, transaction_uuid)
     return gator.service.shorturl.shorten_url(long_url)
 
 @app.route('/payment/uiform/<transaction_uuid>', methods=['GET'])
