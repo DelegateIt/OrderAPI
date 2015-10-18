@@ -60,7 +60,7 @@ class GoogleUrlService(object):
 # Service Initialization #
 ##########################
 
-_is_test_mode = False
+_is_test_mode = True
 
 def is_test_mode():
     return _is_test_mode
