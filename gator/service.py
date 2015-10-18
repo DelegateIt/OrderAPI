@@ -51,12 +51,16 @@ class GoogleUrlService(object):
         headers = {'Content-Type': 'application/json'}
 
         try:
-            resp = requests.get(self.api_url, data=data, headers=headers, timeout=0.5)
+            resp = requests.post(self.api_url, data=data, headers=headers, timeout=0.5)
         except requests.exceptions.RequestException as e:
             logging.exception(e)
-            return long_url
         else:
-            return resp.json()["id"]
+            if resp.status_code == 200:
+                return resp.json()["id"]
+            else:
+                logging.warning("Received bad status code from google api: %s\n\n%s",
+                        resp.status_code, resp.text)
+        return long_url
 
 ##########################
 # Service Initialization #

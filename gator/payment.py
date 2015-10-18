@@ -1,6 +1,6 @@
 import json
 import logging
-import urllib
+import urllib.parse
 import stripe
 from flask import request, render_template, redirect
 
@@ -59,7 +59,7 @@ def generate_redirect(success, message=None):
     args = {"success": success}
     if message is not None:
         args["message"] = message
-    url = "/payment/uistatus?" + urllib.urlencode(args)
+    url = "/payment/uistatus?" + urllib.parse.urlencode(args)
     return redirect(url, code=302)
 
 def create_url(transaction_uuid):
