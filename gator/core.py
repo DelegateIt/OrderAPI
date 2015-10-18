@@ -10,6 +10,8 @@ from gator import app, socketio
 from gator.models import Customer, Message, Delegator, Transaction
 from gator.common import Errors, TransactionStates
 
+MAX_TWILIO_MSG_SIZE = 1600
+
 @app.after_request
 def after_request(response):
     #TODO - Important Security - replace '*' with name of the server hosting the delegator web client
@@ -118,9 +120,13 @@ def send_message(transaction_uuid):
     if not data_dict["from_customer"]:
         customer = gator.models.customers.get_item(uuid=transaction["customer_uuid"], consistent=True)
 
-        gator.service.sms.send_msg(
-            body=data_dict["content"],
-            to=customer["phone_number"])
+        sms_chunks = [data_dict["content"][i : i + MAX_TWILIO_MSG_SIZE]
+                for i in range(0, len(data_dict["content"]), MAX_TWILIO_MSG_SIZE)];
+
+        for msg in sms_chunks:
+            gator.service.sms.send_msg(
+                body=msg,
+                to=customer["phone_number"])
 
     return jsonpickle.encode({
             "result": 0,
