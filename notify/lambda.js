@@ -1,7 +1,6 @@
 var http = require('http');
-var gator = require('./gator.js')
-
-gator.loadConfig("production-config.json");
+var gator = require("./gator.js");
+gator.loadConfig("./aws-test-config.json");
 
 exports.handler = function(event, context) {
     var uuid = event.Records[0].dynamodb.Keys.uuid.S;
@@ -9,6 +8,6 @@ exports.handler = function(event, context) {
         if (err)
             context.fail(err);
         else
-            content.succeed();
+            context.succeed();
     });
 };
