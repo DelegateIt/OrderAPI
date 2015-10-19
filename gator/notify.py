@@ -44,7 +44,10 @@ def notify_handlers(transaction_uuid):
 @app.route("/notify/handler", methods=["POST"])
 def flask_add_handler():
     expires = (common.get_current_timestamp() / 10**6) + 60 * 60 * 12 #time + 12 hours
-    handler = add_handler(request.remote_addr, expires)
+    ip_address = request.remote_addr
+    if "x-forwarded-for" in request.headers:
+        ip_address = request.headers.get("x-forwarded-for").split(",")[0]
+    handler = add_handler(ip_address, expires)
     return jsonpickle.encode({"result": 0, "handler": handler})
 
 @app.route("/notify/handler", methods=["GET"])
