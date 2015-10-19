@@ -3,7 +3,7 @@
         "api_key": "AIzaSyBr49DAB57RHciOXU2-bNaZl_kfolM3XFk"
     }, 
     "api_host": {
-        "name": "gator-api.elasticbeanstalk.com",
+        "name": "test-gator-api.elasticbeanstalk.com",
         "bind_port": 8000,
         "recv_port": 80
     }, 
