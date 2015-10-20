@@ -1,6 +1,7 @@
 from flask import request
 
 import jsonpickle
+import boto
 
 import gator.service
 import gator.models
@@ -49,6 +50,32 @@ def customer(uuid):
 
     to_return = {"result": 0}
     to_return.update(customer._data)
+    return jsonpickle.encode(to_return, unpicklable=False)
+
+@app.route('/core/customer/<uuid>', methods=['PUT'])
+def update_customer(uuid):
+    try:
+        customer = gator.models.customers.get_item(uuid=uuid, consistent=True)
+    except boto.dynamodb2.exceptions.ItemNotFound:
+        return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+    req_data = jsonpickle.decode(request.data.decode("utf-8"))
+    customer._data.update(req_data)
+    customer.partial_save()
+
+    to_return = {"result": 0, "customer": customer._data}
+    return jsonpickle.encode(to_return, unpicklable=False)
+
+@app.route('/core/delegator/<uuid>', methods=['PUT'])
+def update_delegator(uuid):
+    try:
+        delegator = gator.models.delegators.get_item(uuid=uuid, consistent=True)
+    except boto.dynamodb2.exceptions.ItemNotFound:
+        return gator.common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
+    req_data = jsonpickle.decode(request.data.decode("utf-8"))
+    delegator._data.update(req_data)
+    delegator.partial_save()
+
+    to_return = {"result": 0, "delegator": delegator._data}
     return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/core/delegator', methods=['POST'])
