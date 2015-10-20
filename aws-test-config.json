@@ -15,7 +15,7 @@
     }, 
     "notifier_host": {
         "bind_port": 8060,
-        "recv_port": 8060
+        "recv_port": 80
     },
     "stripe": {
         "public_key": "pk_test_ZoK03rN4pxc2hfeYTzjByrdV", 
