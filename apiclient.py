@@ -139,6 +139,9 @@ def get_delegator(delegator_uuid):
 def get_delegator_list():
     return send_api_request("GET", ["core", "delegator"])
 
+def update_delegator(delegator_uuid, update):
+    return send_api_request("PUT", ["core", "delegator", delegator_uuid], update)
+
 def send_message(transaction_uuid, platform_type, content, from_customer):
     if type(from_customer) is str:
         from_customer = from_customer.lower() == "true"
