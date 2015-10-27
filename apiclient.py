@@ -99,6 +99,9 @@ def create_customer(first_name, last_name, phone_number):
 def get_customer(uuid):
     return send_api_request("GET", ["core", "customer", uuid])
 
+def update_customer(uuid, update):
+    return send_api_request("PUT", ["core", "customer", uuid], update)
+
 def create_transaction(customer_uuid, delegator_uuid=None, status=None):
     json_data = {"customer_uuid": customer_uuid}
     if delegator_uuid is not None:
