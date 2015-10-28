@@ -38,6 +38,11 @@ def create_customer():
 
     gator.models.customers.put_item(data=customer.get_data())
 
+    if request.args.get('sendtext', 'false') == 'true':
+        gator.service.sms.send_msg(
+            body="Welcome to DelegateIt! Text us whatever you want and we will get it to you.",
+            to=data_dict["phone_number"])
+
     return jsonpickle.encode({"result": 0, "uuid": customer.uuid}, unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['GET'])
