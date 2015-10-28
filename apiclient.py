@@ -102,10 +102,8 @@ def get_customer(uuid):
 def update_customer(uuid, update):
     return send_api_request("PUT", ["core", "customer", uuid], update)
 
-def create_transaction(customer_uuid, delegator_uuid=None, status=None):
+def create_transaction(customer_uuid, status=None):
     json_data = {"customer_uuid": customer_uuid}
-    if delegator_uuid is not None:
-        json_data["delegator_uuid"] = delegator_uuid
     if status is not None:
         json_data["status"] = status
 
