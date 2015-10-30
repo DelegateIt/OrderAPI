@@ -5,6 +5,7 @@ import jsonpickle
 import time
 import json
 import uuid
+from enum import Enum
 
 from gator import service
 from gator import common
@@ -21,26 +22,65 @@ delegators   = Table("DelegateIt_Delegators",   connection=conn)
 transactions = Table("DelegateIt_Transactions", connection=conn)
 handlers     = Table("DelegateIt_Handlers",     connection=conn)
 
-class Customer():
-    def __init__(self, phone_number=None, first_name=None, last_name=None,
-            active_transaction_uuids=None, inactive_transaction_uuids=None):
-        self.uuid = common.get_uuid()
-        self.phone_number = phone_number
-        self.first_name = first_name
-        self.last_name = last_name
-        self.stripe_id = None
+# Class that all models must be inheret from
+class Model():
+    # Attribute access
+    def __getitem__(self, key):
+        return getattr(self, key, None)
 
-        self.active_transaction_uuids = active_transaction_uuids
-        self.inactive_transaction_uuids = inactive_transaction_uuids
+    def __setitem__(self, key, val):
+        if key in self.VALID_KEYS:
+            self.setattr(self, key, val)
+        else:
+            raise ValueError("Attribute %s is not valid." % key)
+    
+    def get_data(self):
+        raise NotImplementedError("Function get_data must be implemented by all subclasses");
+
+    # Database Logic
+    def save(self):
+        # TODO : fix this later
+        pass
+
+    def create(self):
+        print("Creating obj with the following data: %s" % self.get_data())
+        self.TABLE.put_item(self.get_data())
+
+    # Parsing and json
+    def to_json(self):
+        return jsonpickle.encode(get_data())
+
+
+@unique
+class CustomerFields(Enum):
+    UUID = "uuid"
+    PHONE_NUMBER = "phone_number"
+    FIRST_NAME = "first_name"
+    LAST_NAME = "last_name"
+    STRIPE_ID = "stripe_id"
+    ACTIVE_TRANSACTION_UUIDS = "active_transaction_uuids"
+    INACTIVE_TRANSACTION_UUIDS = "inactive_transaction_uuids" 
+
+class Customer(Model):
+    VALID_KEYS = [item[1].value for item in CustomerFields.__members__.items()]
+    TABLE = customers
+    
+    def __init__(self, attributes):
+        for atr, val in attributes.iteritems():
+            if atr in CustomerFields.__members__.items():
+                setattr(self, atr, val)
+            else:
+                raise ValueError("Attribute %s is not valid." % (atr))
 
     @staticmethod
-    def create_from_dict(data):
-        return Customer(
-            phone_number=data.get("phone_number"),
-            first_name=data.get("first_name"),
-            last_name=data.get("last_name"),
-            active_transaction_uuids=data.get("active_transaction_uuids"),
-            inactive_transaction_uuids=data.get("inactive_transaction_uuids"))
+    def create_new(attributes):
+        customer = Customer(attributes)
+
+        customer.uuid = get_uuid()
+        customer.active_transaction_uuids = []
+        customer.inactive_transaction_uuids = []
+
+        return customer
 
     def get_data(self):
         data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
@@ -54,10 +94,10 @@ class Customer():
         return data
 
     def is_unique(self):
-        if self.phone_number is None:
+        if self["phone_number"] is None:
             return False
 
-        return customers.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
+        return customers.query_count(index="phone_number-index", phone_number__eq=self["phone_number") == 0
 
 class Delegator():
     def __init__(self, phone_number=None, email=None, first_name=None, last_name=None,
