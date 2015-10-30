@@ -24,7 +24,7 @@ class Errors():
     INVALID_DATA_PRESENT       = ErrorType(6, "The request contained superfluous data")
     TRANSACTION_ALREADY_PAID   = ErrorType(7, "The transaction has already been paid for and cannot be modified")
     NO_TRANSACTIONS_AVAILABLE  = ErrorType(8, "There are no unhelped transactions available")
-    DELEGATOR_DOES_NOT_EXIST    = ErrorType(9, "The specified uuid is not linked to a delegator")
+    DELEGATOR_DOES_NOT_EXIST   = ErrorType(9, "The specified uuid is not linked to a delegator")
 
 def error_to_json(error):
     return jsonpickle.encode({
