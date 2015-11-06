@@ -2,8 +2,8 @@
 
 import nose
 import unittest
-import apiclient
-from rest import RestTest
+from gator import apiclient
+from endpoint.rest import RestTest
 
 class DelegatorTest(RestTest):
 

@@ -4,7 +4,7 @@ import requests
 from flask import request
 
 import gator.config
-from gator import app
+from gator.flask import app
 from gator import common
 from gator import models
 

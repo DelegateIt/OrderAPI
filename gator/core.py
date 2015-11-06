@@ -7,7 +7,7 @@ import gator.service
 import gator.models
 import gator.common
 
-from gator import app
+from gator.flask import app
 from gator.models import Customer, Message, Delegator, Transaction
 from gator.common import Errors, TransactionStates
 

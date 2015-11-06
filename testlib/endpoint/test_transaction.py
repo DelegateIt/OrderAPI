@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import nose
-import apiclient
-from rest import RestTest
+from gator import apiclient
+from endpoint.rest import RestTest
 
 class TransactionTest(RestTest):
 

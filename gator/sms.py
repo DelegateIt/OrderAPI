@@ -1,6 +1,6 @@
 from flask import request
 
-from gator import app
+from gator.flask import app
 import gator.service as service
 import gator.models as models
 import gator.payment as payment

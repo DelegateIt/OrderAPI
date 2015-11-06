@@ -7,7 +7,7 @@ from flask import request, render_template, redirect
 import gator.service
 import gator.models
 import gator.common
-from gator import app
+from gator.flask import app
 
 class PaymentException(Exception):
     def __init__(self, *args, **kwargs):
