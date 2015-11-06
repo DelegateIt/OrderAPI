@@ -1,5 +1,9 @@
 
 import unittest
+import logging
+
+logging.getLogger("boto").setLevel(logging.INFO)
+logging.getLogger("requests").setLevel(logging.WARN)
 
 class RestTest(unittest.TestCase):
 

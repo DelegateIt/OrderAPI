@@ -1,7 +1,6 @@
 #!/usr/bin/env python3.4
 
 from requests import Request, Session
-import logging
 import json
 import os
 
@@ -12,7 +11,6 @@ default_host = "localhost:8000"
 
 def init_connection():
     from boto.dynamodb2.layer1 import DynamoDBConnection
-    logging.getLogger("boto").setLevel(logging.INFO)
     host = "localhost"
     port = 8040
 
@@ -30,7 +28,6 @@ def init_connection():
 
 def clear_database(conn=None):
     from boto.dynamodb2.table import Table
-    logging.getLogger("boto").setLevel(logging.INFO)
 
     if conn is None:
         conn = init_connection()
