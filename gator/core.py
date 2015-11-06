@@ -1,6 +1,7 @@
 from flask import request
 
 import jsonpickle
+import logging
 import boto
 
 import gator.service
@@ -9,7 +10,7 @@ import gator.common
 
 from gator.flask import app
 from gator.models import Customer, Message, Delegator, Transaction
-from gator.common import Errors, TransactionStates
+from gator.common import Errors, TransactionStates, GatorException
 
 MAX_TWILIO_MSG_SIZE = 1600
 
@@ -328,5 +329,17 @@ def assign_transaction(delegator_uuid):
 
     delegator["active_transaction_uuids"].append(transaction["uuid"])
     delegator.partial_save()
-    
+
     return jsonpickle.encode({"result": 0, "transaction_uuid": transaction["uuid"]}, unpicklable=False)
+
+@app.errorhandler(BaseException)
+def handle_exception(e):
+    if issubclass(type(e), GatorException):
+        return (jsonpickle.encode({
+            "result": e.error_type.returncode,
+            "error_message": e.message,
+            "type": type(e).__name__
+        }), 400)
+    else:
+        logging.exception(e)
+        return gator.common.error_to_json(Errors.UNCAUGHT_EXCEPTION), 500
