@@ -13,11 +13,11 @@ class PaymentException(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
-def get_chargeable_transaction(transaction_uuid):
+def get_chargeable_transaction(transaction_uuid, enforce_finalized=True):
     if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         raise PaymentException("Transaction does not exist")
     db_transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
-    if "receipt" not in db_transaction:
+    if enforce_finalized and "receipt" not in db_transaction:
         raise PaymentException("The transaction has not been finalized")
     return db_transaction
 
@@ -70,7 +70,9 @@ def create_url(transaction_uuid):
 @app.route('/payment/uiform/<transaction_uuid>', methods=['GET'])
 def ui_form(transaction_uuid):
     try:
-        transaction = get_chargeable_transaction(transaction_uuid)
+        transaction = get_chargeable_transaction(transaction_uuid, enforce_finalized=False)
+        if "receipt" not in transaction:
+            return render_template('payment-error.html', message="The receipt has not been saved. Please contact your delegator"), 500
         if "stripe_charge_id" in transaction['receipt']:
             return generate_redirect(True)
         else:
