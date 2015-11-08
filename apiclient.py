@@ -35,6 +35,7 @@ def clear_database(conn=None):
     tables = conn.list_tables()["TableNames"]
     for name in tables:
         tbl = Table(name, connection=conn)
+        print("Deleting table: %s" % name)
         for item in tbl.scan():
             item.delete()
 
