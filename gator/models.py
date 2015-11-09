@@ -1,5 +1,5 @@
 from boto.dynamodb2.table import Table, Item
-from boto.dynamodb2.exceptions import ConditionalCheckFailedException
+from boto.dynamodb2.exceptions import ConditionalCheckFailedException, ItemNotFound
 
 import jsonpickle
 
@@ -44,11 +44,17 @@ class Model():
         if not issubclass(cls, Model):
             raise ValueError("Class must be a subclass of Model")
 
-        return cls(cls.TABLE.get_item(
-            consistent=consistent,
-            **{
-                cls.KEY: key
-            }))
+        item = None
+        try:
+            item = cls(cls.TABLE.get_item(
+                consistent=consistent,
+                **{
+                    cls.KEY: key
+                }))
+        except ItemNotFound:
+            pass
+
+        return item
 
     @staticmethod
     def load_from_data(cls, data):
@@ -215,15 +221,7 @@ class Transaction(Model):
 
         return transaction 
 
-    def get_data(self):
-        data = deepcopy(self.item._data)
-
-        if data.get("messages") is not None:
-            data["messages"] = [message.get_data() for message in data["messages"]]
-
-        return data
-
-    def add_message(message):
+    def add_message(self, message):
         if self.item[TFields.MESSAGES] == None:
             self.item[TFields.MESSAGES] = []
 

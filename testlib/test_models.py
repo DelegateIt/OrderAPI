@@ -54,6 +54,9 @@ class TestModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             Model.load_from_db(TempClass, {})
 
+    def test_load_from_db_nonexistant_item(self):
+        self.assertIsNone(Model.load_from_db(Customer, "INVALID KEY"))
+
     def test_load_from_data(self):
         customer = Model.load_from_data(Customer, {
             CFields.UUID: "1",
