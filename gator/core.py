@@ -76,7 +76,7 @@ def customer_put(uuid):
     if not customer.save():
         return gator.common.error_to_json(Erros.CONSISTENCY_ERROR)
 
-    return jsonpickle.encode({"result": 0, unpicklable=False)
+    return jsonpickle.encode({"result": 0}, unpicklable=False)
 
 @app.route('/core/delegator/<uuid>', methods=['PUT'])
 def update_delegator(uuid):
