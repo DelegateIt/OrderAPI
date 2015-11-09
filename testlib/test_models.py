@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath('../gator/'))
 sys.path.append(os.path.abspath('../../api/'))
 
 from models import *
+from gator import common
 import apiclient
 
 # Connection to DynamoDB
@@ -24,11 +25,6 @@ def clear():
 class TestModel(unittest.TestCase):
     def setUp(self):
         clear()
-
-    def tearDown(self):
-        clear()
-
-    def setUp(self):
         self.customer = Model.load_from_data(Customer, {})
 
     def test_invalid_init(self):
@@ -167,9 +163,6 @@ class TestCustomer(unittest.TestCase):
     def setUp(self):
         clear()
 
-    def tearDown(self):
-        clear()
-
     def test_create_new(self):
         customer = Customer.create_new({
             CFields.FIRST_NAME: "1",
@@ -207,9 +200,100 @@ class TestCustomer(unittest.TestCase):
 
         self.assertTrue(customer.create())
 
+class TestDelegator(unittest.TestCase):
+    def setUp(self):
+        clear()
+
+    def test_create_new(self):
+        delegator = Delegator.create_new({
+            DFields.EMAIL: "1"})
+
+        self.assertEquals(len(delegator.get_data()), 4)
+        self.assertEquals(delegator[DFields.EMAIL], "1")
+        self.assertEquals(delegator[DFields.A_TRANS_UUIDS], [])
+        self.assertEquals(delegator[DFields.IA_TRANS_UUIDS], [])
+        self.assertIsNotNone(delegator[DFields.UUID])
+
+    def test_is_unqiue(self):
+        delegator = Delegator.create_new({
+            DFields.EMAIL: "1"})
+
+        self.assertFalse(delegator.is_unique())
+
+        delegator[DFields.PHONE_NUMBER] = "2"
+        self.assertTrue(delegator.is_unique())
+
+        delegator.create()
+        self.assertFalse(delegator.is_unique())
+
+    def test_create(self):
+        delegator = Delegator.create_new({
+            DFields.EMAIL: "1"})
+
+        self.assertFalse(delegator.create())
+
+        delegator[DFields.PHONE_NUMBER] = "2"
+        self.assertTrue(delegator.create())
+
+class TestTransaction(unittest.TestCase):
+    def test_create_new(self):
+        transaction = Transaction.create_new({
+            TFields.CUSTOMER_UUID: "1"})
+
+        self.assertEquals(transaction[TFields.CUSTOMER_UUID], "1")
+        self.assertEquals(transaction[TFields.STATUS], common.TransactionStates.STARTED)
+
+    def test_get_data(self):
+        transaction = Transaction.create_new({
+            TFields.CUSTOMER_UUID: "1"})
+
+        transaction.add_message(Message(from_customer="2"))
+
+        data = transaction.get_data()
+        self.assertEquals(len(data), 3)
+        self.assertEquals(data[TFields.CUSTOMER_UUID], "1")
+        self.assertEquals(data[TFields.STATUS], common.TransactionStates.STARTED)
+        self.assertEquals(data[TFields.MESSAGES][0][MFields.FROM_CUSTOMER], "2")
+        self.assertIsNotNone(data[TFields.MESSAGES][0][MFields.TIMESTAMP])
+
+    def test_add_message(self):
+        transaction = Transaction.create_new({
+            TFields.CUSTOMER_UUID: "1"})
+
+        transaction.add_message(Message(from_customer="2"))
+
+        self.assertEquals(transaction[TFields.MESSAGES][0][MFields.FROM_CUSTOMER], "2")
+        self.assertIsNotNone(transaction[TFields.MESSAGES][0][MFields.TIMESTAMP])
+
+
+class TestMessage(unittest.TestCase):
+    def test_init(self):
+        message = Message(
+            from_customer="1",
+            content="2")
+
+        self.assertEquals(message.from_customer, "1")
+        self.assertEquals(message.content, "2")
+        self.assertIsNone(message.platform_type)
+        self.assertIsNotNone(message.timestamp)
+
+    def test_get_data(self):
+        message = Message(
+            from_customer="1",
+            content="2")
+
+        data = message.get_data()
+        self.assertEquals(len(data), 3)
+        self.assertEquals(data["from_customer"], "1")
+        self.assertEquals(data["content"], "2")
+        self.assertIsNone(data.get("platform_type"))
+        self.assertIsNotNone(data["timestamp"])
 
 if __name__ == "__main__":
     test_loader = unittest.TestLoader()
     suite = test_loader.loadTestsFromTestCase(TestModel)
     suite.addTests(test_loader.loadTestsFromTestCase(TestCustomer))
+    suite.addTests(test_loader.loadTestsFromTestCase(TestDelegator))
+    suite.addTests(test_loader.loadTestsFromTestCase(TestTransaction))
+    suite.addTests(test_loader.loadTestsFromTestCase(TestMessage))
     unittest.TextTestRunner(verbosity=3).run(suite)

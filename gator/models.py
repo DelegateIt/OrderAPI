@@ -94,7 +94,6 @@ class Model():
 
 class CFields():
     UUID = "uuid"
-    VERSION = "version"
     PHONE_NUMBER = "phone_number"
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
@@ -109,8 +108,7 @@ class Customer(Model):
     TABLE_NAME = TableNames.CUSTOMERS
     TABLE = customers
     KEY = CFields.UUID
-    
-    # NOTE : does not require use of a primary key
+
     def __init__(self, item):
         super().__init__(item)
 
@@ -141,76 +139,108 @@ class Customer(Model):
         else:
             return False
 
-class Delegator():
-    def __init__(self, phone_number=None, email=None, first_name=None, last_name=None,
-            active_transaction_uuids=None, inactive_transaction_uuids=None):
-        self.uuid = common.get_uuid()
-        self.phone_number = phone_number
-        self.email = email
-        self.first_name   = first_name
-        self.last_name    = last_name
+class DFields():
+    UUID = "uuid"
+    PHONE_NUMBER = "phone_number"
+    EMAIL = "email"
+    FIRST_NAME = "first_name"
+    LAST_NAME = "last_name"
+    A_TRANS_UUIDS = "active_transaction_uuids"
+    IA_TRANS_UUIDS = "inactive_transaction_uuids" 
 
-        self.active_transaction_uuids = active_transaction_uuids
-        self.inactive_transaction_uuids = inactive_transaction_uuids
+class Delegator(Model):
+    FIELDS = DFields
+    VALID_KEYS = set([getattr(DFields, attr) for attr in vars(DFields)
+        if not attr.startswith("__")])
+    TABLE_NAME = TableNames.DELEGATORS
+    TABLE = delegators
+    KEY = DFields.UUID
 
-    def get_data(self):
-        data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
+    def __init__(self, item):
+        super().__init__(item)
 
-        if data.get("active_transaction_uuids") is not None:
-            data["active_transaction_uuids"] = [transaction.get_data() for transaction in data["active_transaction_uuids"]]
+    @staticmethod
+    def create_new(attributes={}):
+        delegator = Model.load_from_data(Delegator, attributes)
 
-        if data.get("inactive_transaction_uuids") is not None:
-            data["inactive_transaction_uuids"] = [transaction.get_data() for transaction in data["inactive_transaction_uuids"]]
+        # Default values
+        delegator[DFields.UUID] = common.get_uuid()
 
-        return data
+        if delegator[DFields.A_TRANS_UUIDS] is None:
+            delegator[DFields.A_TRANS_UUIDS] = []
+
+        if delegator[DFields.IA_TRANS_UUIDS] is None:
+            delegator[DFields.IA_TRANS_UUIDS] = []
+
+        return delegator
 
     def is_unique(self):
-        if self.phone_number is None or self.email is None:
+        if self[DFields.PHONE_NUMBER] is None or self[DFields.EMAIL] is None:
             return False
 
-        phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
-        email_is_uniq        = delegators.query_count(index="email-index", email__eq=self.email) == 0
+        phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self[DFields.PHONE_NUMBER]) == 0
+        email_is_uniq = delegators.query_count(index="email-index", email__eq=self[DFields.EMAIL]) == 0
 
         return phone_number_is_uniq and email_is_uniq
 
-class Transaction():
-    def __init__(self, customer_uuid=None, delegator_uuid=None, status=None, messages=None):
-        self.uuid = common.get_uuid()
-        self.customer_uuid = customer_uuid
-        self.delegator_uuid = delegator_uuid
-        self.status = status
-        self.timestamp = common.get_current_timestamp()
-        self.messages = messages
-        self.receipt = None
-        self.payment_url = None
+    def create(self):
+        if self.is_unique():
+            return self.item.save()
+        else:
+            return False
 
-        # RECEIPT STRUCTURE
-        # receipt = {
-        #     total: integer, #Amount of cents that should be paid. NOTE: not equal to the sum of costs due to fees/taxes
-        #     paid: boolean,
-        #     notes: string, #Any additional information
-        #     items: [
-        #         {
-        #             name: string,
-        #             cents: int #cost of item in pennies
-        #         }, ...
-        #     ]
-        # }
+class TFields():
+    CUSTOMER_UUID = "customer_uuid"
+    DELEGATOR_UUID = "delegator_uuid"
+    STATUS = "status"
+    MESSAGES = "messages"
+
+class Transaction(Model):
+    FIELDS = TFields
+    VALID_KEYS = set([getattr(TFields, attr) for attr in vars(TFields)
+        if not attr.startswith("__")])
+    TABLE_NAME = TableNames.TRANSACTIONS
+    TABLE = transactions
+    KEY = TFields.CUSTOMER_UUID
+
+    def __init__(self, item):
+        super().__init__(item)
+
+    @staticmethod
+    def create_new(attributes={}):
+        transaction = Model.load_from_data(Transaction, attributes)
+
+        if transaction[TFields.STATUS] is None:
+            transaction[TFields.STATUS] = common.TransactionStates.STARTED
+
+        return transaction 
 
     def get_data(self):
-        data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
+        data = deepcopy(self.item._data)
 
         if data.get("messages") is not None:
             data["messages"] = [message.get_data() for message in data["messages"]]
 
         return data
 
+    def add_message(message):
+        if self.item[TFields.MESSAGES] == None:
+            self.item[TFields.MESSAGES] = []
+
+        self.item[TFields.MESSAGES].append(message.get_data())
+
+class MFields():
+    FROM_CUSTOMER = "from_customer"
+    CONTENT = "content"
+    PLATFORM_TYPE = "platform_type"
+    TIMESTAMP = "timestamp"
+
 class Message():
     def __init__(self, from_customer=None, content=None, platform_type=None):
-        self.from_customer = from_customer
-        self.content = content
-        self.platform_type = platform_type
-        self.timestamp = common.get_current_timestamp()
+        setattr(self, MFields.FROM_CUSTOMER, from_customer)
+        setattr(self, MFields.CONTENT, content)
+        setattr(self, MFields.PLATFORM_TYPE, platform_type)
+        setattr(self, MFields.TIMESTAMP, common.get_current_timestamp())
 
     def get_data(self):
         return {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}
