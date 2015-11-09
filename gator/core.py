@@ -8,7 +8,8 @@ import gator.models
 import gator.common
 
 from gator.flask import app
-from gator.models import Customer, Message, Delegator, Transaction
+from gator.models import Model, Customer, Delegator, Transaction, Message
+from gator.models import CFields, DFields, TFields, MFields
 from gator.common import Errors, TransactionStates
 
 MAX_TWILIO_MSG_SIZE = 1600
@@ -26,49 +27,56 @@ def index():
     return "GatorRestService is up and running!"
 
 @app.route('/core/customer', methods=['POST'])
-def create_customer():
-    data_dict = jsonpickle.decode(request.data.decode("utf-8"))
+def customer_post():
+    data = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not set(["phone_number"]) <= set(data_dict.keys()):
+    if data.get(CFields.PHONE_NUMBER) is None:
         return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
 
-    customer = Customer.create_from_dict(data_dict)
+    customer = Customer.create_new(data)
 
     if not customer.is_unique():
         return gator.common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
 
-    gator.models.customers.put_item(data=customer.get_data())
+    # Save the customer to db
+    if not customer.create():
+        return gator.common.error_to_json(Erros.CONSISTENCY_ERROR)
 
+    # Send a text to the user if they signed up from the LandingPage
     if request.args.get('sendtext', 'false') == 'true':
         gator.service.sms.send_msg(
             body="Welcome to DelegateIt! Text us whatever you want and we will get it to you.",
             to=data_dict["phone_number"])
 
-    return jsonpickle.encode({"result": 0, "uuid": customer.uuid}, unpicklable=False)
+    return jsonpickle.encode({
+        "result": 0, "uuid": customer[CFields.UUID]},
+        unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['GET'])
-def customer(uuid):
-    if not gator.models.customers.has_item(uuid=uuid, consistent=True):
+def customer_get(uuid):
+    customer = Model.load_from_db(Customer, uuid)
+
+    if customer is None:
         return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
-    customer = gator.models.customers.get_item(uuid=uuid, consistent=True)
-
-    to_return = {"result": 0}
-    to_return.update(customer._data)
-    return jsonpickle.encode(to_return, unpicklable=False)
+    return jsonpickle.encode({
+        "result": 0, "customer": customer.get_data()},
+        unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['PUT'])
-def update_customer(uuid):
-    try:
-        customer = gator.models.customers.get_item(uuid=uuid, consistent=True)
-    except boto.dynamodb2.exceptions.ItemNotFound:
-        return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
-    req_data = jsonpickle.decode(request.data.decode("utf-8"))
-    customer._data.update(req_data)
-    customer.partial_save()
+def customer_put(uuid):
+    data = jsonpickle.decode(request.data.decode("utf-8"))
+    customer = Model.load_from_db(Customer, uuid)
 
-    to_return = {"result": 0, "customer": customer._data}
-    return jsonpickle.encode(to_return, unpicklable=False)
+    if customer is None:
+        return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
+
+    customer.update(data)
+    # Save the customer to db
+    if not customer.save():
+        return gator.common.error_to_json(Erros.CONSISTENCY_ERROR)
+
+    return jsonpickle.encode({"result": 0, unpicklable=False)
 
 @app.route('/core/delegator/<uuid>', methods=['PUT'])
 def update_delegator(uuid):

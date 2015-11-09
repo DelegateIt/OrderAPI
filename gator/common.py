@@ -14,7 +14,7 @@ class ErrorType():
         self.err_message = err_message
 
 class Errors():
-    # NOTE: do not change the returncode of these variables
+    # NOTE: do not change the return code of these variables
     DATA_NOT_PRESENT           = ErrorType(1, "The request could not be completed without the required data")
     CUSTOMER_ALREADY_EXISTS    = ErrorType(2, "The specified customer already exists")
     TRANSACTION_DOES_NOT_EXIST = ErrorType(3, "The specified transaction does not exist")
@@ -25,6 +25,7 @@ class Errors():
     NO_TRANSACTIONS_AVAILABLE  = ErrorType(8, "There are no unhelped transactions available")
     DELEGATOR_DOES_NOT_EXIST   = ErrorType(9, "The specified uuid is not linked to a delegator")
     CUSTOMER_DOES_NOT_EXIST    = ErrorType(10, "The specified uuid is not linked to a customer")
+    CONSISTENCY_ERROR          = ErrorType(11, "The request could not be completed due to a consistency issue")
 
 def error_to_json(error):
     return jsonpickle.encode({

@@ -72,6 +72,10 @@ class Model():
             self.item[key] = val
         else:
             raise ValueError("Attribute %s is not valid." % key)
+
+    def update(self, atts):
+        for key, val in atts.items():
+            self[key] = val
         
     def _atts_are_valid(self, attributes):
         # Verify that the attributes passed in were valid

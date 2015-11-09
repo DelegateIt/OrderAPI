@@ -85,6 +85,14 @@ class TestModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.customer["invalid_key"] = "DOES NOT MATTER"
 
+    def test_update(self):
+        self.customer.update({
+            CFields.UUID: "1",
+            CFields.FIRST_NAME: "2"})
+
+        self.assertEquals(self.customer[CFields.UUID], "1")
+        self.assertEquals(self.customer[CFields.FIRST_NAME], "2")
+
     def test_atts_are_valid(self):
         customer = Model.load_from_data(Customer, {})
         self.assertTrue(customer._atts_are_valid({
