@@ -108,6 +108,42 @@ class TestModel(unittest.TestCase):
         self.assertEquals(customer_data[CFields.A_TRANS_UUIDS], [])
         self.assertEquals(customer_data[CFields.IA_TRANS_UUIDS], [])
 
+    def test_save(self):
+        customer = Customer.create_new({
+            CFields.FIRST_NAME: "1",
+            CFields.PHONE_NUMBER: "2"})
+
+        customer.create() 
+
+        customer[CFields.FIRST_NAME] = "2"
+        result = customer.save()
+        self.assertTrue(result)
+
+        # Check db
+        customer_db = customers.get_item(
+            uuid=customer[CFields.UUID],
+            consistent=True)
+
+        self.assertEquals(customer_db[CFields.FIRST_NAME], "2")
+
+    def test_save_consistency(self):
+        customer_1 = Customer.create_new({
+            CFields.FIRST_NAME: "1",
+            CFields.PHONE_NUMBER: "2"})
+    
+        customer_1.create()
+   
+        customer_2 = Model.load_from_db(
+            Customer,
+            customer_1[CFields.UUID])
+  
+        customer_1[CFields.FIRST_NAME] = "2"
+        customer_1.save()
+  
+        customer_2[CFields.FIRST_NAME] = "3"
+ 
+        self.assertFalse(customer_2.save())
+
     def  test_create(self):
         customer = Customer.load_from_data(Customer, {
             CFields.UUID: "1",
@@ -126,24 +162,6 @@ class TestModel(unittest.TestCase):
         self.assertTrue(customer_db[CFields.UUID], "1")
         self.assertTrue(customer_db[CFields.FIRST_NAME], "2")
         self.assertTrue(customer_db[CFields.LAST_NAME], "3")
-
-    def test_save(self):
-        customer = Customer.create_new({
-            CFields.FIRST_NAME: "1",
-            CFields.PHONE_NUMBER: "2"})
-
-        customer.create() 
-
-        customer[CFields.FIRST_NAME] = "2"
-        result = customer.save()
-        self.assertTrue(result)
-
-        # Check db
-        customer_db = customers.get_item(
-            uuid=customer[CFields.UUID],
-            consistent=True)
-
-        self.assertEquals(customer_db[CFields.FIRST_NAME], "2")
 
 class TestCustomer(unittest.TestCase):
     def setUp(self):
