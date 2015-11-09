@@ -6,6 +6,7 @@ import jsonpickle
 import time
 import json
 import uuid
+from enum import Enum, unique
 
 from gator import service
 from gator import common
@@ -33,7 +34,7 @@ handlers     = Table(TableNames.HANDLERS,     connection=conn)
 class Model():
     def __init__(self, item):
         if not self._atts_are_valid(item._data):
-            raise ValueError("One or more of the item's data fields is invalid")
+            raise ValueError("One or more of the item's attributes is invalid")
 
         self.item = item
 
@@ -138,7 +139,7 @@ class Customer(Model):
         if self.is_unique():
             return self.item.save()
         else:
-            raise ValueError("The Customer is not unique in the database")
+            return False
 
 class Delegator():
     def __init__(self, phone_number=None, email=None, first_name=None, last_name=None,
