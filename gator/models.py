@@ -1,12 +1,11 @@
-from boto.dynamodb2.table import Table
-from boto.dynamodb2.layer1 import DynamoDBConnection
+from boto.dynamodb2.table import Table, Item
+from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 
 import jsonpickle
 
 import time
 import json
 import uuid
-from enum import Enum, unique
 
 from gator import service
 from gator import common
@@ -32,53 +31,61 @@ handlers     = Table(TableNames.HANDLERS,     connection=conn)
 
 # Base class for all object models
 class Model():
-    # Generic super initializer
-    def __init__(self):
-        self.dirty_keys = set([])
+    def __init__(self, item):
+        if not self._atts_are_valid(item._data):
+            raise ValueError("One or more of the item's data fields is invalid")
 
-    # Decorators
-    def mark_dirty(func):
-        def wrapper(self, key, val):
-            self.dirty_keys.add(key)
-            
-            return func(self, key, val)
+        self.item = item
 
-        return wrapper
+    # Factory methods
+    @staticmethod
+    def load_from_db(cls, key, consistent=True):
+        if not issubclass(cls, Model):
+            raise ValueError("Class must be a subclass of Model")
+
+        return cls(cls.TABLE.get_item(
+            consistent=consistent,
+            **{
+                cls.KEY: key
+            }))
+
+    @staticmethod
+    def load_from_data(cls, data):
+        if not issubclass(cls, Model):
+            raise ValueError("Class must be a subclass of Model")
+
+        return cls(Item(cls.TABLE, data))
 
     # Attribute access
     def __getitem__(self, key):
-        return getattr(self, key, None)
+        return self.item[key]
 
-    @mark_dirty
     def __setitem__(self, key, val):
         if key in self.VALID_KEYS:
-            setattr(self, key, val)
+            self.item[key] = val
         else:
             raise ValueError("Attribute %s is not valid." % key)
+        
+    def _atts_are_valid(self, attributes):
+        # Verify that the attributes passed in were valid
+        for atr in attributes:
+            if atr not in self.VALID_KEYS:
+                return False
 
-    def get_dirty_keys(self):
-        return self.dirty_keys
+        return True
 
     def get_data(self):
-        return {key: vars(self)[key] for key in vars(self)
-                if vars(self)[key] is not None and key in self.VALID_KEYS}
+        return self.item._data
 
     # Database Logic
     def save(self):
-        data=self.get_data()
-
-        # TODO : fix this later
-        if data.get(self.FIELDS.VERSION) is None:
-            raise ValueError("Model object must have a version to be used with save.")
-
-        result = self.TABLE.put_item(data={key: data[key] for key in self.dirty_keys})
-        # Reset the dirty keys
-        self.dirty_keys = self.dirty_keys if result else set([])
-
-        return result
+        try:
+            return self.item.partial_save()
+        except ConditionalCheckFailedException:
+            return False
 
     def create(self):
-        return self.TABLE.put_item(data=self.get_data())
+        return self.item.save()
 
     # Parsing and json
     def to_json(self):
@@ -103,19 +110,12 @@ class Customer(Model):
     KEY = CFields.UUID
     
     # NOTE : does not require use of a primary key
-    def __init__(self, attributes):
-        # Call super class init
-        super(Customer, self).__init__()
-        
-        for atr, val in attributes.items():
-            if atr in self.VALID_KEYS:
-                self[atr] = val
-            else:
-                raise ValueError("Attribute %s is not valid." % (atr))
+    def __init__(self, item):
+        super().__init__(item)
 
     @staticmethod
-    def create_new(attributes):
-        customer = Customer(attributes)
+    def create_new(attributes={}):
+        customer = Model.load_from_data(Customer, attributes)
 
         # Default values
         customer[CFields.UUID] = common.get_uuid()
@@ -128,15 +128,17 @@ class Customer(Model):
 
         return customer
 
-    @staticmethod
-    def load_from_db(uuid, consistent=True):
-        return Customer(TABLE.get_item(uuid=uuid, consistent=consistent)._data)
-
     def is_unique(self):
         if self[CFields.PHONE_NUMBER] is None:
             return False
 
         return customers.query_count(index="phone_number-index", phone_number__eq=self["phone_number"]) == 0
+
+    def create(self):
+        if self.is_unique():
+            return self.item.save()
+        else:
+            raise ValueError("The Customer is not unique in the database")
 
 class Delegator():
     def __init__(self, phone_number=None, email=None, first_name=None, last_name=None,

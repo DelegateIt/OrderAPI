@@ -29,48 +29,129 @@ class TestModel(unittest.TestCase):
         clear()
 
     def setUp(self):
-        self.model = Model()
+        self.customer = Model.load_from_data(Customer, {})
 
-    def test_init(self):
-        self.assertEquals(self.model.get_dirty_keys(), set([]))
+    def test_invalid_init(self):
+        with self.assertRaises(ValueError):
+            Model.load_from_data(Customer, {"invalid_key": "DOES NOT MATTER"})
+
+    def test_load_from_db(self):
+        new_customer = Customer.create_new({
+            CFields.FIRST_NAME: "1",
+            CFields.PHONE_NUMBER: "2"})
+
+        new_customer.create()
+
+        loaded_customer = Model.load_from_db(
+            Customer,
+            new_customer[Customer.KEY])
+
+        for key in new_customer.get_data():
+            # Ignore default initialized values
+            if new_customer[key] != []:
+                self.assertEquals(new_customer[key], loaded_customer[key])
+
+    def test_invalid_load_from_db(self):
+        class TempClass():
+            pass
+
+        with self.assertRaises(ValueError):
+            Model.load_from_db(TempClass, {})
+
+    def test_load_from_data(self):
+        customer = Model.load_from_data(Customer, {
+            CFields.UUID: "1",
+            CFields.FIRST_NAME: "2"
+        })
+
+        self.assertEquals(2, len(customer.get_data()))
+        self.assertEquals(customer[CFields.UUID], "1")
+        self.assertEquals(customer[CFields.FIRST_NAME], "2")
+
+    def test_invalid_load_from_data(self):
+        class TempClass():
+            pass
+
+        with self.assertRaises(ValueError):
+            Model.load_from_data(TempClass, {})
 
     def test_get_item(self):
-        self.model.item = "test_item"
-        self.assertEquals(self.model.item, self.model["item"])
+        self.customer[CFields.FIRST_NAME] = "1"
+        self.assertEquals(self.customer[CFields.FIRST_NAME], "1")
 
     def test_get_item_default(self):
-        self.assertIsNone(self.model["non_existant_key"])
+        self.assertIsNone(self.customer["non_existant_key"])
 
-    # Testing Model as a parent class of Customer
-    def test_dirty_keys(self):
-        customer = Customer({
-            CFields.UUID: "1",
-            CFields.FIRST_NAME: "2"})
+    def test_invalid_set_item(self):
+        with self.assertRaises(ValueError):
+            self.customer["invalid_key"] = "DOES NOT MATTER"
 
-        customer[CFields.LAST_NAME] = "3"
+    def test_atts_are_valid(self):
+        customer = Model.load_from_data(Customer, {})
+        self.assertTrue(customer._atts_are_valid({
+            CFields.UUID,
+            CFields.FIRST_NAME}))
 
-        self.assertEquals(customer.get_dirty_keys(),
-            set([CFields.UUID, CFields.FIRST_NAME, CFields.LAST_NAME]))
+    def test_empty_atts_are_valid(self):
+        self.assertTrue(self.customer._atts_are_valid(self.customer.get_data()))
 
     def test_get_data(self):
         customer = Customer.create_new({
-            CFields.FIRST_NAME: "1"})
+            CFields.FIRST_NAME: "1",
+            CFields.PHONE_NUMBER: "2"}) 
 
         customer_data = customer.get_data()
-        self.assertEquals(len(customer_data), 4)
+        self.assertEquals(len(customer_data), 5)
         self.assertEquals(customer_data[CFields.FIRST_NAME], "1")
+        self.assertEquals(customer_data[CFields.PHONE_NUMBER], "2")
         self.assertIsNotNone(customer_data[CFields.UUID])
         self.assertEquals(customer_data[CFields.A_TRANS_UUIDS], [])
         self.assertEquals(customer_data[CFields.IA_TRANS_UUIDS], [])
 
+    def test_save(self):
+        customer = Customer.create_new({
+            CFields.FIRST_NAME: "1",
+            CFields.PHONE_NUMBER: "2"})
+
+        customer.create() 
+
+        customer[CFields.FIRST_NAME] = "2"
+        self.assertTrue(customer.save())
+
+        # Check db
+        customer_db = customers.get_item(
+            uuid=customer["uuid"],
+            consistent=True)
+
+        self.assertEquals(customer[CFields.UUID], customer_db[CFields.UUID])
+        self.assertEquals(customer_db[CFields.FIRST_NAME], "2")
+
+    def test_save_consistency(self):
+        customer_1 = Customer.create_new({
+            CFields.FIRST_NAME: "1",
+            CFields.PHONE_NUMBER: "2"})
+
+        customer_1.create()
+
+        customer_2 = Model.load_from_db(
+            Customer,
+            customer_1[CFields.UUID])
+
+        customer_1[CFields.FIRST_NAME] = "2"
+        customer_1.save()
+
+        customer_2[CFields.FIRST_NAME] = "3"
+
+        self.assertFalse(customer_2.save())
+
     def  test_create(self):
-        customer = Customer({
+        customer = Model.load_from_data(Customer, {
             CFields.UUID: "1",
             CFields.FIRST_NAME: "2",
-            CFields.LAST_NAME: "3"})
+            CFields.LAST_NAME: "3",
+            CFields.PHONE_NUMBER: "4"})
 
-        result = customer.create()
-        self.assertTrue(result)
+        self.assertTrue(customer.create())
 
         # Check db
         customer_db = customers.get_item(
@@ -81,49 +162,12 @@ class TestModel(unittest.TestCase):
         self.assertTrue(customer_db[CFields.FIRST_NAME], "2")
         self.assertTrue(customer_db[CFields.LAST_NAME], "3")
 
-    def test_save(self):
-        customer = Customer.create_new({
-            CFields.FIRST_NAME: "1"})
-
-        customer.create() 
-
-        customer[CFields.FIRST_NAME] = "2"
-        result = customer.save()
-        self.assertTrue(result)
-
-        # Check db
-        customer_db = customers.get_item(
-            uuid=customer_response_data["uuid"],
-            consistent=True)
-
-        self.assertEquals(customer_db[CFields.FIRST_NAME], "2")
-
 class TestCustomer(unittest.TestCase):
     def setUp(self):
         clear()
 
     def tearDown(self):
         clear()
-
-    def test_empy_init(self):
-        customer = Customer({})
-        self.assertEquals(customer.dirty_keys, set([]))
-
-    def test_normal_init(self):
-        customer = Customer({
-            CFields.UUID: "1",
-            CFields.FIRST_NAME: "2",
-            CFields.STRIPE_ID: "3"})
-
-        self.assertEquals(customer[CFields.UUID], "1")
-        self.assertEquals(customer[CFields.FIRST_NAME], "2")
-        self.assertEquals(customer[CFields.STRIPE_ID], "3")
-
-    def test_invalid_init(self):
-        with self.assertRaises(ValueError):
-            customer = Customer({
-                CFields.UUID: "1",
-                "invalid_attr": "invalid"})
 
     def test_create_new(self):
         customer = Customer.create_new({
@@ -137,6 +181,32 @@ class TestCustomer(unittest.TestCase):
         self.assertIsNotNone(customer[CFields.UUID])
         self.assertEquals(customer[CFields.A_TRANS_UUIDS], [])
         self.assertEquals(customer[CFields.IA_TRANS_UUIDS], [])
+
+    def test_is_unique(self):
+        customer_1 = Customer.create_new({})
+
+        self.assertFalse(customer_1.is_unique())
+
+        customer_1[CFields.PHONE_NUMBER] = "1"
+        self.assertTrue(customer_1.is_unique())
+
+        customer_1.create()
+
+        customer_2 = Customer.create_new({
+            CFields.PHONE_NUMBER: "1"})
+
+        self.assertFalse(customer_2.is_unique())
+
+    def test_create(self):
+        customer = Customer.create_new({}) 
+
+        with self.assertRaises(ValueError):
+            customer.create()
+
+        customer[CFields.PHONE_NUMBER] = "1"
+
+        self.assertTrue(customer.create())
+
 
 if __name__ == "__main__":
     test_loader = unittest.TestLoader()
