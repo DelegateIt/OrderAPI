@@ -5,7 +5,8 @@
     "api_host": {
         "name": "test-gator-api.elasticbeanstalk.com",
         "bind_port": 8000,
-        "recv_port": 80
+        "recv_port": 80,
+        "admin_key": "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0="
     }, 
     "dynamodb": {
         "access_key": "AKIAJD434IN2GYC4VDCQ",
@@ -15,7 +16,8 @@
     }, 
     "notifier_host": {
         "bind_port": 8060,
-        "recv_port": 80
+        "recv_port": 80,
+        "gator_key": "MTkzNzU5Mzc0OTg0ODM6YXBpOjE2MDQ3MzA0NjQ6NXN3RjN1bGZQY2FmdkdnanVabzErZGkwTXYzZGs2K1hYcXkyZVBiYlNGQT0="
     },
     "stripe": {
         "public_key": "pk_test_ZoK03rN4pxc2hfeYTzjByrdV", 
@@ -25,6 +27,20 @@
 
         "auth_token": "dd9b4240a96556da1abb1e49646c73f3", 
         "account_sid": "ACb5440a719947d5edf7d760155a39a768"
+    },
+    "authentication": {
+        "validate_facebook_tokens": false,
+        "secret": "insert_entropy_here -> ksjdflkasfjijr90u23roQALV923",
+        "api_keys": {
+            "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0=": {
+                "permissions": ["API_SMS", "API_NOTIFY", "DELEGATOR_OWNER", "CUSTOMER_OWNER", "ALL_DELEGATORS", "ADMIN"],
+                "id": "20394850495930"
+            },
+            "MTkzNzU5Mzc0OTg0ODM6YXBpOjE2MDQ3MzA0NjQ6NXN3RjN1bGZQY2FmdkdnanVabzErZGkwTXYzZGs2K1hYcXkyZVBiYlNGQT0=": {
+                "permissions": ["API_NOTIFY"],
+                "id": "19375937498483"
+            }
+        }
     }
 }
 

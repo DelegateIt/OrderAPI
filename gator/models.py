@@ -23,12 +23,14 @@ handlers     = Table("DelegateIt_Handlers",     connection=conn)
 
 class Customer():
     def __init__(self, phone_number=None, first_name=None, last_name=None,
-            active_transaction_uuids=None, inactive_transaction_uuids=None):
+            active_transaction_uuids=None, inactive_transaction_uuids=None,
+            fbuser_id=None):
         self.uuid = common.get_uuid()
         self.phone_number = phone_number
         self.first_name = first_name
         self.last_name = last_name
         self.stripe_id = None
+        self.fbuser_id = fbuser_id
 
         self.active_transaction_uuids = active_transaction_uuids
         self.inactive_transaction_uuids = inactive_transaction_uuids
@@ -40,7 +42,8 @@ class Customer():
             first_name=data.get("first_name"),
             last_name=data.get("last_name"),
             active_transaction_uuids=data.get("active_transaction_uuids"),
-            inactive_transaction_uuids=data.get("inactive_transaction_uuids"))
+            inactive_transaction_uuids=data.get("inactive_transaction_uuids"),
+            fbuser_id=data.get("fbuser_id"))
 
     def get_data(self):
         data = {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}

@@ -5,12 +5,16 @@ module.exports = {};
 
 module.exports.config = {};
 
+module.exports.auth_token = null;
+
 module.exports.loadConfig = function(filepath) {
     contents = fs.readFileSync(filepath, 'utf8')
     module.exports.config = JSON.parse(contents);
 };
 
 module.exports.request = function(host, port, path, method, json, callback) {
+    if (module.exports.auth_token != null)
+        path += "?token=" + encodeURIComponent(module.exports.auth_token);
     var options = {
         hostname: host,
         port: port,

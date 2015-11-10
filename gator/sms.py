@@ -5,11 +5,14 @@ import gator.service as service
 import gator.models as models
 import gator.payment as payment
 from gator.common import TransactionStates
+from gator.auth import validate_permission, authenticate, Permission
 
 import jsonpickle
 
 @app.route('/sms/handle_sms', methods=["POST"])
-def handle_sms():
+@authenticate
+def handle_sms(identity):
+    validate_permission(identity, [Permission.API_SMS])
     query_result = models.customers.query_2(index="phone_number-index", phone_number__eq=request.values["From"])
     query_count = models.customers.query_count(index="phone_number-index", phone_number__eq=request.values["From"])
 

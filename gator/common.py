@@ -26,6 +26,9 @@ class Errors():
     DELEGATOR_DOES_NOT_EXIST   = ErrorType(9, "The specified uuid is not linked to a delegator")
     CUSTOMER_DOES_NOT_EXIST    = ErrorType(10, "The specified uuid is not linked to a customer")
     UNCAUGHT_EXCEPTION         = ErrorType(11, "The server encountered an internel error")
+    INVALID_TOKEN              = ErrorType(12, "The authentication token is not valid")
+    INVALID_FACEBOOK_TOKEN     = ErrorType(13, "Facebook could not validate the token")
+    PERMISSION_DENIED          = ErrorType(14, "You do not have the access rights for that resource")
 
 def error_to_json(error):
     return jsonpickle.encode({
@@ -50,7 +53,7 @@ class GatorException(Exception):
         Exception.__init__(self, self.message)
 
     def __str__(self):
-        return type(self).__name__ + " - " + self.error_type.returncode + " - " + self.message
+        return type(self).__name__ + " - " + str(self.error_type.returncode) + " - " + self.message
 
 
 ################
