@@ -6,8 +6,7 @@ import time
 import json
 import uuid
 
-from gator import service
-from gator import common
+from gator import service, common, config
 
 ##############################
 # Global vars, consts, extra #
@@ -16,10 +15,11 @@ from gator import common
 conn = service.dynamodb
 
 # Tables
-customers    = Table("DelegateIt_Customers",    connection=conn)
-delegators   = Table("DelegateIt_Delegators",   connection=conn)
-transactions = Table("DelegateIt_Transactions", connection=conn)
-handlers     = Table("DelegateIt_Handlers",     connection=conn)
+table_prefix = config.store["dynamodb"]["table_prefix"]
+customers    = Table(table_prefix + "DelegateIt_Customers",    connection=conn)
+delegators   = Table(table_prefix + "DelegateIt_Delegators",   connection=conn)
+transactions = Table(table_prefix + "DelegateIt_Transactions", connection=conn)
+handlers     = Table(table_prefix + "DelegateIt_Handlers",     connection=conn)
 
 class Customer():
     def __init__(self, phone_number=None, first_name=None, last_name=None,

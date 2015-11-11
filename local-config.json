@@ -9,6 +9,7 @@
         "admin_key": "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0="
     }, 
     "dynamodb": {
+        "table_prefix": "",
         "access_key": null, 
         "region": "us-west-2", 
         "endpoint": {
