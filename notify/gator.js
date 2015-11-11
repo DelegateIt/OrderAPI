@@ -3,9 +3,7 @@ var fs = require("fs");
 
 module.exports = {};
 
-module.exports.config = {};
-
-module.exports.auth_token = null;
+module.exports.config = null;
 
 module.exports.loadConfig = function(filepath) {
     contents = fs.readFileSync(filepath, 'utf8')
@@ -13,8 +11,7 @@ module.exports.loadConfig = function(filepath) {
 };
 
 module.exports.request = function(host, port, path, method, json, callback) {
-    if (module.exports.auth_token != null)
-        path += "?token=" + encodeURIComponent(module.exports.auth_token);
+    path += "?token=" + encodeURIComponent(module.exports.config["notifier_host"]["gator_key"]);
     var options = {
         hostname: host,
         port: port,
