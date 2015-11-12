@@ -16,6 +16,9 @@ class AuthTest(unittest.TestCase):
         self.customer_uuid = apiclient.create_customer("name", "name", "15555555551")["uuid"]
         fb = {"fbuser_id": self.customer_fbuser_id, "fbuser_token": "12313123sffsdf"}
         apiclient.update_customer(self.customer_uuid, fb)
+        self.delegator_fbuser_id = "2"
+        self.delegator_uuid = apiclient.create_delegator("asdf", "dsfsd", "15555555552",
+                "noreply@gmail.com", self.delegator_fbuser_id, "")["uuid"]
 
     def assertException(self, exception, func):
         try:
@@ -26,7 +29,9 @@ class AuthTest(unittest.TestCase):
             self.assertTrue(False, "An exception was expected")
 
     def test_token_validation(self):
-        token = login_facebook("sfsdf", self.customer_fbuser_id, UuidType.CUSTOMER)[1]
+        login = login_facebook("sfsdf", self.customer_fbuser_id, UuidType.CUSTOMER)
+        self.assertEqual(self.customer_uuid, login[0])
+        token = login[1]
         validate_token(token)
 
         #modify the token so it fails validation
@@ -39,13 +44,23 @@ class AuthTest(unittest.TestCase):
             self.assertTrue(False, "The token validation should haved failed")
 
     def test_permission(self):
-        token = login_facebook("sfsdf", self.customer_fbuser_id, UuidType.CUSTOMER)[1]
-        identity = validate_token(token)
+        customer_token = login_facebook("sfsdf", self.customer_fbuser_id, UuidType.CUSTOMER)[1]
+        customer_identity = validate_token(customer_token)
+        delegator_token = login_facebook("asfdd", self.delegator_fbuser_id, UuidType.DELEGATOR)[1]
+        delegator_identity = validate_token(delegator_token)
+
+        validate_permission(delegator_identity, [Permission.ALL_DELEGATORS])
+        validate_permission(delegator_identity, [Permission.DELEGATOR_OWNER], self.delegator_uuid)
         self.assertException(GatorException,
-                lambda: validate_permission(identity, [Permission.ALL_DELEGATORS]))
-        validate_permission(identity, [Permission.CUSTOMER_OWNER], identity[0])
+                lambda: validate_permission(delegator_identity, [Permission.DELEGATOR_OWNER], "123123132"))
         self.assertException(GatorException,
-                lambda: validate_permission(identity, [Permission.CUSTOMER_OWNER], "12313123123"))
+                lambda: validate_permission(customer_identity, [Permission.ALL_DELEGATORS]))
+        validate_permission(customer_identity, [Permission.CUSTOMER_OWNER], customer_identity[0])
+        self.assertException(GatorException,
+                lambda: validate_permission(customer_identity, [Permission.CUSTOMER_OWNER], "12313123123"))
+        self.assertException(GatorException,
+                lambda: validate_permission(customer_identity, [Permission.DELEGATOR_OWNER], customer_identity[0]))
+
 
 if __name__ == "__main__":
     nose.main(defaultTest=__name__)
