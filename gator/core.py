@@ -117,14 +117,18 @@ def create_delegator(identity):
     validate_permission(identity, [Permission.ADMIN])
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not set(["phone_number", "email", "first_name", "last_name"]) <= set(data_dict.keys()):
+    if not set(["phone_number", "email", "first_name", "last_name",
+            "fbuser_id", "fbuser_token"]) <= set(data_dict.keys()):
         return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
+
+    gator.auth.validate_fb_token(data_dict.get("fbuser_token"), data_dict["fbuser_id"])
 
     delegator = Delegator(
             first_name=data_dict["first_name"],
             last_name=data_dict["last_name"],
             phone_number=data_dict["phone_number"],
-            email=data_dict["email"])
+            email=data_dict["email"],
+            fbuser_id=data_dict["fbuser_id"])
 
     if not delegator.is_unique():
         return gator.common.error_to_json(Errors.DELEGATOR_ALREADY_EXISTS)
@@ -201,6 +205,7 @@ def send_message(transaction_uuid, identity):
             "timestamp": message.timestamp
         }, unpicklable=False)
 
+#TODO this method is not used by any clients. Perhaps extermination?
 @app.route('/core/get_messages/<transaction_uuid>', methods=['GET'])
 @authenticate
 def get_messages(transaction_uuid, identity):

@@ -59,17 +59,20 @@ class Customer():
     def is_unique(self):
         if self.phone_number is None:
             return False
+        if self.fbuser_id is not None and customers.query_count(index="fbuser_id-index", fbuser_id__eq=self.fbuser_id) != 0:
+            return False
 
         return customers.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
 
 class Delegator():
     def __init__(self, phone_number=None, email=None, first_name=None, last_name=None,
-            active_transaction_uuids=None, inactive_transaction_uuids=None):
+            active_transaction_uuids=None, inactive_transaction_uuids=None, fbuser_id=None):
         self.uuid = common.get_uuid()
         self.phone_number = phone_number
         self.email = email
         self.first_name   = first_name
         self.last_name    = last_name
+        self.fbuser_id = fbuser_id
 
         self.active_transaction_uuids = active_transaction_uuids
         self.inactive_transaction_uuids = inactive_transaction_uuids
@@ -90,9 +93,10 @@ class Delegator():
             return False
 
         phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self.phone_number) == 0
+        fbuser_id_is_uniq    = delegators.query_count(index="fbuser_id-index", fbuser_id__eq=self.fbuser_id) == 0
         email_is_uniq        = delegators.query_count(index="email-index", email__eq=self.email) == 0
 
-        return phone_number_is_uniq and email_is_uniq
+        return phone_number_is_uniq and email_is_uniq and fbuser_id_is_uniq
 
 class Transaction():
     def __init__(self, customer_uuid=None, delegator_uuid=None, status=None, messages=None):

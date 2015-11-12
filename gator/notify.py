@@ -23,7 +23,7 @@ def get_handlers():
 
 def purge_handlers():
     query = models.handlers.scan()
-    time = common.get_current_timestamp()
+    time = common.get_current_timestamp() // 10**6
     for handler in query:
         if handler["expires"] < time:
             handler.delete()
@@ -46,7 +46,7 @@ def notify_handlers(transaction_uuid):
 @authenticate
 def flask_add_handler(identity):
     validate_permission(identity, [Permission.API_NOTIFY])
-    expires = (common.get_current_timestamp() / 10**6) + 60 * 60 * 12 #time + 12 hours
+    expires = (common.get_current_timestamp() // 10**6) + 60 * 60 * 12 #time + 12 hours
     ip_address = request.remote_addr
     if "x-forwarded-for" in request.headers:
         ip_address = request.headers.get("x-forwarded-for").split(",")[0]

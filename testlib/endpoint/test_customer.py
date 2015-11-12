@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-
 import nose
-import unittest
 from gator import apiclient
 from endpoint.rest import RestTest
 
@@ -35,6 +32,8 @@ class CustomerTest(RestTest):
     def test_uniqueness(self):
         self.create()
         self.assertResponse(2, apiclient.create_customer("slkdfjsk", "sldkfj", "15555555551"))
+        self.assertResponse(2, apiclient.create_customer("slkdfjsk", "sldkfj", "15555555552",
+                fbuser_id=self.fbuser_id, fbuser_token=""))
 
     def test_update(self):
         #TODO test bad email and phone numbers and empty names
@@ -57,6 +56,7 @@ class CustomerTest(RestTest):
     def test_login(self):
         uuid = self.create()["uuid"]
         rsp = apiclient.fb_login_customer(self.fbuser_id, "")
+        self.assertResponse(10, apiclient.fb_login_customer("12312313123", ""))
         self.assertResponse(0, rsp)
         self.assertEquals(uuid, rsp["uuid"])
         rsp_get = apiclient.send_api_request("GET", ["core", "customer", uuid], token=rsp["token"])
@@ -66,6 +66,3 @@ class CustomerTest(RestTest):
         rsp_get = apiclient.send_api_request("GET", ["core", "customer", uuid], token=None)
         self.assertResponse(12, rsp_get)
 
-
-if __name__ == "__main__":
-    nose.main(defaultTest=__name__)

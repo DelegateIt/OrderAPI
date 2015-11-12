@@ -40,7 +40,7 @@ def handle_sms(identity):
         transaction = models.transactions.get_item(uuid=transaction.uuid, consistent=True)
 
         # Send a text to all of the delegators
-        for delegator in gator.models.delegators.scan():
+        for delegator in models.delegators.scan():
             service.sms.send_msg(
                 body="ALERT: New transaction from %s" % customer["phone_number"],
                 to=delegator["phone_number"])
