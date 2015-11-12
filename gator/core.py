@@ -43,8 +43,7 @@ def delegator_login():
     return login(UuidType.DELEGATOR)
 
 @app.route('/core/customer', methods=['POST'])
-@authenticate
-def create_customer(identity):
+def create_customer():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set(["phone_number"]) <= set(data_dict.keys()):
