@@ -27,6 +27,30 @@ def after_request(response):
 def index():
     return "GatorRestService is up and running!"
 
+last_status_check = 0
+is_api_operational = False
+@app.route('/health', methods=["GET"])
+def get_health():
+    global last_status_check, is_api_operational
+    #check at most once per hour
+    check_overdue = gator.common.get_current_timestamp() - last_status_check > 10**6 * 60 * 60
+    if not is_api_operational or check_overdue:
+        last_status_check = gator.common.get_current_timestamp()
+        try:
+            gator.models.customers.describe()
+            accounts = gator.service.sms.twilio.accounts.list()
+            is_api_operational = len(accounts) > 0
+        except Exception as e:
+            logging.exception(e)
+            is_api_operational = False
+    status = is_api_operational
+    payload = {
+        "status": "good" if status else "bad",
+        "result": 0
+    }
+    http_code = 200 if status else 500
+    return jsonpickle.encode(payload), http_code
+
 def login(uuid_type):
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
     if not set(["fbuser_id", "fbuser_token"]) <= set(data_dict.keys()):
