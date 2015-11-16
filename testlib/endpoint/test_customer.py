@@ -58,7 +58,7 @@ class CustomerTest(RestTest):
         rsp = apiclient.fb_login_customer(self.fbuser_id, "")
         self.assertResponse(10, apiclient.fb_login_customer("12312313123", ""))
         self.assertResponse(0, rsp)
-        self.assertEquals(uuid, rsp["uuid"])
+        self.assertEquals(uuid, rsp["customer"]["uuid"])
         rsp_get = apiclient.send_api_request("GET", ["core", "customer", uuid], token=rsp["token"])
         self.assertResponse(0, rsp_get)
         rsp_get = apiclient.send_api_request("GET", ["core", "customer", "123123213"], token=rsp["token"])

@@ -72,7 +72,7 @@ class DelegatorTest(RestTest):
         uuid = self.create()["uuid"]
         rsp = apiclient.fb_login_delegator(self.fbuser_id, "")
         self.assertResponse(0, rsp)
-        self.assertEquals(uuid, rsp["uuid"])
+        self.assertEquals(uuid, rsp["delegator"]["uuid"])
         rsp_get = apiclient.send_api_request("GET", ["core", "delegator", uuid], token=rsp["token"])
         self.assertResponse(0, rsp_get)
         rsp_get = apiclient.send_api_request("GET", ["core", "delegator", uuid], token=None)

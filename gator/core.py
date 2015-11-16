@@ -55,16 +55,19 @@ def login(uuid_type):
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
     if not set(["fbuser_id", "fbuser_token"]) <= set(data_dict.keys()):
         raise GatorException(Errors.DATA_NOT_PRESENT)
-    (uuid, token) = login_facebook(data_dict["fbuser_token"], data_dict["fbuser_id"], uuid_type)
-    return jsonpickle.encode({"result": 0, "uuid": uuid, "token": token})
+    return login_facebook(data_dict["fbuser_token"], data_dict["fbuser_id"], uuid_type)
 
 @app.route('/core/login/customer', methods=["POST"])
 def customer_login():
-    return login(UuidType.CUSTOMER)
+    (uuid, token) = login(UuidType.CUSTOMER)
+    customer = gator.models.customers.get_item(uuid=uuid, consistent=True)
+    return jsonpickle.encode({"result": 0, "customer": customer._data, "token": token})
 
 @app.route('/core/login/delegator', methods=["POST"])
 def delegator_login():
-    return login(UuidType.DELEGATOR)
+    (uuid, token) = login(UuidType.DELEGATOR)
+    delegator = gator.models.delegators.get_item(uuid=uuid, consistent=True)
+    return jsonpickle.encode({"result": 0, "delegator": delegator._data, "token": token})
 
 @app.route('/core/customer', methods=['POST'])
 def create_customer():
