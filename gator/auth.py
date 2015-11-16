@@ -3,6 +3,7 @@ from gator.config import  store
 from gator import models
 
 from enum import Enum
+import logging
 import requests
 import hashlib
 import base64
@@ -25,9 +26,8 @@ def validate_fb_token(fbuser_token, fbuser_id):
         return
     try:
         url = "https://graph.facebook.com/me?fields=id&access_token={}".format(fbuser_token)
-        resp = requests.get(url, timeout=0.5)
-        actual_id = json.loads(resp)["id"]
-        if fbuser_id != actual_id:
+        resp = requests.get(url, timeout=0.5).json()
+        if fbuser_id != resp["id"]:
             raise GatorException(Errors.INVALID_FACEBOOK_TOKEN)
     except requests.exceptions.RequestException as e:
         logging.exception(e)
@@ -72,8 +72,6 @@ def _validate_api_permission(uuid, permission_list):
     for p in permission_list:
         if p.name in key["permissions"]:
             return
-    #import logging
-    #logging.warning("p_list: " + str(permission_list) + " accept: " + str(key["permissions"]))
     raise GatorException(Errors.PERMISSION_DENIED)
 
 def login_facebook(fbuser_token, fbuser_id, uuid_type):
