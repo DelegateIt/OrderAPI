@@ -30,7 +30,7 @@
         "account_sid": "ACb5440a719947d5edf7d760155a39a768"
     },
     "authentication": {
-        "validate_facebook_tokens": false,
+        "validate_facebook_tokens": true,
         "secret": "insert_entropy_here -> ksjdflkasfjijr90u23roQALV923",
         "api_keys": {
             "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0=": {
