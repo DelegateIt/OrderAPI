@@ -5,12 +5,13 @@ Put things in here that are scripts or tangential
 uses of the backend
 """
 
-from gator.service import sms
 import copy
-import gator.models
 import sys
+import os
+import base64
 
 def mass_text(body_fn, numbers_fn):
+    from gator.service import sms
     body = open(body_fn, "r").read()
 
     with open(numbers_fn, "r") as cur_file:
@@ -20,6 +21,7 @@ def mass_text(body_fn, numbers_fn):
             cur_line = cur_file.readline()
 
 def retreive_transaction_info():
+    import gator.models
     customers = {}
     for t in gator.models.transactions.scan():
         if t["customer_uuid"] not in customers:
@@ -49,6 +51,27 @@ def retreive_transaction_info():
     global_info["customers_3_transaction"] = len([c for c in customer_info.values() if c["transaction_count"] == 3])
     global_info["customers_4_transaction"] = len([c for c in customer_info.values() if c["transaction_count"] == 4])
     return (global_info, customer_info, customers)
+
+def generate_entropy(size=128):
+    return base64.b64encode(os.urandom(size)).decode("utf-8")
+
+def generate_api_key(key_type):
+    from gator import auth
+    from gator.common import get_uuid
+    permission_map = {
+        "admin": ["API_SMS", "API_NOTIFY", "DELEGATOR_OWNER", "CUSTOMER_OWNER", "ALL_DELEGATORS", "ADMIN"],
+        "sms": ["API_SMS"],
+        "notify": ["API_NOTIFY"]
+    }
+    permission = permission_map[key_type]
+    uuid = get_uuid()
+    expires = 5 * 356 * 24 * 60 * 60 # 5 years.. chosen by fair dice roll
+    token = auth._create_token(uuid, auth.UuidType.API, expires)
+    return {
+        "token": token,
+        "permissions": permission,
+        "id": uuid
+    }
 
 
 if __name__ == "__main__":
