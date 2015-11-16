@@ -6,7 +6,6 @@ from gator import apiclient
 from endpoint.rest import RestTest
 
 class CustomerTest(RestTest):
-
     def setUp(self):
         apiclient.clear_database()
 
@@ -26,10 +25,10 @@ class CustomerTest(RestTest):
         uuid = self.create()["uuid"]
         rsp = apiclient.get_customer(uuid)
         self.assertResponse(0, rsp)
-        self.assertEqual("firstname", rsp["first_name"])
-        self.assertEqual("lastname", rsp["last_name"])
-        self.assertEqual("15016586868", rsp["phone_number"])
-        self.assertEqual(uuid, rsp["uuid"])
+        self.assertEqual("firstname", rsp["customer"]["first_name"])
+        self.assertEqual("lastname", rsp["customer"]["last_name"])
+        self.assertEqual("15016586868", rsp["customer"]["phone_number"])
+        self.assertEqual(uuid, rsp["customer"]["uuid"])
 
     def test_uniqueness(self):
         self.create()
@@ -47,7 +46,7 @@ class CustomerTest(RestTest):
         }
         update_rsp = apiclient.update_customer(uuid, update)
         self.assertResponse(0, update_rsp)
-        get_rsp = apiclient.get_customer(uuid)
+        get_rsp = apiclient.get_customer(uuid)["customer"]
         for key in update:
             self.assertEqual(update[key], get_rsp[key])
 

@@ -105,6 +105,7 @@ class Model():
 class CFields():
     UUID = "uuid"
     PHONE_NUMBER = "phone_number"
+    EMAIL = "email"
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
     STRIPE_ID = "stripe_id"
@@ -118,6 +119,7 @@ class Customer(Model):
     TABLE_NAME = TableNames.CUSTOMERS
     TABLE = customers
     KEY = CFields.UUID
+    MANDATORY_KEYS = set([CFields.PHONE_NUMBER])
 
     def __init__(self, item):
         super().__init__(item)
@@ -138,7 +140,7 @@ class Customer(Model):
         return customer
 
     def is_unique(self):
-        if self[CFields.PHONE_NUMBER] is None:
+        if not self.MANDATORY_KEYS <= set(self.get_data()):
             return False
 
         return customers.query_count(index="phone_number-index", phone_number__eq=self["phone_number"]) == 0
@@ -165,6 +167,7 @@ class Delegator(Model):
     TABLE_NAME = TableNames.DELEGATORS
     TABLE = delegators
     KEY = DFields.UUID
+    MANDATORY_KEYS = set([DFields.PHONE_NUMBER, DFields.EMAIL, DFields.FIRST_NAME, DFields.LAST_NAME])
 
     def __init__(self, item):
         super().__init__(item)
@@ -185,7 +188,7 @@ class Delegator(Model):
         return delegator
 
     def is_unique(self):
-        if self[DFields.PHONE_NUMBER] is None or self[DFields.EMAIL] is None:
+        if not self.MANDATORY_KEYS <= set(self.get_data()):
             return False
 
         phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self[DFields.PHONE_NUMBER]) == 0
@@ -200,6 +203,7 @@ class Delegator(Model):
             return False
 
 class TFields():
+    UUID = "uuid"
     CUSTOMER_UUID = "customer_uuid"
     DELEGATOR_UUID = "delegator_uuid"
     STATUS = "status"

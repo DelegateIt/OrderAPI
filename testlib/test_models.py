@@ -227,11 +227,13 @@ class TestDelegator(unittest.TestCase):
 
     def test_is_unqiue(self):
         delegator = Delegator.create_new({
-            DFields.EMAIL: "1"})
+            DFields.EMAIL: "1",
+            DFields.FIRST_NAME: "2",
+            DFields.LAST_NAME: "3"})
 
         self.assertFalse(delegator.is_unique())
 
-        delegator[DFields.PHONE_NUMBER] = "2"
+        delegator[DFields.PHONE_NUMBER] = "4"
         self.assertTrue(delegator.is_unique())
 
         delegator.create()
@@ -239,7 +241,9 @@ class TestDelegator(unittest.TestCase):
 
     def test_create(self):
         delegator = Delegator.create_new({
-            DFields.EMAIL: "1"})
+            DFields.EMAIL: "1",
+            DFields.FIRST_NAME: "2",
+            DFields.LAST_NAME: "3"})
 
         self.assertFalse(delegator.create())
 
