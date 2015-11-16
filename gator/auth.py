@@ -45,9 +45,8 @@ def _create_token(uuid, uuid_type, expire_delta=24*60*60): # expires in one day
 
 def _retreive_uuid(fbuser_id, uuid_type):
     if uuid_type == UuidType.CUSTOMER:
-        query = models.customers.query_2(index="fbuser_id-index", fbuser_id__eq=fbuser_id)
-        #query = models.customers.query_2(index="fbuser_id-index", attributes=("uuid",),
-        #        limit=1, fbuser_id__eq=fbuser_id)
+        query = models.customers.query_2(index="fbuser_id-index", attributes=("uuid",),
+                limit=1, fbuser_id__eq=fbuser_id)
         query = [r["uuid"] for r in query]
         if len(query) == 0:
             raise GatorException(Errors.CUSTOMER_DOES_NOT_EXIST)
