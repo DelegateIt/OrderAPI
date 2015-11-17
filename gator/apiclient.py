@@ -194,6 +194,9 @@ def get_notify_handlers():
 def purge_notify_handlers():
     return send_api_request("DELETE", ["notify", "handler"], token=auth_token)
 
+def broadcast_transaction(transaction_uuid):
+    return send_api_request("POST", ["notify", "broadcast", transaction_uuid], token=auth_token)
+
 def send_sms_to_api(from_phone_num, message):
     query = {
         "From": from_phone_num,
