@@ -228,7 +228,7 @@ def send_message(transaction_uuid, identity):
                 to=customer["phone_number"])
 
     # Notify the delegator that there is a new message
-    if not transaction["delegator_uuid"] is None:
+    if not transaction["delegator_uuid"] is None and data_dict["from_customer"]:
         delegator = gator.models.delegators.get_item(uuid=transaction["delegator_Uuid"], consistent=True)
 
         gator.service.sms.send_msg(
