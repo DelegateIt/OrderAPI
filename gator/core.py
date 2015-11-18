@@ -160,6 +160,14 @@ def send_message(transaction_uuid):
                 body=msg,
                 to=customer["phone_number"])
 
+    # Notify the delegator that there is a new message
+    if not transaction["delegator_uuid"] is None:
+        delegator = gator.models.delegators.get_item(uuid=transaction["delegator_Uuid"], consistent=True)
+
+        gator.service.sms.send_msg(
+                body="ALERT: new message from customer",
+                to=delegator["phone_number"])
+        
     return jsonpickle.encode({
             "result": 0,
             "timestamp": message.timestamp
