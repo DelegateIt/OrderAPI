@@ -5,9 +5,11 @@
     "api_host": {
         "name": "localhost", 
         "bind_port": 8000,
-        "recv_port": 80
+        "recv_port": 8000,
+        "admin_key": "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0="
     }, 
     "dynamodb": {
+        "table_prefix": "",
         "access_key": null, 
         "region": "us-west-2", 
         "endpoint": {
@@ -18,7 +20,8 @@
     }, 
     "notifier_host": {
         "recv_port": 8060,
-        "bind_port": 8060
+        "bind_port": 8060,
+        "gator_key": "MTkzNzU5Mzc0OTg0ODM6YXBpOjE2MDQ3MzA0NjQ6NXN3RjN1bGZQY2FmdkdnanVabzErZGkwTXYzZGs2K1hYcXkyZVBiYlNGQT0="
     }, 
     "stripe": {
         "public_key": null, 
@@ -27,6 +30,20 @@
     "twilio": {
         "auth_token": null, 
         "account_sid": null
+    },
+    "authentication": {
+        "validate_facebook_tokens": false,
+        "secret": "insert_entropy_here -> ksjdflkasfjijr90u23roQALV923",
+        "api_keys": {
+            "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0=": {
+                "permissions": ["API_SMS", "API_NOTIFY", "DELEGATOR_OWNER", "CUSTOMER_OWNER", "ALL_DELEGATORS", "ADMIN"],
+                "id": "20394850495930"
+            },
+            "MTkzNzU5Mzc0OTg0ODM6YXBpOjE2MDQ3MzA0NjQ6NXN3RjN1bGZQY2FmdkdnanVabzErZGkwTXYzZGs2K1hYcXkyZVBiYlNGQT0=": {
+                "permissions": ["API_NOTIFY"],
+                "id": "19375937498483"
+            }
+        }
     }
 }
 

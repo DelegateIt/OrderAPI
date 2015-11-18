@@ -1,6 +1,7 @@
 from flask import request
 
 import jsonpickle
+import logging
 import boto
 
 import gator.service
@@ -9,7 +10,8 @@ import gator.common
 
 from gator.flask import app
 from gator.models import Customer, Message, Delegator, Transaction
-from gator.common import Errors, TransactionStates
+from gator.common import Errors, TransactionStates, GatorException
+from gator.auth import authenticate, validate_permission, Permission, login_facebook, UuidType
 
 MAX_TWILIO_MSG_SIZE = 1600
 
@@ -25,6 +27,48 @@ def after_request(response):
 def index():
     return "GatorRestService is up and running!"
 
+last_status_check = 0
+is_api_operational = False
+@app.route('/health', methods=["GET"])
+def get_health():
+    global last_status_check, is_api_operational
+    #check at most once per hour
+    check_overdue = gator.common.get_current_timestamp() - last_status_check > 10**6 * 60 * 60
+    if not is_api_operational or check_overdue:
+        last_status_check = gator.common.get_current_timestamp()
+        try:
+            gator.models.customers.describe()
+            accounts = gator.service.sms.twilio.accounts.list()
+            is_api_operational = len(accounts) > 0
+        except Exception as e:
+            logging.exception(e)
+            is_api_operational = False
+    status = is_api_operational
+    payload = {
+        "status": "good" if status else "bad",
+        "result": 0
+    }
+    http_code = 200 if status else 500
+    return jsonpickle.encode(payload), http_code
+
+def login(uuid_type):
+    data_dict = jsonpickle.decode(request.data.decode("utf-8"))
+    if not set(["fbuser_id", "fbuser_token"]) <= set(data_dict.keys()):
+        raise GatorException(Errors.DATA_NOT_PRESENT)
+    return login_facebook(data_dict["fbuser_token"], data_dict["fbuser_id"], uuid_type)
+
+@app.route('/core/login/customer', methods=["POST"])
+def customer_login():
+    (uuid, token) = login(UuidType.CUSTOMER)
+    customer = gator.models.customers.get_item(uuid=uuid, consistent=True)
+    return jsonpickle.encode({"result": 0, "customer": customer._data, "token": token})
+
+@app.route('/core/login/delegator', methods=["POST"])
+def delegator_login():
+    (uuid, token) = login(UuidType.DELEGATOR)
+    delegator = gator.models.delegators.get_item(uuid=uuid, consistent=True)
+    return jsonpickle.encode({"result": 0, "delegator": delegator._data, "token": token})
+
 @app.route('/core/customer', methods=['POST'])
 def create_customer():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
@@ -32,6 +76,8 @@ def create_customer():
     if not set(["phone_number"]) <= set(data_dict.keys()):
         return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
 
+    if "fbuser_id" in data_dict:
+        gator.auth.validate_fb_token(data_dict.get("fbuser_token"), data_dict["fbuser_id"])
     customer = Customer.create_from_dict(data_dict)
 
     if not customer.is_unique():
@@ -47,7 +93,9 @@ def create_customer():
     return jsonpickle.encode({"result": 0, "uuid": customer.uuid}, unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['GET'])
-def customer(uuid):
+@authenticate
+def customer(uuid, identity):
+    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], uuid)
     if not gator.models.customers.has_item(uuid=uuid, consistent=True):
         return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
@@ -58,12 +106,17 @@ def customer(uuid):
     return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['PUT'])
-def update_customer(uuid):
+@authenticate
+def update_customer(uuid, identity):
+    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], uuid)
     try:
         customer = gator.models.customers.get_item(uuid=uuid, consistent=True)
     except boto.dynamodb2.exceptions.ItemNotFound:
         return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
     req_data = jsonpickle.decode(request.data.decode("utf-8"))
+    if "fbuser_id" in req_data or "fbuser_token" in req_data:
+        gator.auth.validate_fb_token(req_data["fbuser_token"], req_data["fbuser_id"])
+        del req_data["fbuser_token"]
     customer._data.update(req_data)
     customer.partial_save()
 
@@ -71,7 +124,9 @@ def update_customer(uuid):
     return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/core/delegator/<uuid>', methods=['PUT'])
-def update_delegator(uuid):
+@authenticate
+def update_delegator(uuid, identity):
+    validate_permission(identity, [Permission.DELEGATOR_OWNER], uuid)
     try:
         delegator = gator.models.delegators.get_item(uuid=uuid, consistent=True)
     except boto.dynamodb2.exceptions.ItemNotFound:
@@ -84,17 +139,23 @@ def update_delegator(uuid):
     return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/core/delegator', methods=['POST'])
-def create_delegator():
+@authenticate
+def create_delegator(identity):
+    validate_permission(identity, [Permission.ADMIN])
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not set(["phone_number", "email", "first_name", "last_name"]) <= set(data_dict.keys()):
+    if not set(["phone_number", "email", "first_name", "last_name",
+            "fbuser_id", "fbuser_token"]) <= set(data_dict.keys()):
         return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
+
+    gator.auth.validate_fb_token(data_dict.get("fbuser_token"), data_dict["fbuser_id"])
 
     delegator = Delegator(
             first_name=data_dict["first_name"],
             last_name=data_dict["last_name"],
             phone_number=data_dict["phone_number"],
-            email=data_dict["email"])
+            email=data_dict["email"],
+            fbuser_id=data_dict["fbuser_id"])
 
     if not delegator.is_unique():
         return gator.common.error_to_json(Errors.DELEGATOR_ALREADY_EXISTS)
@@ -104,7 +165,8 @@ def create_delegator():
     return jsonpickle.encode({"result": 0, "uuid": delegator.uuid}, unpicklable=False)
 
 @app.route('/core/delegator', methods=['GET'])
-def list_delegators():
+@authenticate
+def list_delegators(identity):
     query = gator.models.delegators.scan()
     return jsonpickle.encode({
         "result": 0,
@@ -112,7 +174,9 @@ def list_delegators():
         unpicklable=False)
 
 @app.route('/core/delegator/<uuid>', methods=['GET'])
-def delegator(uuid):
+@authenticate
+def delegator(uuid, identity):
+    validate_permission(identity, [Permission.DELEGATOR_OWNER], uuid)
     if not gator.models.delegators.has_item(uuid=uuid, consistent=True):
         return gator.common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
 
@@ -123,7 +187,8 @@ def delegator(uuid):
     return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/core/send_message/<transaction_uuid>', methods=['POST'])
-def send_message(transaction_uuid):
+@authenticate
+def send_message(transaction_uuid, identity):
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set(["from_customer", "content", "platform_type"]) <= set(data_dict.keys()):
@@ -133,6 +198,8 @@ def send_message(transaction_uuid):
         return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+
+    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
 
     message = Message(
         from_customer=data_dict["from_customer"],
@@ -173,12 +240,16 @@ def send_message(transaction_uuid):
             "timestamp": message.timestamp
         }, unpicklable=False)
 
+#TODO this method is not used by any clients. Perhaps extermination?
 @app.route('/core/get_messages/<transaction_uuid>', methods=['GET'])
-def get_messages(transaction_uuid):
+@authenticate
+def get_messages(transaction_uuid, identity):
     if not gator.models.transactions.has_item(uuid=transaction_uuid, consistent=True):
         return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     transaction = gator.models.transactions.get_item(uuid=transaction_uuid, consistent=True)
+
+    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
 
     to_return = {"result": 0}
 
@@ -190,11 +261,13 @@ def get_messages(transaction_uuid):
     return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/core/transaction', methods=['POST'])
-def create_transaction():
+@authenticate
+def create_transaction(identity):
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set(["customer_uuid"]) <= set(data_dict.keys()):
         return gator.common.error_to_json(Errors.DATA_NOT_PRESENT)
+    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], data_dict["customer_uuid"])
 
     if not gator.models.customers.has_item(uuid=data_dict["customer_uuid"], consistent=True):
         return gator.common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
@@ -228,9 +301,12 @@ def create_transaction():
 # TODO: write a test for PUT
 # TODO: This is in need of some good-ole refractoring. Too much is going on in one method
 @app.route('/core/transaction/<uuid>', methods=['GET', 'PUT'])
-def transaction(uuid):
+@authenticate
+def transaction(uuid, identity):
     if not gator.models.transactions.has_item(uuid=uuid, consistent=True):
         return gator.common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
+    transaction = gator.models.transactions.get_item(uuid=uuid, consistent=True)
+    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
 
     if request.method == 'PUT':
         data_dict = jsonpickle.decode(request.data.decode("utf-8"))
@@ -239,8 +315,6 @@ def transaction(uuid):
         # b/c it takes more logic to do that
         if not set(data_dict.keys()) < set(["delegator_uuid", "status", "receipt"]):
             return gator.common.error_to_json(Errors.INVALID_DATA_PRESENT)
-
-        transaction = gator.models.transactions.get_item(uuid=uuid, consistent=True)
 
         # Update the state of associated delegator objects
         if "delegator_uuid" in data_dict:
@@ -308,13 +382,13 @@ def transaction(uuid):
 
         return jsonpickle.encode({"result": 0}, unpicklable=False)
     elif request.method == 'GET':
-        transaction = gator.models.transactions.get_item(uuid=uuid, consistent=True)
-
         to_return = {"result": 0, "transaction": transaction._data}
         return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route("/core/assign_transaction/<delegator_uuid>", methods=["GET"])
-def assign_transaction(delegator_uuid):
+@authenticate
+def assign_transaction(delegator_uuid, identity):
+    validate_permission(identity, [Permission.DELEGATOR_OWNER], delegator_uuid)
     if not gator.models.delegators.has_item(uuid=delegator_uuid, consistent=True):
         return gator.common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
 
@@ -336,5 +410,17 @@ def assign_transaction(delegator_uuid):
 
     delegator["active_transaction_uuids"].append(transaction["uuid"])
     delegator.partial_save()
-    
+
     return jsonpickle.encode({"result": 0, "transaction_uuid": transaction["uuid"]}, unpicklable=False)
+
+@app.errorhandler(BaseException)
+def handle_exception(e):
+    if issubclass(type(e), GatorException):
+        return (jsonpickle.encode({
+            "result": e.error_type.returncode,
+            "error_message": e.message,
+            "type": type(e).__name__
+        }), 400)
+    else:
+        logging.exception(e)
+        return gator.common.error_to_json(Errors.UNCAUGHT_EXCEPTION), 500

@@ -25,6 +25,10 @@ class Errors():
     NO_TRANSACTIONS_AVAILABLE  = ErrorType(8, "There are no unhelped transactions available")
     DELEGATOR_DOES_NOT_EXIST   = ErrorType(9, "The specified uuid is not linked to a delegator")
     CUSTOMER_DOES_NOT_EXIST    = ErrorType(10, "The specified uuid is not linked to a customer")
+    UNCAUGHT_EXCEPTION         = ErrorType(11, "The server encountered an internel error")
+    INVALID_TOKEN              = ErrorType(12, "The authentication token is not valid")
+    INVALID_FACEBOOK_TOKEN     = ErrorType(13, "Facebook could not validate the token")
+    PERMISSION_DENIED          = ErrorType(14, "You do not have the access rights for that resource")
 
 def error_to_json(error):
     return jsonpickle.encode({
@@ -41,6 +45,16 @@ class BotoDecimalHandler(jsonpickle.handlers.BaseHandler):
         return data
 
 jsonpickle.handlers.register(decimal.Decimal, BotoDecimalHandler)
+
+class GatorException(Exception):
+    def __init__(self, error_type, message=None):
+        self.message = error_type.err_message if message is None else message
+        self.error_type = error_type
+        Exception.__init__(self, self.message)
+
+    def __str__(self):
+        return type(self).__name__ + " - " + str(self.error_type.returncode) + " - " + self.message
+
 
 ################
 # Transactions #

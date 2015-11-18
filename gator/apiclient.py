@@ -1,13 +1,14 @@
 #!/usr/bin/env python3.4
 
 from requests import Request, Session
+import urllib.parse
 import json
 import os
 
 import sys
 
 default_host = "localhost:8000"
-
+auth_token = "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0="
 
 def init_connection():
     from boto.dynamodb2.layer1 import DynamoDBConnection
@@ -38,9 +39,14 @@ def clear_database(conn=None):
         for item in tbl.scan():
             item.delete()
 
-def send_api_request(method, components, json_data=None):
+def send_api_request(method, components, json_data=None, token=None, query=None):
     components = [str(v) for v in components]
     url = "http://" + default_host + "/" + "/".join(components)
+    query = query if query is not None else {}
+    if token is not None:
+        query.update({"token": token})
+    if query != {}:
+        url += "?" + urllib.parse.urlencode(query)
     if json_data is not None:
         json_data = json.dumps(json_data)
 
@@ -50,7 +56,7 @@ def send_api_request(method, components, json_data=None):
 
     resp = s.send(prepped)
 
-    if resp.status_code != 200:
+    if resp.status_code != 200 and resp.status_code != 400:
         print("bad response", resp.content.decode("utf-8"))
         raise Exception("Received bad status code {}".format(resp.status_code))
 
@@ -84,27 +90,31 @@ def populate_with_dummy_data():
 
 #######BEGIN api wrapper
 
-def create_customer(first_name, last_name, phone_number):
+def create_customer(first_name, last_name, phone_number, fbuser_id=None, fbuser_token=None):
     json_data = {
         "first_name": first_name,
         "last_name": last_name,
         "phone_number": phone_number
     }
+    if fbuser_id is not None:
+        json_data["fbuser_id"] = fbuser_id
+    if fbuser_token is not None:
+        json_data["fbuser_token"] = fbuser_token
 
-    return send_api_request("POST", ["core", "customer"], json_data)
+    return send_api_request("POST", ["core", "customer"], json_data, token=auth_token)
 
 def get_customer(uuid):
-    return send_api_request("GET", ["core", "customer", uuid])
+    return send_api_request("GET", ["core", "customer", uuid], token=auth_token)
 
 def update_customer(uuid, update):
-    return send_api_request("PUT", ["core", "customer", uuid], update)
+    return send_api_request("PUT", ["core", "customer", uuid], update, token=auth_token)
 
 def create_transaction(customer_uuid):
     json_data = {"customer_uuid": customer_uuid}
-    return send_api_request("POST", ["core", "transaction"], json_data)
+    return send_api_request("POST", ["core", "transaction"], json_data, token=auth_token)
 
 def get_transaction(transaction_uuid):
-    return send_api_request("GET", ["core", "transaction", transaction_uuid])
+    return send_api_request("GET", ["core", "transaction", transaction_uuid], token=auth_token)
 
 def update_transaction(transaction_uuid, status=None, delegator_uuid=None):
     json_data = {}
@@ -113,26 +123,30 @@ def update_transaction(transaction_uuid, status=None, delegator_uuid=None):
     if delegator_uuid is not None:
         json_data["delegator_uuid"] = delegator_uuid
 
-    return send_api_request("PUT", ["core", "transaction", transaction_uuid], json_data)
+    return send_api_request("PUT", ["core", "transaction", transaction_uuid], json_data, token=auth_token)
 
-def create_delegator(first_name, last_name, phone_number, email):
+def create_delegator(first_name, last_name, phone_number, email, fbuser_id=None, fbuser_token=None):
     json_data = {
         "phone_number": phone_number,
         "email": email,
         "first_name": first_name,
         "last_name": last_name
     }
+    if fbuser_id is not None:
+        json_data["fbuser_id"] = fbuser_id
+    if fbuser_token is not None:
+        json_data["fbuser_token"] = fbuser_token
 
-    return send_api_request("POST", ["core", "delegator"], json_data)
+    return send_api_request("POST", ["core", "delegator"], json_data, token=auth_token)
 
 def get_delegator(delegator_uuid):
-    return send_api_request("GET", ["core", "delegator", delegator_uuid])
+    return send_api_request("GET", ["core", "delegator", delegator_uuid], token=auth_token)
 
 def get_delegator_list():
-    return send_api_request("GET", ["core", "delegator"])
+    return send_api_request("GET", ["core", "delegator"], token=auth_token)
 
 def update_delegator(delegator_uuid, update):
-    return send_api_request("PUT", ["core", "delegator", delegator_uuid], update)
+    return send_api_request("PUT", ["core", "delegator", delegator_uuid], update, token=auth_token)
 
 def send_message(transaction_uuid, platform_type, content, from_customer):
     if type(from_customer) is str:
@@ -143,16 +157,52 @@ def send_message(transaction_uuid, platform_type, content, from_customer):
         "from_customer": from_customer
     }
 
-    return send_api_request("POST", ["core", "send_message", transaction_uuid], json_data)
+    return send_api_request("POST", ["core", "send_message", transaction_uuid], json_data, token=auth_token)
 
 def get_messages(transaction_uuid):
-    return send_api_request("GET", ["core", "get_messages", transaction_uuid])
+    return send_api_request("GET", ["core", "get_messages", transaction_uuid], token=auth_token)
 
 def transaction_change(transaction_uuid):
-    return send_api_request("GET", ["streams", "transaction_change", transaction_uuid])
+    return send_api_request("GET", ["streams", "transaction_change", transaction_uuid], token=auth_token)
 
 def generate_payment_form(transaction_uuid):
-    return send_api_request("GET", ["core", "payment", "uiform", transaction_uuid])
+    return send_api_request("GET", ["core", "payment", "uiform", transaction_uuid], token=auth_token)
+
+def assign_new_transaction(delegator_uuid):
+    return send_api_request("GET", ["core", "assign_transaction", delegator_uuid], token=auth_token)
+
+def fb_login_customer(fbuser_id, fbuser_token):
+    data = {
+        "fbuser_id": fbuser_id,
+        "fbuser_token": fbuser_token
+    }
+    return send_api_request("POST", ["core", "login", "customer"], data)
+
+def fb_login_delegator(fbuser_id, fbuser_token):
+    data = {
+        "fbuser_id": fbuser_id,
+        "fbuser_token": fbuser_token
+    }
+    return send_api_request("POST", ["core", "login", "delegator"], data)
+
+def add_notify_handler():
+    return send_api_request("POST", ["notify", "handler"], token=auth_token)
+
+def get_notify_handlers():
+    return send_api_request("GET", ["notify", "handler"], token=auth_token)
+
+def purge_notify_handlers():
+    return send_api_request("DELETE", ["notify", "handler"], token=auth_token)
+
+def broadcast_transaction(transaction_uuid):
+    return send_api_request("POST", ["notify", "broadcast", transaction_uuid], token=auth_token)
+
+def send_sms_to_api(from_phone_num, message):
+    query = {
+        "From": from_phone_num,
+        "Body": message
+    }
+    return send_api_request("POST", ["sms", "handle_sms"], token=auth_token, query=query)
 
 ######END api wrapper
 
