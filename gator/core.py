@@ -139,9 +139,7 @@ def update_delegator(uuid, identity):
     return jsonpickle.encode(to_return, unpicklable=False)
 
 @app.route('/core/delegator', methods=['POST'])
-@authenticate
-def create_delegator(identity):
-    validate_permission(identity, [Permission.ADMIN])
+def create_delegator():
     data_dict = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set(["phone_number", "email", "first_name", "last_name",
