@@ -63,4 +63,8 @@ def handle_sms(identity):
     transaction.partial_save()
     customer.partial_save()
 
+    if "delegator_uuid" in transaction:
+        delegator = models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
+        service.sms.send_msg(to=delegator["phone_number"], body="ALERT: New message from %s" % request.values["From"])
+
     return jsonpickle.encode({"result": 0})
