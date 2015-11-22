@@ -20,7 +20,7 @@ class Errors():
     TRANSACTION_DOES_NOT_EXIST = ErrorType(3, "The specified transaction does not exist")
     DELEGATOR_ALREADY_EXISTS   = ErrorType(4, "The specified delegator already exists")
     DELEGATOR_DOES_NOT_EXIST   = ErrorType(5, "The specified uuid is not linked to a delegator")
-    INVALID_DATA_PRESENT       = ErrorType(6, "The request contained superfluous data")
+    INVALID_DATA_PRESENT       = ErrorType(6, "The request contained inconsistent or superfluous data")
     TRANSACTION_ALREADY_PAID   = ErrorType(7, "The transaction has already been paid for and cannot be modified")
     NO_TRANSACTIONS_AVAILABLE  = ErrorType(8, "There are no unhelped transactions available")
     DELEGATOR_DOES_NOT_EXIST   = ErrorType(9, "The specified uuid is not linked to a delegator")
@@ -55,7 +55,8 @@ class TransactionStates():
     PENDING   = "pending"
     COMPLETED = "completed"
 
-    ACTIVE_TRANSACTION_STATES = [STARTED, HELPED, PROPOSED]
+    VALID_STATES = [STARTED, HELPED, PROPOSED, CONFIRMED, PENDING, COMPLETED]
+    ACTIVE_STATES = [STARTED, HELPED, PROPOSED]
 
 ####################
 # Helper Functions #

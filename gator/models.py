@@ -8,8 +8,11 @@ import json
 import uuid
 from enum import Enum, unique
 
-from gator import service
-from gator import common
+import gator.service as service
+import gator.common as common
+import gator.payment as payment
+
+from gator.common import TransactionStates
 
 ##############################
 # Global vars, consts, extra #
@@ -44,6 +47,10 @@ class Model():
         if not issubclass(cls, Model):
             raise ValueError("Class must be a subclass of Model")
 
+        # None keys cause dynamodb exception
+        if key is None:
+            return None
+
         item = None
         try:
             item = cls(cls.TABLE.get_item(
@@ -76,7 +83,7 @@ class Model():
     def update(self, atts):
         for key, val in atts.items():
             self[key] = val
-        
+
     def _atts_are_valid(self, attributes):
         # Verify that the attributes passed in were valid
         for atr in attributes:
@@ -90,6 +97,10 @@ class Model():
 
     # Database Logic
     def save(self):
+        # Defauult dynamodb behavior returns false if no save was performed
+        if not self.item.needs_save():
+            return True
+
         try:
             return self.item.partial_save()
         except ConditionalCheckFailedException:
@@ -98,9 +109,59 @@ class Model():
     def create(self):
         return self.item.save()
 
+    def delete(self):
+        return self.item.delete()
+
     # Parsing and json
     def to_json(self):
         return jsonpickle.encode(get_data())
+
+class TCFields():
+    A_TRANS_UUIDS = "active_transaction_uuids"
+    IA_TRANS_UUIDS = "inactive_transaction_uuids"
+
+class TransactionContainerFunctions():
+    @staticmethod
+    def add_transaction(obj, transaction):
+        if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
+            raise ValueError("Transaction must have UUID and STATUS fields")
+
+        is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
+        trans_type = TCFields.A_TRANS_UUIDS if is_active else TCFields.IA_TRANS_UUIDS
+
+        if obj.item[trans_type] is None:
+            obj.item[trans_type] = []
+
+        obj.item[trans_type].append(transaction[TFields.UUID])
+
+    @staticmethod
+    def update_transaction_status(obj, transaction):
+        if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
+            raise ValueError("Transaction must have UUID and STATUS fields")
+
+        old_is_active = transaction[TFields.UUID] in obj[TCFields.A_TRANS_UUIDS]
+        new_is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
+
+        if old_is_active == (not new_is_active):
+            old_trans_type = TCFields.A_TRANS_UUIDS if old_is_active else TCFields.IA_TRANS_UUIDS
+            new_trans_type = TCFields.A_TRANS_UUIDS if new_is_active else TCFields.IA_TRANS_UUIDS
+
+            obj[old_trans_type].remove(transaction[TFields.UUID])
+
+            if obj[new_trans_type] is None:
+                obj[new_trans_type] = []
+
+            obj[new_trans_type].append(transaction[TFields.UUID])
+
+    @staticmethod
+    def remove_transaction(obj, transaction):
+        if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
+            raise ValueError("Transaction must have UUID and STATUS fields")
+
+        is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
+        trans_type = TCFields.A_TRANS_UUIDS if is_active else TCFields.IA_TRANS_UUIDS
+
+        obj.item[trans_type].remove(transaction[TFields.UUID])
 
 class CFields():
     UUID = "uuid"
@@ -109,8 +170,8 @@ class CFields():
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
     STRIPE_ID = "stripe_id"
-    A_TRANS_UUIDS = "active_transaction_uuids"
-    IA_TRANS_UUIDS = "inactive_transaction_uuids" 
+    A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
+    IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
 
 class Customer(Model):
     FIELDS = CFields
@@ -131,12 +192,6 @@ class Customer(Model):
         # Default values
         customer[CFields.UUID] = common.get_uuid()
 
-        if customer[CFields.A_TRANS_UUIDS] is None:
-            customer[CFields.A_TRANS_UUIDS] = []
-
-        if customer[CFields.IA_TRANS_UUIDS] is None:
-            customer[CFields.IA_TRANS_UUIDS] = []
-
         return customer
 
     def is_unique(self):
@@ -151,14 +206,21 @@ class Customer(Model):
         else:
             return False
 
+    # Utility Methods
+    def add_transaction(self, transaction):
+        TransactionContainerFunctions.add_transaction(self, transaction)
+
+    def update_transaction_status(self, transaction):
+        TransactionContainerFunctions.update_transaction_status(self, transaction)
+
 class DFields():
     UUID = "uuid"
     PHONE_NUMBER = "phone_number"
     EMAIL = "email"
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
-    A_TRANS_UUIDS = "active_transaction_uuids"
-    IA_TRANS_UUIDS = "inactive_transaction_uuids" 
+    A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
+    IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
 
 class Delegator(Model):
     FIELDS = DFields
@@ -179,12 +241,6 @@ class Delegator(Model):
         # Default values
         delegator[DFields.UUID] = common.get_uuid()
 
-        if delegator[DFields.A_TRANS_UUIDS] is None:
-            delegator[DFields.A_TRANS_UUIDS] = []
-
-        if delegator[DFields.IA_TRANS_UUIDS] is None:
-            delegator[DFields.IA_TRANS_UUIDS] = []
-
         return delegator
 
     def is_unique(self):
@@ -202,12 +258,26 @@ class Delegator(Model):
         else:
             return False
 
+    # Utility Methods
+    def add_transaction(self, transaction):
+        TransactionContainerFunctions.add_transaction(self, transaction)
+
+    def remove_transaction(self, transaction):
+        TransactionContainerFunctions.remove_transaction(self, transaction)
+
+    def update_transaction_status(self, transaction):
+        TransactionContainerFunctions.update_transaction_status(self, transaction)
+
+
 class TFields():
     UUID = "uuid"
     CUSTOMER_UUID = "customer_uuid"
     DELEGATOR_UUID = "delegator_uuid"
     STATUS = "status"
+    TIMESTAMP = "timestamp"
     MESSAGES = "messages"
+    RECEIPT = "receipt"
+    PAYMENT_URL = "payment_url"
 
 class Transaction(Model):
     FIELDS = TFields
@@ -215,7 +285,8 @@ class Transaction(Model):
         if not attr.startswith("__")])
     TABLE_NAME = TableNames.TRANSACTIONS
     TABLE = transactions
-    KEY = TFields.CUSTOMER_UUID
+    KEY = TFields.UUID
+    MANDATORY_KEYS = set([TFields.CUSTOMER_UUID])
 
     def __init__(self, item):
         super().__init__(item)
@@ -223,14 +294,18 @@ class Transaction(Model):
     @staticmethod
     def create_new(attributes={}):
         transaction = Model.load_from_data(Transaction, attributes)
+        transaction[TFields.UUID] = common.get_uuid()
+        transaction[TFields.TIMESTAMP] = common.get_current_timestamp()
+        transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID])
 
         if transaction[TFields.STATUS] is None:
-            transaction[TFields.STATUS] = common.TransactionStates.STARTED
+            transaction[TFields.STATUS] = TransactionStates.STARTED
 
-        return transaction 
+        return transaction
 
+    # Utility Methods
     def add_message(self, message):
-        if self.item[TFields.MESSAGES] == None:
+        if self.item[TFields.MESSAGES] is None:
             self.item[TFields.MESSAGES] = []
 
         self.item[TFields.MESSAGES].append(message.get_data())
@@ -238,6 +313,7 @@ class Transaction(Model):
 class MFields():
     FROM_CUSTOMER = "from_customer"
     CONTENT = "content"
+
     PLATFORM_TYPE = "platform_type"
     TIMESTAMP = "timestamp"
 
@@ -247,6 +323,9 @@ class Message():
         setattr(self, MFields.CONTENT, content)
         setattr(self, MFields.PLATFORM_TYPE, platform_type)
         setattr(self, MFields.TIMESTAMP, common.get_current_timestamp())
+
+    def get_timestamp(self):
+        return getattr(self, MFields.TIMESTAMP)
 
     def get_data(self):
         return {key: vars(self)[key] for key in vars(self) if vars(self)[key] is not None}

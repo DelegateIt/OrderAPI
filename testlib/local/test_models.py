@@ -1,14 +1,17 @@
-#!/usr/bin/env python3.4
+#!/usr/bin/env python3
 
 import unittest
 
-import sys, os
-sys.path.append(os.path.abspath('../gator/'))
-sys.path.append(os.path.abspath('../../api/'))
+import sys
+import os
+sys.path.append(os.path.abspath('../../'))
 
-from models import *
+import gator.models
 from gator import common
-import apiclient
+from gator import apiclient
+
+from models import Model, Customer, Delegator, Transaction
+from models import CFields, DFields, TFields, MFields
 
 # Connection to DynamoDB
 conn = apiclient.init_connection()
@@ -105,22 +108,20 @@ class TestModel(unittest.TestCase):
     def test_get_data(self):
         customer = Customer.create_new({
             CFields.FIRST_NAME: "1",
-            CFields.PHONE_NUMBER: "2"}) 
+            CFields.PHONE_NUMBER: "2"})
 
         customer_data = customer.get_data()
-        self.assertEquals(len(customer_data), 5)
+        self.assertEquals(len(customer_data), 3)
         self.assertEquals(customer_data[CFields.FIRST_NAME], "1")
         self.assertEquals(customer_data[CFields.PHONE_NUMBER], "2")
         self.assertIsNotNone(customer_data[CFields.UUID])
-        self.assertEquals(customer_data[CFields.A_TRANS_UUIDS], [])
-        self.assertEquals(customer_data[CFields.IA_TRANS_UUIDS], [])
 
     def test_save(self):
         customer = Customer.create_new({
             CFields.FIRST_NAME: "1",
             CFields.PHONE_NUMBER: "2"})
 
-        customer.create() 
+        customer.create()
 
         customer[CFields.FIRST_NAME] = "2"
         result = customer.save()
@@ -137,18 +138,18 @@ class TestModel(unittest.TestCase):
         customer_1 = Customer.create_new({
             CFields.FIRST_NAME: "1",
             CFields.PHONE_NUMBER: "2"})
-    
+
         customer_1.create()
-   
+
         customer_2 = Model.load_from_db(
             Customer,
             customer_1[CFields.UUID])
-  
+
         customer_1[CFields.FIRST_NAME] = "2"
         customer_1.save()
-  
+
         customer_2[CFields.FIRST_NAME] = "3"
- 
+
         self.assertFalse(customer_2.save())
 
     def  test_create(self):
@@ -184,8 +185,6 @@ class TestCustomer(unittest.TestCase):
 
         # Default values for the fields
         self.assertIsNotNone(customer[CFields.UUID])
-        self.assertEquals(customer[CFields.A_TRANS_UUIDS], [])
-        self.assertEquals(customer[CFields.IA_TRANS_UUIDS], [])
 
     def test_is_unique(self):
         customer_1 = Customer.create_new({})
@@ -203,7 +202,7 @@ class TestCustomer(unittest.TestCase):
         self.assertFalse(customer_2.is_unique())
 
     def test_create(self):
-        customer = Customer.create_new({}) 
+        customer = Customer.create_new({})
 
         self.assertFalse(customer.create())
 
@@ -219,10 +218,8 @@ class TestDelegator(unittest.TestCase):
         delegator = Delegator.create_new({
             DFields.EMAIL: "1"})
 
-        self.assertEquals(len(delegator.get_data()), 4)
+        self.assertEquals(len(delegator.get_data()), 2)
         self.assertEquals(delegator[DFields.EMAIL], "1")
-        self.assertEquals(delegator[DFields.A_TRANS_UUIDS], [])
-        self.assertEquals(delegator[DFields.IA_TRANS_UUIDS], [])
         self.assertIsNotNone(delegator[DFields.UUID])
 
     def test_is_unqiue(self):
@@ -265,9 +262,11 @@ class TestTransaction(unittest.TestCase):
         transaction.add_message(Message(from_customer="2"))
 
         data = transaction.get_data()
-        self.assertEquals(len(data), 3)
+        self.assertEquals(len(data), 5)
+        self.assertIsNotNone(data[TFields.UUID])
         self.assertEquals(data[TFields.CUSTOMER_UUID], "1")
         self.assertEquals(data[TFields.STATUS], common.TransactionStates.STARTED)
+        self.assertIsNotNone(data[TFields.TIMESTAMP])
         self.assertEquals(data[TFields.MESSAGES][0][MFields.FROM_CUSTOMER], "2")
         self.assertIsNotNone(data[TFields.MESSAGES][0][MFields.TIMESTAMP])
 
