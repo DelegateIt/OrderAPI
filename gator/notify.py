@@ -8,6 +8,8 @@ from gator.flask import app
 from gator import common
 from gator import models
 
+from gator.models import Model, TFields, Transaction
+
 def add_handler(ip_address, expires):
     data = {
         "ip_address": ip_address,
@@ -28,8 +30,8 @@ def purge_handlers():
             handler.delete()
 
 def notify_handlers(transaction_uuid):
-    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)._data
-    payload = jsonpickle.encode({"result": 0, "transaction": transaction})
+    transaction = Model.load_from_db(Transaction, transaction_uuid)
+    payload = jsonpickle.encode({"result": 0, "transaction": transaction.get_data()})
     handlers = models.handlers.scan()
     headers = {"Content-Type": "application/json"}
     port = gator.config.store["notifier_host"]["recv_port"]
@@ -64,4 +66,3 @@ def flask_purge_handlers():
 def flask_broadcast(transaction_uuid):
     notify_handlers(transaction_uuid)
     return jsonpickle.encode({"result": 0})
-

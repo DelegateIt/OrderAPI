@@ -6,13 +6,10 @@ from flask import request, render_template, redirect
 
 import gator.service as service
 
-import gator.models as models
 import gator.common as common
 import gator.config as config
 
 from gator.flask import app
-from gator.models import Model, Transaction
-from gator.models import TFields
 
 class PaymentException(Exception):
     def __init__(self, *args, **kwargs):
@@ -88,7 +85,7 @@ def ui_form(transaction_uuid):
             amount = transaction[TFields.RECEIPT][RFields.TOTAL]
             notes = "" if transaction[TFields.RECEIPT][RFields.NOTES] is None else transaction[TFields.RECEIPT][RFields.NOTES]
             return render_template('payment.html', uuid=transaction_uuid, amount=amount, total=float(amount)/100.0,
-                    items=transaction['receipt']['items'], notes=notes,
+                    items=transaction[TFields.RECEIPT][RFields.ITEMS], notes=notes,
                     stripe_pub_key=config.store["stripe"]["public_key"])
     except Exception as e:
         logging.exception(e)
