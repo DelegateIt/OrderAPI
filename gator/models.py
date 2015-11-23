@@ -279,6 +279,11 @@ class TFields():
     RECEIPT = "receipt"
     PAYMENT_URL = "payment_url"
 
+class RFields():
+    ITEMS = "items"
+    STRIPE_CHARGE_ID = "stripe_charge_id"
+    TOTAL = "total"
+
 class Transaction(Model):
     FIELDS = TFields
     VALID_KEYS = set([getattr(TFields, attr) for attr in vars(TFields)
