@@ -83,6 +83,9 @@ class Model():
         else:
             raise ValueError("Attribute %s is not valid." % key)
 
+    def __contains__(self, key):
+        return key in self.item
+
     def update(self, atts):
         for key, val in atts.items():
             self[key] = val
@@ -104,10 +107,10 @@ class Model():
         if not self.item.needs_save():
             return True
 
-         try:
-             return self.item.partial_save()
-         except ConditionalCheckFailedException:
-             return False
+        try:
+            return self.item.partial_save()
+        except ConditionalCheckFailedException:
+            return False
 
     def create(self):
         return self.item.save()
