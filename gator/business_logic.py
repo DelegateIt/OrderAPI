@@ -3,6 +3,7 @@ import logging # TODO: remove later
 from gator.models import Model, Customer, Delegator, Transaction
 from gator.models import TFields
 from gator.common import Errors, TransactionStates
+from gator import payment
 
 def create_transaction(attributes={}):
     if not Transaction.MANDATORY_KEYS <= set(attributes):
@@ -10,6 +11,7 @@ def create_transaction(attributes={}):
 
     # Create a new transaction
     transaction = Transaction.create_new(attributes)
+    transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID])
 
     # Load the customer associated with the transaction
     # NOTE: a customer must always be initially associated with the transaction

@@ -10,7 +10,6 @@ from enum import Enum, unique
 
 import gator.service as service
 import gator.common as common
-import gator.payment as payment
 import gator.config as config
 
 from gator.common import TransactionStates
@@ -313,7 +312,6 @@ class Transaction(Model):
         transaction = Model.load_from_data(Transaction, attributes)
         transaction[TFields.UUID] = common.get_uuid()
         transaction[TFields.TIMESTAMP] = common.get_current_timestamp()
-        transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID])
 
         if transaction[TFields.STATUS] is None:
             transaction[TFields.STATUS] = TransactionStates.STARTED

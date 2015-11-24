@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import nose
 import unittest
 import base64
@@ -62,5 +60,3 @@ class AuthTest(unittest.TestCase):
                 lambda: validate_permission(customer_identity, [Permission.DELEGATOR_OWNER], customer_identity[0]))
 
 
-if __name__ == "__main__":
-    nose.main(defaultTest=__name__)
