@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import nose
 from gator import apiclient
 from endpoint.rest import RestTest
@@ -13,8 +11,9 @@ class TransactionTest(RestTest):
 
     def setUp(self):
         apiclient.clear_database()
-        rsp1 = apiclient.create_customer("customerFirstName", "customerLastName", "15555555551")
-        rsp2 = apiclient.create_delegator("delegatorFirstName", "delegatorLastName", "15555555552", "noreply@gmail.com")
+        rsp1 = apiclient.create_customer("customerFirstName", "customerLastName", "15555555551", "1", "")
+        rsp2 = apiclient.create_delegator("delegatorFirstName", "delegatorLastName", "15555555552",
+                "noreply@gmail.com", "2", "")
         self.assertResponse(0, rsp1)
         self.assertResponse(0, rsp2)
         self.customer_uuid = rsp1["uuid"]
@@ -69,7 +68,8 @@ class TransactionTest(RestTest):
     def test_update_delegator(self):
        transaction_uuid = self.create()["uuid"]
        apiclient.update_transaction(transaction_uuid, delegator_uuid=self.delegator_uuid)
-       delegator_uuid2 = apiclient.create_delegator("asf", "asdf", "15555555553", "no.reply@gmail.com")["uuid"]
+       delegator_uuid2 = apiclient.create_delegator("asf", "asdf", "15555555553", "no.reply@gmail.com",
+            fbuser_id="123123", fbuser_token="")["uuid"]
        delegator1 = apiclient.get_delegator(self.delegator_uuid)
        delegator2 = apiclient.get_delegator(delegator_uuid2)
        self.assertEqual([transaction_uuid], delegator1["delegator"]["active_transaction_uuids"])
@@ -85,6 +85,7 @@ class TransactionTest(RestTest):
        self.assertFalse("inactive_transaction_uuids" in delegator2)
        self.assertFalse("active_transaction_uuids" in delegator1)
        self.assertFalse("inactive_transaction_uuids" in delegator1)
+       self.assertEqual(delegator_uuid2, apiclient.get_transaction(transaction_uuid)["transaction"]["delegator_uuid"])
 
        apiclient.update_transaction(transaction_uuid, status="completed")
        apiclient.update_transaction(transaction_uuid, delegator_uuid=self.delegator_uuid)
@@ -115,6 +116,3 @@ class TransactionTest(RestTest):
             "timestamp": messages[1]["timestamp"]
         })
 
-
-if __name__ == "__main__":
-    nose.main(defaultTest=__name__)

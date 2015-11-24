@@ -11,6 +11,7 @@ from enum import Enum, unique
 import gator.service as service
 import gator.common as common
 import gator.payment as payment
+import gator.config as config
 
 from gator.common import TransactionStates
 
@@ -28,15 +29,17 @@ class TableNames():
     HANDLERS     = "DelegateIt_Handlers"
 
 # Tables
-customers    = Table(TableNames.CUSTOMERS,    connection=conn)
-delegators   = Table(TableNames.DELEGATORS,   connection=conn)
-transactions = Table(TableNames.TRANSACTIONS, connection=conn)
-handlers     = Table(TableNames.HANDLERS,     connection=conn)
+table_prefix = config.store["dynamodb"]["table_prefix"]
+customers    = Table(table_prefix + TableNames.CUSTOMERS,    connection=conn)
+delegators   = Table(table_prefix + TableNames.DELEGATORS,   connection=conn)
+transactions = Table(table_prefix + TableNames.TRANSACTIONS, connection=conn)
+handlers     = Table(table_prefix + TableNames.HANDLERS,     connection=conn)
 
 # Base class for all object models
 class Model():
     def __init__(self, item):
         if not self._atts_are_valid(item._data):
+            #TODO change this to a GatorException
             raise ValueError("One or more of the item's attributes is invalid")
 
         self.item = item
@@ -101,10 +104,10 @@ class Model():
         if not self.item.needs_save():
             return True
 
-        try:
-            return self.item.partial_save()
-        except ConditionalCheckFailedException:
-            return False
+         try:
+             return self.item.partial_save()
+         except ConditionalCheckFailedException:
+             return False
 
     def create(self):
         return self.item.save()
@@ -169,6 +172,7 @@ class CFields():
     EMAIL = "email"
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
+    FBUSER_ID = "fbuser_id"
     STRIPE_ID = "stripe_id"
     A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
@@ -180,6 +184,7 @@ class Customer(Model):
     TABLE_NAME = TableNames.CUSTOMERS
     TABLE = customers
     KEY = CFields.UUID
+    # TODO Do we still want phone number to mandatory for app users?
     MANDATORY_KEYS = set([CFields.PHONE_NUMBER])
 
     def __init__(self, item):
@@ -196,6 +201,8 @@ class Customer(Model):
 
     def is_unique(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
+            return False
+        if self["fbuser_id"] is not None and customers.query_count(index="fbuser_id-index", fbuser_id__eq=self["fbuser_id"]) != 0:
             return False
 
         return customers.query_count(index="phone_number-index", phone_number__eq=self["phone_number"]) == 0
@@ -219,6 +226,7 @@ class DFields():
     EMAIL = "email"
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
+    FBUSER_ID = "fbuser_id"
     A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
 
@@ -229,7 +237,7 @@ class Delegator(Model):
     TABLE_NAME = TableNames.DELEGATORS
     TABLE = delegators
     KEY = DFields.UUID
-    MANDATORY_KEYS = set([DFields.PHONE_NUMBER, DFields.EMAIL, DFields.FIRST_NAME, DFields.LAST_NAME])
+    MANDATORY_KEYS = set([DFields.FBUSER_ID, DFields.PHONE_NUMBER, DFields.EMAIL, DFields.FIRST_NAME, DFields.LAST_NAME])
 
     def __init__(self, item):
         super().__init__(item)
@@ -247,10 +255,11 @@ class Delegator(Model):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
             return False
 
-        phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self[DFields.PHONE_NUMBER]) == 0
-        email_is_uniq = delegators.query_count(index="email-index", email__eq=self[DFields.EMAIL]) == 0
+        phone_number_is_uniq = delegators.query_count(index="phone_number-index", phone_number__eq=self[DFields.PHONE_NUMBER], limit=1) == 0
+        email_is_uniq = delegators.query_count(index="email-index", email__eq=self[DFields.EMAIL], limit=1) == 0
+        fbuser_id_is_uniq    = delegators.query_count(index="fbuser_id-index", fbuser_id__eq=self["fbuser_id"], limit=1) == 0
 
-        return phone_number_is_uniq and email_is_uniq
+        return phone_number_is_uniq and email_is_uniq and fbuser_id_is_uniq
 
     def create(self):
         if self.is_unique():
