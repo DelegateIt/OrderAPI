@@ -1,29 +1,14 @@
-#!/usr/bin/env python3
-
 import unittest
 
-import sys
-import os
-sys.path.append(os.path.abspath('../../'))
-
-import gator.models
 from gator import common
 from gator import apiclient
 
-from models import Model, Customer, Delegator, Transaction
-from models import CFields, DFields, TFields, MFields
-
-# Connection to DynamoDB
-conn = apiclient.init_connection()
-
-# Tables
-customers    = Table("DelegateIt_Customers", connection=conn)
-delegators   = Table("DelegateIt_Delegators", connection=conn)
-transactions = Table("DelegateIt_Transactions", connection=conn)
-handlers     = Table("DelegateIt_Handlers", connection=conn)
+from gator.models import Model, Customer, Delegator, Transaction,\
+                         CFields, DFields, TFields, MFields, customers,\
+                         delegators, transactions, handlers
 
 def clear():
-    apiclient.clear_database(conn)
+    apiclient.clear_database()
 
 class TestModel(unittest.TestCase):
     def setUp(self):
@@ -303,11 +288,3 @@ class TestMessage(unittest.TestCase):
         self.assertIsNone(data.get("platform_type"))
         self.assertIsNotNone(data["timestamp"])
 
-if __name__ == "__main__":
-    test_loader = unittest.TestLoader()
-    suite = test_loader.loadTestsFromTestCase(TestModel)
-    suite.addTests(test_loader.loadTestsFromTestCase(TestCustomer))
-    suite.addTests(test_loader.loadTestsFromTestCase(TestDelegator))
-    suite.addTests(test_loader.loadTestsFromTestCase(TestTransaction))
-    suite.addTests(test_loader.loadTestsFromTestCase(TestMessage))
-    unittest.TextTestRunner(verbosity=3).run(suite)
