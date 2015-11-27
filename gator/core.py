@@ -16,7 +16,7 @@ from gator.models import Model, Customer, Delegator, Transaction, Message
 from gator.models import CFields, DFields, TFields, MFields
 from gator.common import Errors, TransactionStates, GatorException
 from gator.auth import authenticate, Permission, validate_permission,\
-                       validate_fb_token, UuidType, login_facebook
+                       validate_fb_token, UuidType, login_facebook, validate_token
 
 @app.after_request
 def after_request(response):
@@ -35,7 +35,7 @@ is_api_operational = False
 @app.route('/health', methods=["GET"])
 def get_health():
     global last_status_check, is_api_operational
-    #check at most once per hour
+    # Check at most once per hour
     check_overdue = common.get_current_timestamp() - last_status_check > 10**6 * 60 * 60
     if not is_api_operational or check_overdue:
         last_status_check = common.get_current_timestamp()
@@ -79,9 +79,11 @@ def customer_post():
     if not Customer.MANDATORY_KEYS <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
+    # Authenticate the request
     if "fbuser_id" in data:
         validate_fb_token(data.get("fbuser_token"), data["fbuser_id"])
         del data["fbuser_token"]
+
     customer = Customer.create_new(data)
 
     if not customer.is_unique():
@@ -102,10 +104,8 @@ def customer_post():
         unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['GET'])
-@authenticate
-def customer(uuid, identity):
-    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], uuid)
-
+@authenticate([Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS])
+def customer(uuid):
     customer = Model.load_from_db(Customer, uuid)
     if customer is None:
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
@@ -115,9 +115,8 @@ def customer(uuid, identity):
         unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['PUT'])
-@authenticate
-def customer_put(uuid, identity):
-    validate_permission(identity, [Permission.CUSTOMER_OWNER], uuid)
+@authenticate([Permission.CUSTOMER_OWNER])
+def customer_put(uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
     customer = Model.load_from_db(Customer, uuid)
 
@@ -143,6 +142,7 @@ def delegator_post():
     if not Delegator.MANDATORY_KEYS <= set(data):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
+    # Authenticate the request
     validate_fb_token(data.get("fbuser_token"), data["fbuser_id"])
     del data["fbuser_token"]
 
@@ -157,9 +157,8 @@ def delegator_post():
     return jsonpickle.encode({"result": 0, "uuid": delegator[DFields.UUID]}, unpicklable=False)
 
 @app.route('/core/delegator/<uuid>', methods=['GET'])
-@authenticate
-def delegator_get(uuid, identity):
-    validate_permission(identity, [Permission.DELEGATOR_OWNER], uuid)
+@authenticate([Permission.DELEGATOR_OWNER])
+def delegator_get(uuid):
     delegator = Model.load_from_db(Delegator, uuid)
 
     if delegator is None:
@@ -170,9 +169,8 @@ def delegator_get(uuid, identity):
         unpicklable=False)
 
 @app.route('/core/delegator/<uuid>', methods=['PUT'])
-@authenticate
-def delegator_put(uuid, identity):
-    validate_permission(identity, [Permission.DELEGATOR_OWNER], uuid)
+@authenticate([Permission.DELEGATOR_OWNER])
+def delegator_put(uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
     delegator = Model.load_from_db(Delegator, uuid)
 
@@ -191,9 +189,11 @@ def delegator_put(uuid, identity):
     return jsonpickle.encode({"result": 0, "delegator": delegator.get_data()})
 
 @app.route('/core/delegator', methods=['GET'])
-@authenticate
-def delegator_list(identity):
-    validate_permission(identity, [Permission.ALL_DELEGATORS])
+def delegator_list():
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.ALL_DELEGATORS])
+
     query = models.delegators.scan()
 
     return jsonpickle.encode({
@@ -201,8 +201,7 @@ def delegator_list(identity):
         unpicklable=False)
 
 @app.route('/core/send_message/<transaction_uuid>', methods=['POST'])
-@authenticate
-def send_message(transaction_uuid, identity):
+def send_message(transaction_uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
     if not set([MFields.FROM_CUSTOMER, MFields.CONTENT, MFields.PLATFORM_TYPE]) <= set(data.keys()):
@@ -213,7 +212,9 @@ def send_message(transaction_uuid, identity):
     if transaction is None:
         return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
-    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
 
     message = Message(
         from_customer=data[MFields.FROM_CUSTOMER],
@@ -236,11 +237,12 @@ def send_message(transaction_uuid, identity):
             unpicklable=False)
 
 @app.route('/core/transaction', methods=['POST'])
-@authenticate
-def transaction_post(identity):
+def transaction_post():
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
-    validate_permission(identity, [Permission.CUSTOMER_OWNER], data["customer_uuid"])
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER], data["customer_uuid"])
 
     success, transaction, error = bl.create_transaction(data)
 
@@ -258,22 +260,23 @@ def transaction_post(identity):
         unpicklable=False)
 
 @app.route('/core/transaction/<uuid>', methods=['GET'])
-@authenticate
-def transaction_get(uuid, identity):
+def transaction_get(uuid):
     transaction = Model.load_from_db(Transaction, uuid)
 
     if transaction is None:
         return common.error_to_json(Error.TRANSACTION_DOES_NOT_EXIST)
 
-    validate_permission(identity, [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
 
     return jsonpickle.encode({
         "result": 0, "transaction": transaction.get_data()},
         unpicklable=False)
 
 @app.route('/core/transaction/<uuid>', methods=['PUT'])
-@authenticate
-def transaction_put(uuid, identity):
+@authenticate([])
+def transaction_put(uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
     #TODO verify identity has permission to update this resource
@@ -285,10 +288,8 @@ def transaction_put(uuid, identity):
     return jsonpickle.encode({"result": 0}, unpicklable=False)
 
 @app.route("/core/assign_transaction/<delegator_uuid>", methods=["GET"])
-@authenticate
-def assign_transaction(delegator_uuid, identity):
-    validate_permission(identity, [Permission.DELEGATOR_OWNER], delegator_uuid)
-
+@authenticate([Permission.DELEGATOR_OWNER])
+def assign_transaction(delegator_uuid):
     delegator = Model.load_from_db(Delegator, delegator_uuid)
     if delegator is None:
         return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
@@ -327,4 +328,3 @@ def handle_exception(e):
     else:
         logging.exception(e)
         return common.error_to_json(Errors.UNCAUGHT_EXCEPTION), 500
-

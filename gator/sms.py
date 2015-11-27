@@ -7,14 +7,16 @@ import gator.common as common
 import gator.business_logic as bl
 from gator.models import Customer, CFields, TFields, Model, Transaction, DFields
 from gator.common import TransactionStates
-from gator.auth import validate_permission, authenticate, Permission
+from gator.auth import validate_permission, authenticate, Permission, validate_token
 
 import jsonpickle
 
 @app.route('/sms/handle_sms', methods=["POST"])
-@authenticate
-def handle_sms(identity):
-    validate_permission(identity, [Permission.API_SMS])
+def handle_sms():
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.API_SMS])
+
     #TODO the query count can be optimized out
     query_result = models.customers.query_2(index="phone_number-index", phone_number__eq=request.values["From"], limit=1)
     query_count = models.customers.query_count(index="phone_number-index", phone_number__eq=request.values["From"], limit=1)
