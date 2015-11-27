@@ -3,9 +3,9 @@ import unittest
 from gator import common
 from gator import apiclient
 
-from gator.models import Model, Customer, Delegator, Transaction,\
-                         CFields, DFields, TFields, MFields, customers,\
-                         delegators, transactions, handlers
+from gator.models import Model, Customer, Delegator, Transaction, Message,\
+                         CFields, DFields, TFields, MFields,\
+                         customers, delegators, transactions, handlers
 
 def clear():
     apiclient.clear_database()
@@ -211,11 +211,12 @@ class TestDelegator(unittest.TestCase):
         delegator = Delegator.create_new({
             DFields.EMAIL: "1",
             DFields.FIRST_NAME: "2",
-            DFields.LAST_NAME: "3"})
+            DFields.LAST_NAME: "3",
+            DFields.FBUSER_ID: "4"})
 
         self.assertFalse(delegator.is_unique())
 
-        delegator[DFields.PHONE_NUMBER] = "4"
+        delegator[DFields.PHONE_NUMBER] = "5"
         self.assertTrue(delegator.is_unique())
 
         delegator.create()
@@ -225,11 +226,12 @@ class TestDelegator(unittest.TestCase):
         delegator = Delegator.create_new({
             DFields.EMAIL: "1",
             DFields.FIRST_NAME: "2",
-            DFields.LAST_NAME: "3"})
+            DFields.LAST_NAME: "3",
+            DFields.FBUSER_ID: "4"})
 
         self.assertFalse(delegator.create())
 
-        delegator[DFields.PHONE_NUMBER] = "2"
+        delegator[DFields.PHONE_NUMBER] = "5"
         self.assertTrue(delegator.create())
 
 class TestTransaction(unittest.TestCase):
@@ -287,4 +289,3 @@ class TestMessage(unittest.TestCase):
         self.assertEquals(data["content"], "2")
         self.assertIsNone(data.get("platform_type"))
         self.assertIsNotNone(data["timestamp"])
-
