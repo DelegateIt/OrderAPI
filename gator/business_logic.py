@@ -52,7 +52,8 @@ def update_transaction(transaction_uuid, attributes={}):
         return False, Errors.TRANSACTION_DOES_NOT_EXIST
     elif attributes.get(TFields.STATUS) is not None and attributes[TFields.STATUS] not in TransactionStates.VALID_STATES:
         return False, Errors.INVALID_DATA_PRESENT
-    elif TFields.RECEIPT in attributes and "stripe_charge_id" in transaction[TFields.RECEIPT]:
+    elif TFields.RECEIPT in attributes and TFields.RECEIPT in transaction\
+            and "stripe_charge_id" in transaction[TFields.RECEIPT]:
         return False, Errors.TRANSACTION_ALREADY_PAID
     elif customer is None:
         return False, Errors.CUSTOMER_DOES_NOT_EXIST

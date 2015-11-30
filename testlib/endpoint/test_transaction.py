@@ -1,8 +1,9 @@
 import nose
+import unittest
 from gator import apiclient
 from endpoint.rest import RestTest
 
-class TransactionTest(RestTest):
+class TransactionTest(unittest.TestCase):
 
     def create(self):
         rsp = apiclient.create_transaction(self.customer_uuid)
@@ -18,6 +19,34 @@ class TransactionTest(RestTest):
         self.assertResponse(0, rsp2)
         self.customer_uuid = rsp1["uuid"]
         self.delegator_uuid = rsp2["uuid"]
+
+    def test_receipt(self):
+        uuid = self.create()["uuid"]
+        receipt = {
+            "total": 100,
+            "items": [{
+                "Pizza": 90
+            }]
+        }
+        rsp = apiclient.update_transaction(uuid, receipt=receipt, status="proposed")
+        self.assertResponse(0, rsp)
+
+        rsp = apiclient.get_transaction(uuid)
+        self.assertResponse(0, rsp)
+        self.assertEqual(rsp["transaction"]["receipt"], receipt)
+        self.assertEqual(rsp["transaction"]["status"], "proposed")
+
+        #Pretend that the transaction was paid for
+        receipt["stripe_charge_id"] = "131k23jljsf123"
+        rsp = apiclient.update_transaction(uuid, receipt=receipt)
+        self.assertResponse(0, rsp)
+
+        rsp = apiclient.get_transaction(uuid)
+        self.assertResponse(0, rsp)
+        self.assertEqual(rsp["transaction"]["receipt"], receipt)
+
+        rsp = apiclient.update_transaction(uuid, receipt=receipt)
+        self.assertResponse(7, rsp)
 
     def test_create(self):
         #TODO test status is valid
@@ -115,4 +144,3 @@ class TransactionTest(RestTest):
             "from_customer": False,
             "timestamp": messages[1]["timestamp"]
         })
-

@@ -8,7 +8,7 @@ import gator.service as service
 
 import gator.common as common
 import gator.config as config
-
+from gator.models import Model, Transaction, TFields, RFields, Customer, CFields
 from gator.flask import app
 
 class PaymentException(Exception):
@@ -45,12 +45,12 @@ def charge_transaction(transaction_uuid, stripe_token, email):
             description="Paid via link",
             email=email,
             metadata={
-                "gator_customer_uuid": db_customer["uuid"],
+                "gator_customer_uuid": customer["uuid"],
             }
         )
 
     stripe_charge = stripe.Charge.create(
-        amount=db_transaction[TFields.RECEIPT][RFields.TOTAL], # in cents
+        amount=transaction[TFields.RECEIPT][RFields.TOTAL], # in cents
         currency="usd",
         customer=stripe_customer.id
     )
@@ -77,13 +77,13 @@ def create_url(transaction_uuid):
 def ui_form(transaction_uuid):
     try:
         transaction = get_chargeable_transaction(transaction_uuid, enforce_finalized=False)
-        if transaction[TFields.RECEIPT] is not None:
+        if transaction[TFields.RECEIPT] is None:
             return render_template('payment-error.html', message="The receipt has not been saved. Please contact your delegator"), 500
-        if transaction[TFields.RECEIPT][RFields.STRIPE_CHARGE_ID]:
+        if RFields.STRIPE_CHARGE_ID in transaction[TFields.RECEIPT]:
             return generate_redirect(True)
         else:
             amount = transaction[TFields.RECEIPT][RFields.TOTAL]
-            notes = "" if transaction[TFields.RECEIPT][RFields.NOTES] is None else transaction[TFields.RECEIPT][RFields.NOTES]
+            notes = "" if RFields.NOTES not in transaction[TFields.RECEIPT] else transaction[TFields.RECEIPT][RFields.NOTES]
             return render_template('payment.html', uuid=transaction_uuid, amount=amount, total=float(amount)/100.0,
                     items=transaction[TFields.RECEIPT][RFields.ITEMS], notes=notes,
                     stripe_pub_key=config.store["stripe"]["public_key"])

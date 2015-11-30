@@ -294,6 +294,7 @@ class RFields():
     ITEMS = "items"
     STRIPE_CHARGE_ID = "stripe_charge_id"
     TOTAL = "total"
+    NOTES = "notes"
 
 class Transaction(Model):
     FIELDS = TFields
