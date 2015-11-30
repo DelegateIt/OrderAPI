@@ -1,9 +1,8 @@
 import nose
-import unittest
 from gator import apiclient
 from endpoint.rest import RestTest
 
-class TransactionTest(unittest.TestCase):
+class TransactionTest(RestTest):
 
     def create(self):
         rsp = apiclient.create_transaction(self.customer_uuid)
