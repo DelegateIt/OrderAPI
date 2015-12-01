@@ -13,8 +13,8 @@ class NotifyTest(RestTest):
         self.assertResponse(0, apiclient.send_sms_to_api("15555555551", "hello"))
         transaction_uuid = apiclient.assign_new_transaction(delegator_uuid)["transaction_uuid"]
         transaction = apiclient.get_transaction(transaction_uuid)["transaction"]
-        customer = apiclient.get_customer(transaction["customer_uuid"])
-        delegator = apiclient.get_delegator(delegator_uuid)
+        customer = apiclient.get_customer(transaction["customer_uuid"])["customer"]
+        delegator = apiclient.get_delegator(delegator_uuid)["delegator"]
 
         self.assertEqual(1, len(transaction["messages"]))
         self.assertEqual("hello", transaction["messages"][0]["content"])

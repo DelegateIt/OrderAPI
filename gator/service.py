@@ -14,7 +14,7 @@ from twilio.rest import TwilioRestClient
 import boto.dynamodb2
 from boto.dynamodb2.layer1 import DynamoDBConnection
 
-import gator.config
+import gator.config as config
 
 # Global services. Initalized at bottom
 sms = None
@@ -35,7 +35,11 @@ class TwilioService(SmsService):
         self.twilio = TwilioRestClient(account_sid, auth_token)
 
     def send_msg(self, to, body, from_="+15123593557"):
-        self.twilio.messages.create(body=body, to=to, from_=from_)
+        sms_chunks = [body[i : i + config.MAX_TWILIO_MSG_SIZE]
+                for i in range(0, len(body), config.MAX_TWILIO_MSG_SIZE)];
+
+        for msg in sms_chunks:
+            self.twilio.messages.create(body=msg, to=to, from_=from_)
 
 class ShortUrlService(object):
     def shorten_url(self, long_url):
@@ -67,14 +71,14 @@ class GoogleUrlService(object):
 ##########################
 
 def _create_sms():
-    cnfg = gator.config.store["twilio"]
+    cnfg = config.store["twilio"]
     if cnfg["account_sid"] is not None and cnfg["auth_token"] is not None:
         return TwilioService(cnfg["account_sid"], cnfg["auth_token"])
     else:
         return SmsService()
 
 def _create_dynamodb():
-    cnfg = gator.config.store["dynamodb"]
+    cnfg = config.store["dynamodb"]
     if cnfg["endpoint"] is not None:
         logging.info("Connecting to local dynamodb instance")
         return DynamoDBConnection(
@@ -92,17 +96,16 @@ def _create_dynamodb():
 
 
 def _create_urlshortener():
-    key = gator.config.store["google"]["api_key"]
+    key = config.store["google"]["api_key"]
     if key is None:
         return ShortUrlService()
     else:
         return GoogleUrlService(key)
 
 def _setup_stripe():
-        stripe.api_key = gator.config.store["stripe"]["secret_key"]
+        stripe.api_key = config.store["stripe"]["secret_key"]
 
 sms = _create_sms()
 dynamodb = _create_dynamodb()
 shorturl = _create_urlshortener()
 _setup_stripe()
-

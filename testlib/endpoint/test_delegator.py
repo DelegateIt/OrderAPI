@@ -24,6 +24,7 @@ class DelegatorTest(RestTest):
         uuid = self.create()["uuid"]
         rsp = apiclient.get_delegator(uuid)
         self.assertResponse(0, rsp)
+        rsp = rsp["delegator"]
         self.assertEqual("firstname", rsp["first_name"])
         self.assertEqual("lastname", rsp["last_name"])
         self.assertEqual("15555555555", rsp["phone_number"])
@@ -42,7 +43,7 @@ class DelegatorTest(RestTest):
         }
         update_rsp = apiclient.update_delegator(uuid, update)
         self.assertResponse(0, update_rsp)
-        get_rsp = apiclient.get_delegator(uuid)
+        get_rsp = apiclient.get_delegator(uuid)["delegator"]
         for key in update:
             self.assertEqual(update[key], get_rsp[key])
 
@@ -86,5 +87,5 @@ class DelegatorTest(RestTest):
         rsp = apiclient.assign_new_transaction(delegator_uuid)
         self.assertResponse(0, rsp)
         self.assertEqual(transaction_uuid, rsp["transaction_uuid"])
-        self.assertTrue(transaction_uuid in apiclient.get_delegator(delegator_uuid)["active_transaction_uuids"])
+        self.assertTrue(transaction_uuid in apiclient.get_delegator(delegator_uuid)["delegator"]["active_transaction_uuids"])
 

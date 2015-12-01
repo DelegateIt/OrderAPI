@@ -7,7 +7,9 @@ import gator.config
 from gator.flask import app
 from gator import common
 from gator import models
-from gator.auth import authenticate, validate_permission, Permission
+from gator.auth import authenticate, validate_permission, Permission, validate_token
+
+from gator.models import Model, TFields, Transaction
 
 def add_handler(ip_address, expires):
     data = {
@@ -29,8 +31,8 @@ def purge_handlers():
             handler.delete()
 
 def notify_handlers(transaction_uuid):
-    transaction = models.transactions.get_item(uuid=transaction_uuid, consistent=True)._data
-    payload = jsonpickle.encode({"result": 0, "transaction": transaction})
+    transaction = Model.load_from_db(Transaction, transaction_uuid)
+    payload = jsonpickle.encode({"result": 0, "transaction": transaction.get_data()})
     handlers = models.handlers.scan()
     headers = {"Content-Type": "application/json"}
     port = gator.config.store["notifier_host"]["recv_port"]
@@ -43,9 +45,11 @@ def notify_handlers(transaction_uuid):
             pass #Ignore the exception. The handler is stale
 
 @app.route("/notify/handler", methods=["POST"])
-@authenticate
-def flask_add_handler(identity):
-    validate_permission(identity, [Permission.API_NOTIFY])
+def flask_add_handler():
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.API_NOTIFY])
+
     expires = (common.get_current_timestamp() // 10**6) + 60 * 60 * 12 #time + 12 hours
     ip_address = request.remote_addr
     if "x-forwarded-for" in request.headers:
@@ -54,23 +58,28 @@ def flask_add_handler(identity):
     return jsonpickle.encode({"result": 0, "handler": handler})
 
 @app.route("/notify/handler", methods=["GET"])
-@authenticate
-def flask_get_handler(identity):
-    validate_permission(identity, [Permission.API_NOTIFY])
+def flask_get_handler():
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.API_NOTIFY])
+
     handlers = get_handlers()
     return jsonpickle.encode({"result": 0, "handlers": handlers})
 
 @app.route("/notify/handler", methods=["DELETE"])
-@authenticate
-def flask_purge_handlers(identity):
-    validate_permission(identity, [Permission.API_NOTIFY])
+def flask_purge_handlers():
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.API_NOTIFY])
+
     purge_handlers()
     return jsonpickle.encode({"result": 0})
 
 @app.route("/notify/broadcast/<transaction_uuid>", methods=["POST"])
-@authenticate
-def flask_broadcast(transaction_uuid, identity):
-    validate_permission(identity, [Permission.API_NOTIFY])
+def flask_broadcast(transaction_uuid):
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.API_NOTIFY])
+
     notify_handlers(transaction_uuid)
     return jsonpickle.encode({"result": 0})
-

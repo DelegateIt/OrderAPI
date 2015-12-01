@@ -63,15 +63,22 @@ def _retreive_uuid(fbuser_id, uuid_type):
 def _validate_api_permission(uuid, permission_list):
     api_keys = store["authentication"]["api_keys"]
     key = None
+
     for k in api_keys.values():
         if k["id"] == uuid:
             key = k
             break
+
     if key is None:
         raise GatorException(Errors.INVALID_TOKEN)
+    # Empty permission_list should always be valid
+    elif len(permission_list) == 0:
+        return
+
     for p in permission_list:
         if p.name in key["permissions"]:
             return
+
     raise GatorException(Errors.PERMISSION_DENIED)
 
 def login_facebook(fbuser_token, fbuser_id, uuid_type):
@@ -84,16 +91,19 @@ def validate_permission(identity, permission_list, resource_uuid=None):
     if uuid_type == UuidType.API:
         _validate_api_permission(uuid, permission_list)
     else:
+        # Empty permission list should always be valid
+        if len(permission_list) == 0:
+            return
+
         for p in permission_list:
             if _permission_checker[p](uuid, uuid_type, resource_uuid):
                 return
         raise GatorException(Errors.PERMISSION_DENIED)
 
-
 def validate(token, permission_list, resource_uuid=None):
-    (uuid, uuid_type) = validate_token(token)
-    validate_permission(uuid, uuid_type, permission_list, resource_uuid)
-    return (uuid, uuid_type)
+    identity = validate_token(token)
+    validate_permission(identity, permission_list, resource_uuid)
+    return identity
 
 def validate_token(token):
     parts = base64.b64decode(token).decode("utf-8").split(":")
@@ -111,15 +121,18 @@ def validate_token(token):
             raise GatorException(Errors.INVALID_TOKEN)
     return (uuid, uuid_type)
 
-def authenticate(f):
-    from flask import request
-    from functools import wraps
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.args.get("token", "")
-        identity = validate_token(token)
-        return f(*args, identity=identity, **kwargs)
-    return decorated
+def authenticate(permissions=[]):
+    def wrapper(f):
+        from flask import request
+        from functools import wraps
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            # Validate and check the tocken against the UUID
+            token = request.args.get("token", "")
+            validate(token, permissions, next(iter(kwargs.values())))
+            return f(*args, **kwargs)
+        return decorated
+    return wrapper
 
 #######################
 # Permission checkers #

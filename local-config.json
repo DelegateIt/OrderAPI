@@ -1,34 +1,34 @@
 {
     "google": {
         "api_key": null
-    }, 
+    },
     "api_host": {
-        "name": "localhost", 
+        "name": "localhost",
         "bind_port": 8000,
         "recv_port": 8000,
         "admin_key": "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0="
-    }, 
+    },
     "dynamodb": {
         "table_prefix": "",
-        "access_key": null, 
-        "region": "us-west-2", 
+        "access_key": null,
+        "region": "us-west-2",
         "endpoint": {
-            "hostname": "localhost", 
+            "hostname": "localhost",
             "port": 8040
-        }, 
+        },
         "secret_key": null
-    }, 
+    },
     "notifier_host": {
         "recv_port": 8060,
         "bind_port": 8060,
         "gator_key": "MTkzNzU5Mzc0OTg0ODM6YXBpOjE2MDQ3MzA0NjQ6NXN3RjN1bGZQY2FmdkdnanVabzErZGkwTXYzZGs2K1hYcXkyZVBiYlNGQT0="
-    }, 
+    },
     "stripe": {
-        "public_key": null, 
-        "secret_key": null
-    }, 
+        "public_key": "pk_test_ZoK03rN4pxc2hfeYTzjByrdV",
+        "secret_key": "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH"
+    },
     "twilio": {
-        "auth_token": null, 
+        "auth_token": null,
         "account_sid": null
     },
     "authentication": {
@@ -46,4 +46,3 @@
         }
     }
 }
-

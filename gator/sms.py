@@ -3,65 +3,57 @@ from flask import request
 from gator.flask import app
 import gator.service as service
 import gator.models as models
-import gator.payment as payment
+import gator.common as common
+import gator.business_logic as bl
+from gator.models import Customer, CFields, TFields, Model, Transaction, DFields
 from gator.common import TransactionStates
-from gator.auth import validate_permission, authenticate, Permission
+from gator.auth import validate_permission, authenticate, Permission, validate_token
 
 import jsonpickle
 
 @app.route('/sms/handle_sms', methods=["POST"])
-@authenticate
-def handle_sms(identity):
-    validate_permission(identity, [Permission.API_SMS])
-    query_result = models.customers.query_2(index="phone_number-index", phone_number__eq=request.values["From"])
-    query_count = models.customers.query_count(index="phone_number-index", phone_number__eq=request.values["From"])
+def handle_sms():
+    # Authenticate the request
+    token = request.args.get("token", "")
+    validate_permission(validate_token(token), [Permission.API_SMS])
+
+    #TODO the query count can be optimized out
+    query_result = models.customers.query_2(index="phone_number-index", phone_number__eq=request.values["From"], limit=1)
+    query_count = models.customers.query_count(index="phone_number-index", phone_number__eq=request.values["From"], limit=1)
 
     customer = None
     if query_count == 0:
-        new_customer = models.Customer(phone_number=request.values["From"])
-        models.customers.put_item(data=new_customer.get_data())
-
-        customer = models.customers.get_item(uuid=new_customer.uuid, consistent=True)
+        # If no customer exists create a new one
+        customer = Customer.create_new({
+            CFields.PHONE_NUMBER: request.values["From"]
+        })
+        customer.save()
     else:
-        customer = query_result.next()
+        customer = Customer(query_result.next())
 
     transaction = None
-    if customer.get("active_transaction_uuids") is not None:
-        transaction = models.transactions.get_item(uuid=customer["active_transaction_uuids"][0], consistent=True)
-    else:
-        transaction = models.Transaction(
-                customer_uuid=customer["uuid"],
-                status=TransactionStates.STARTED)
-        transaction.payment_url = payment.create_url(transaction.uuid)
-
-        # Add the transaction to the transaction table
-        models.transactions.put_item(data=transaction.get_data())
-
-        transaction = models.transactions.get_item(uuid=transaction.uuid, consistent=True)
+    if customer[CFields.A_TRANS_UUIDS] is None or len(customer[CFields.A_TRANS_UUIDS]) == 0:
+        # Create a new transaction if none exists
+        success, transaction, error = bl.create_transaction({
+            TFields.CUSTOMER_UUID: customer[CFields.UUID]
+        })
+        if error is not None:
+            return common.error_to_json(error)
 
         # Send a text to all of the delegators
         for delegator in models.delegators.scan():
             service.sms.send_msg(
                 body="ALERT: New transaction from %s" % customer["phone_number"],
                 to=delegator["phone_number"])
+    else:
+        transaction = Model.load_from_db(Transaction, customer[DFields.A_TRANS_UUIDS][0])
 
     # Add the messages to the transaction
     message = models.Message(from_customer=True, content=request.values["Body"], platform_type="SMS")
+    transaction.add_message(message)
 
-    if transaction["messages"] is None:
-        transaction["messages"] = []
-    transaction["messages"].append(message.get_data())
-
-    # Add the transaction to the active customer transactions
-    if customer["active_transaction_uuids"] is None:
-        customer["active_transaction_uuids"] = []
-
-    if transaction["uuid"] not in customer["active_transaction_uuids"]:
-        customer["active_transaction_uuids"].append(transaction["uuid"])
-
-    # Save the transaction and customer object
-    transaction.partial_save()
-    customer.partial_save()
+    if not (customer.save() and transaction.save()):
+        return common.error_to_json(Errors.CONSISTENCY_ERROR)
 
     if "delegator_uuid" in transaction:
         delegator = models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
