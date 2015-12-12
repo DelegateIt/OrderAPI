@@ -2,12 +2,14 @@ import logging # TODO: remove later
 
 from gator.models import Model, Customer, Delegator, Transaction
 from gator.models import TFields
-from gator.common import Errors, TransactionStates
+from gator.common import Errors, TransactionStates, Platforms
 from gator import payment
 
 def create_transaction(attributes={}):
     if not Transaction.MANDATORY_KEYS <= set(attributes):
         return False, None, Errors.DATA_NOT_PRESENT
+    elif attributes[TFields.CUSTOMER_PLATFORM_TYPE] not in Platforms.VALID_PLATFORMS:
+        return False, None, Errors.INVALID_PLATFORM
 
     # Create a new transaction
     transaction = Transaction.create_new(attributes)

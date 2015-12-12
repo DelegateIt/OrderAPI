@@ -6,7 +6,7 @@ import gator.models as models
 import gator.common as common
 import gator.business_logic as bl
 from gator.models import Customer, CFields, TFields, Model, Transaction, DFields
-from gator.common import TransactionStates
+from gator.common import TransactionStates, Platforms
 from gator.auth import validate_permission, authenticate, Permission, validate_token
 
 import jsonpickle
@@ -35,7 +35,8 @@ def handle_sms():
     if customer[CFields.A_TRANS_UUIDS] is None or len(customer[CFields.A_TRANS_UUIDS]) == 0:
         # Create a new transaction if none exists
         success, transaction, error = bl.create_transaction({
-            TFields.CUSTOMER_UUID: customer[CFields.UUID]
+            TFields.CUSTOMER_UUID: customer[CFields.UUID],
+            TFields.CUSTOMER_PLATFORM_TYPE: Platforms.SMS
         })
         if error is not None:
             return common.error_to_json(error)
@@ -49,7 +50,7 @@ def handle_sms():
         transaction = Model.load_from_db(Transaction, customer[DFields.A_TRANS_UUIDS][0])
 
     # Add the messages to the transaction
-    message = models.Message(from_customer=True, content=request.values["Body"], platform_type="SMS")
+    message = models.Message(from_customer=True, content=request.values["Body"])
     transaction.add_message(message)
 
     if not (customer.save() and transaction.save()):

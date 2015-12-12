@@ -5,7 +5,7 @@ from endpoint.rest import RestTest
 class TransactionTest(RestTest):
 
     def create(self):
-        rsp = apiclient.create_transaction(self.customer_uuid)
+        rsp = apiclient.create_transaction(self.customer_uuid, self.customer_platform_type)
         self.assertResponse(0, rsp)
         return rsp
 
@@ -18,6 +18,7 @@ class TransactionTest(RestTest):
         self.assertResponse(0, rsp2)
         self.customer_uuid = rsp1["uuid"]
         self.delegator_uuid = rsp2["uuid"]
+        self.customer_platform_type = "sms"
 
     def test_receipt(self):
         uuid = self.create()["uuid"]
@@ -52,7 +53,7 @@ class TransactionTest(RestTest):
         uuid1 = self.create()["uuid"]
 
         self.assertResponse(0, apiclient.get_transaction(uuid1))
-        self.assertResponse(10, apiclient.create_transaction("fake uuid"))
+        self.assertResponse(10, apiclient.create_transaction("fake uuid", "sms"))
 
         customer_transactions = apiclient.get_customer(self.customer_uuid)["customer"]["active_transaction_uuids"]
         self.assertTrue([uuid1] == customer_transactions, "The customer object was not updated")
@@ -64,6 +65,7 @@ class TransactionTest(RestTest):
             "result": 0,
             "transaction": {
                 "uuid": uuid,
+                "customer_platform_type": "sms",
                 "status": "started",
                 "customer_uuid": transaction["transaction"]["customer_uuid"],
                 "payment_url": transaction["transaction"]["payment_url"],

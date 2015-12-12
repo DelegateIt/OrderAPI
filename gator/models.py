@@ -112,7 +112,10 @@ class Model():
             return False
 
     def create(self):
-        return self.item.save()
+        if self.is_unique():
+            return self.item.save()
+        else:
+            return False
 
     def delete(self):
         return self.item.delete()
@@ -209,12 +212,6 @@ class Customer(Model):
 
         return customers.query_count(index="phone_number-index", phone_number__eq=self["phone_number"]) == 0
 
-    def create(self):
-        if self.is_unique():
-            return self.item.save()
-        else:
-            return False
-
     # Utility Methods
     def add_transaction(self, transaction):
         TransactionContainerFunctions.add_transaction(self, transaction)
@@ -263,12 +260,6 @@ class Delegator(Model):
 
         return phone_number_is_uniq and email_is_uniq and fbuser_id_is_uniq
 
-    def create(self):
-        if self.is_unique():
-            return self.item.save()
-        else:
-            return False
-
     # Utility Methods
     def add_transaction(self, transaction):
         TransactionContainerFunctions.add_transaction(self, transaction)
@@ -279,7 +270,6 @@ class Delegator(Model):
     def update_transaction_status(self, transaction):
         TransactionContainerFunctions.update_transaction_status(self, transaction)
 
-
 class TFields():
     UUID = "uuid"
     CUSTOMER_UUID = "customer_uuid"
@@ -289,6 +279,7 @@ class TFields():
     MESSAGES = "messages"
     RECEIPT = "receipt"
     PAYMENT_URL = "payment_url"
+    CUSTOMER_PLATFORM_TYPE = "customer_platform_type"
 
 class RFields():
     ITEMS = "items"
@@ -303,7 +294,7 @@ class Transaction(Model):
     TABLE_NAME = TableNames.TRANSACTIONS
     TABLE = transactions
     KEY = TFields.UUID
-    MANDATORY_KEYS = set([TFields.CUSTOMER_UUID])
+    MANDATORY_KEYS = set([TFields.CUSTOMER_UUID, TFields.CUSTOMER_PLATFORM_TYPE])
 
     def __init__(self, item):
         super().__init__(item)
@@ -319,6 +310,10 @@ class Transaction(Model):
 
         return transaction
 
+    # Overriden Methods
+    def is_unique(self):
+        return set(self.get_data()) >= self.MANDATORY_KEYS
+
     # Utility Methods
     def add_message(self, message):
         if self.item[TFields.MESSAGES] is None:
@@ -329,15 +324,12 @@ class Transaction(Model):
 class MFields():
     FROM_CUSTOMER = "from_customer"
     CONTENT = "content"
-
-    PLATFORM_TYPE = "platform_type"
     TIMESTAMP = "timestamp"
 
 class Message():
-    def __init__(self, from_customer=None, content=None, platform_type=None):
+    def __init__(self, from_customer=None, content=None):
         setattr(self, MFields.FROM_CUSTOMER, from_customer)
         setattr(self, MFields.CONTENT, content)
-        setattr(self, MFields.PLATFORM_TYPE, platform_type)
         setattr(self, MFields.TIMESTAMP, common.get_current_timestamp())
 
     def get_timestamp(self):

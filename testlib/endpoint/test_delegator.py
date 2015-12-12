@@ -83,9 +83,8 @@ class DelegatorTest(RestTest):
         customer_uuid = apiclient.create_customer("asf", "asdf", "15555555551")["uuid"]
         delegator_uuid = self.create()["uuid"]
         self.assertResponse(8, apiclient.assign_new_transaction(delegator_uuid))
-        transaction_uuid = apiclient.create_transaction(customer_uuid)["uuid"]
+        transaction_uuid = apiclient.create_transaction(customer_uuid, "ios")["uuid"]
         rsp = apiclient.assign_new_transaction(delegator_uuid)
         self.assertResponse(0, rsp)
         self.assertEqual(transaction_uuid, rsp["transaction_uuid"])
         self.assertTrue(transaction_uuid in apiclient.get_delegator(delegator_uuid)["delegator"]["active_transaction_uuids"])
-

@@ -77,7 +77,7 @@ def populate_with_dummy_data():
         customers = [c1, c2, c3, c4, c5, c6]
         transactions = []
         for c in customers:
-            transactions.append(create_transaction(c["uuid"]))
+            transactions.append(create_transaction(c["uuid"], "sms"))
         print("Transactions", transactions)
         for t in transactions:
             update_transaction(t["uuid"], "helped", dlgt["uuid"])
@@ -109,8 +109,8 @@ def get_customer(uuid):
 def update_customer(uuid, update):
     return send_api_request("PUT", ["core", "customer", uuid], update, token=auth_token)
 
-def create_transaction(customer_uuid):
-    json_data = {"customer_uuid": customer_uuid}
+def create_transaction(customer_uuid, customer_platform_type):
+    json_data = {"customer_uuid": customer_uuid, "customer_platform_type": customer_platform_type}
     return send_api_request("POST", ["core", "transaction"], json_data, token=auth_token)
 
 def get_transaction(transaction_uuid):

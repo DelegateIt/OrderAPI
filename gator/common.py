@@ -30,22 +30,13 @@ class Errors():
     INVALID_FACEBOOK_TOKEN     = ErrorType(13, "Facebook could not validate the token")
     PERMISSION_DENIED          = ErrorType(14, "You do not have the access rights for that resource")
     CONSISTENCY_ERROR          = ErrorType(15, "The request could not be completed due to a consistency issue")
+    INVALID_PLATFORM           = ErrorType(16, "The specified platform is invalid")
 
 def error_to_json(error):
     return jsonpickle.encode({
             "result": error.returncode,
             "error_message": error.err_message
         })
-
-class BotoDecimalHandler(jsonpickle.handlers.BaseHandler):
-    """
-    Automatically convert Decimal types (returned by DynamoDB) to ints
-    """
-    def flatten(self, obj, data):
-        data = int(obj)
-        return data
-
-jsonpickle.handlers.register(decimal.Decimal, BotoDecimalHandler)
 
 class GatorException(Exception):
     def __init__(self, error_type, message=None):
@@ -56,6 +47,20 @@ class GatorException(Exception):
     def __str__(self):
         return type(self).__name__ + " - " + str(self.error_type.returncode) + " - " + self.message
 
+
+############################
+# Pickle/Unpickle Handlers #
+############################
+
+class BotoDecimalHandler(jsonpickle.handlers.BaseHandler):
+    """
+    Automatically convert Decimal types (returned by DynamoDB) to ints
+    """
+    def flatten(self, obj, data):
+        data = int(obj)
+        return data
+
+jsonpickle.handlers.register(decimal.Decimal, BotoDecimalHandler)
 
 ################
 # Transactions #
@@ -71,6 +76,14 @@ class TransactionStates():
 
     VALID_STATES = [STARTED, HELPED, PROPOSED, CONFIRMED, PENDING, COMPLETED]
     ACTIVE_STATES = [STARTED, HELPED, PROPOSED]
+
+class Platforms():
+    SMS =     "sms"
+    ANDROID = "android"
+    IOS =     "ios"
+    WEB =     "web"
+
+    VALID_PLATFORMS = [SMS, ANDROID, IOS, WEB]
 
 ####################
 # Helper Functions #

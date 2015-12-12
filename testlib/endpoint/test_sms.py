@@ -7,7 +7,6 @@ class NotifyTest(RestTest):
     def setUp(self):
         apiclient.clear_database()
 
-
     def test_handle_sms(self):
         delegator_uuid = apiclient.create_delegator("", "", "15555555552", "noreply@gmail.com", "1", "")["uuid"]
         self.assertResponse(0, apiclient.send_sms_to_api("15555555551", "hello"))
@@ -17,6 +16,7 @@ class NotifyTest(RestTest):
         delegator = apiclient.get_delegator(delegator_uuid)["delegator"]
 
         self.assertEqual(1, len(transaction["messages"]))
+        self.assertEqual("sms", transaction["customer_platform_type"])
         self.assertEqual("hello", transaction["messages"][0]["content"])
         self.assertEqual("15555555551", customer["phone_number"])
         self.assertTrue(transaction_uuid in customer["active_transaction_uuids"])

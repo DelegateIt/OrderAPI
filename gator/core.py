@@ -204,7 +204,7 @@ def delegator_list():
 def send_message(transaction_uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not set([MFields.FROM_CUSTOMER, MFields.CONTENT, MFields.PLATFORM_TYPE]) <= set(data.keys()):
+    if not set([MFields.FROM_CUSTOMER, MFields.CONTENT]) <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     transaction = Model.load_from_db(Transaction, transaction_uuid)
@@ -218,8 +218,7 @@ def send_message(transaction_uuid):
 
     message = Message(
         from_customer=data[MFields.FROM_CUSTOMER],
-        content=data[MFields.CONTENT],
-        platform_type=data[MFields.PLATFORM_TYPE])
+        content=data[MFields.CONTENT])
 
     transaction.add_message(message)
 

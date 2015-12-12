@@ -1,7 +1,7 @@
 import unittest
 
-from gator import common
-from gator import apiclient
+import gator.common as common
+import gator.apiclient as apiclient
 
 from gator.models import Model, Customer, Delegator, Transaction, Message,\
                          CFields, DFields, TFields, MFields,\
@@ -237,7 +237,8 @@ class TestDelegator(unittest.TestCase):
 class TestTransaction(unittest.TestCase):
     def test_create_new(self):
         transaction = Transaction.create_new({
-            TFields.CUSTOMER_UUID: "1"})
+            TFields.CUSTOMER_UUID: "1",
+            TFields.CUSTOMER_PLATFORM_TYPE: common.Platforms.SMS})
 
         self.assertEquals(transaction[TFields.CUSTOMER_UUID], "1")
         self.assertEquals(transaction[TFields.STATUS], common.TransactionStates.STARTED)
@@ -266,6 +267,14 @@ class TestTransaction(unittest.TestCase):
         self.assertEquals(transaction[TFields.MESSAGES][0][MFields.FROM_CUSTOMER], "2")
         self.assertIsNotNone(transaction[TFields.MESSAGES][0][MFields.TIMESTAMP])
 
+    def test_transaction_create(self):
+        transaction = Transaction.create_new({
+            TFields.CUSTOMER_UUID: "1"})
+
+        self.assertFalse(transaction.create())
+
+        transaction[TFields.CUSTOMER_PLATFORM_TYPE] = "2"
+        self.assertTrue(transaction.create())
 
 class TestMessage(unittest.TestCase):
     def test_init(self):
@@ -275,7 +284,6 @@ class TestMessage(unittest.TestCase):
 
         self.assertEquals(message.from_customer, "1")
         self.assertEquals(message.content, "2")
-        self.assertIsNone(message.platform_type)
         self.assertIsNotNone(message.timestamp)
 
     def test_get_data(self):
