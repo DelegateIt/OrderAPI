@@ -263,7 +263,7 @@ def transaction_get(uuid):
     transaction = Model.load_from_db(Transaction, uuid)
 
     if transaction is None:
-        return common.error_to_json(Error.TRANSACTION_DOES_NOT_EXIST)
+        return common.error_to_json(Errors.TRANSACTION_DOES_NOT_EXIST)
 
     # Authenticate the request
     token = request.args.get("token", "")

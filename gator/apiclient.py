@@ -66,7 +66,7 @@ def send_api_request(method, components, json_data=None, token=None, query=None)
     return resp.json()
 
 def populate_with_dummy_data():
-        dlgt = create_delegator("Test", "Delegator", "phone#1", "sfksdfj@ldjfd.com")
+        dlgt = create_delegator("Test", "Delegator", "phone#1", "sfksdfj@ldjfd.com", "1", "1")
         print("Delegator", dlgt)
         c1 = create_customer("George", "Bush", "phone#2")
         c2 = create_customer("John", "Adams", "phone#3")
