@@ -14,7 +14,7 @@ import gator.business_logic as bl
 from gator.flask import app
 from gator.models import Model, Customer, Delegator, Transaction, Message
 from gator.models import CFields, DFields, TFields, MFields
-from gator.common import Errors, TransactionStates, GatorException
+from gator.common import Errors, TransactionStates, GatorException, Platforms
 from gator.auth import authenticate, Permission, validate_permission,\
                        validate_fb_token, UuidType, login_facebook, validate_token
 
@@ -227,7 +227,7 @@ def send_message(transaction_uuid):
 
     # If the message was sent by the delegator send an SMS to the customer
     # NOTE: will have to change as we introduce more platforms
-    if not data[MFields.FROM_CUSTOMER]:
+    if not data[MFields.FROM_CUSTOMER] and transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
         customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
         service.sms.send_msg(body=data[MFields.CONTENT], to=customer[CFields.PHONE_NUMBER])
 
