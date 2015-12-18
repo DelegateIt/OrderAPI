@@ -11,9 +11,6 @@ from copy import deepcopy
 from threading import Thread
 
 class Command:
-    START_DB   = ["docker", "start", "-a", "db"]
-    START_API  = ["docker", "start", "-a", "api"]
-    START_NTFY = ["docker", "start", "-a", "ntfy"]
     RUN_ENDPOINT_TEST = ["docker", "exec", "-iu", "0", "api", "/usr/local/bin/nosetests", "-w", "/var/gator/api/testlib/endpoint/"]
     RUN_INTERNAL_TEST = ["docker", "exec", "-iu", "0", "api", "/usr/local/bin/nosetests", "-w", "/var/gator/api/testlib/internal/"]
     RUN_NOTIFIER_TEST = ["docker", "exec", "-iu", "0", "ntfy", "/usr/local/bin/nosetests", "-w", "/var/gator/api/testlib/notifier/"]
@@ -85,17 +82,6 @@ setup_build_dir()
 
 command = Command()
 
-def ensure_containers_running():
-    # Start the db container and wait 3 seconds to make sure it is
-    # up and running
-    command.run_nb(Command.START_DB, out, err)
-    time.sleep(TINY_TIMEOUT)
-
-    command.run_nb(Command.START_API, out, err)
-    command.run_nb(Command.START_DB, out, err)
-
-    time.sleep(TINY_TIMEOUT)
-
 def cleanup(long_wait=True):
     # Wait for the commands to finish and kill them if they don't
     wait_lambda = lambda: command.wait()
@@ -115,8 +101,6 @@ def sigint_handler(signal, frame):
     exit(0)
 
 def run_suites(suites):
-    ensure_containers_running()
-
     actions = {
         "endpoint": (command.run_nb, [command.RUN_ENDPOINT_TEST]),
         "internal": (command.run_nb, [command.RUN_INTERNAL_TEST]),
@@ -126,7 +110,8 @@ def run_suites(suites):
     # Run all of the specified tests
     for ste in suites:
         if actions.get(ste) is not None:
-            actions[ste][0](*actions[ste][1])
+            process = actions[ste][0](*actions[ste][1])
+            process.wait()
 
     cleanup()
 
