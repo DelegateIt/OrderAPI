@@ -17,7 +17,7 @@ def handle_sms():
     token = request.args.get("token", "")
     validate_permission(validate_token(token), [Permission.API_SMS])
 
-    #TODO the query count can be optimized out
+    # TODO the query_count can be optimized out
     query_result = models.customers.query_2(index="phone_number-index", phone_number__eq=request.values["From"], limit=1)
     query_count = models.customers.query_count(index="phone_number-index", phone_number__eq=request.values["From"], limit=1)
 
@@ -31,8 +31,17 @@ def handle_sms():
     else:
         customer = Customer(query_result.next())
 
+    # Find the SMS transaction if it exists
     transaction = None
-    if customer[CFields.A_TRANS_UUIDS] is None or len(customer[CFields.A_TRANS_UUIDS]) == 0:
+    if customer[CFields.A_TRANS_UUIDS] is not None:
+        for transaction_uuid in customer[CFields.A_TRANS_UUIDS]:
+            cur_transaction = Model.load_from_db(Transaction, transaction_uuid)
+            if cur_transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
+                transaction = cur_transaction
+                break
+
+    # Create a new one doesn't exist
+    if transaction is None:
         # Create a new transaction if none exists
         success, transaction, error = bl.create_transaction({
             TFields.CUSTOMER_UUID: customer[CFields.UUID],
@@ -46,8 +55,6 @@ def handle_sms():
             service.sms.send_msg(
                 body="ALERT: New transaction from %s" % customer["phone_number"],
                 to=delegator["phone_number"])
-    else:
-        transaction = Model.load_from_db(Transaction, customer[DFields.A_TRANS_UUIDS][0])
 
     # Add the messages to the transaction
     message = models.Message(from_customer=True, content=request.values["Body"])

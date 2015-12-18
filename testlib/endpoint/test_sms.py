@@ -33,6 +33,8 @@ class NotifyTest(RestTest):
 
         self.assertResponse(0, apiclient.assign_new_transaction(delegator_uuid))
 
+    def test_multiple_transactions_handle_sms(self):
+        pass # Need to fill this in later
 
 if __name__ == "__main__":
     nose.main(defaultTest=__name__)

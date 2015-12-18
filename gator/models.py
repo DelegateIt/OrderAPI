@@ -12,7 +12,7 @@ import gator.service as service
 import gator.common as common
 import gator.config as config
 
-from gator.common import TransactionStates
+from gator.common import TransactionStates, Platforms
 
 ##############################
 # Global vars, consts, extra #
@@ -190,7 +190,7 @@ class Customer(Model):
     TABLE = customers
     KEY = CFields.UUID
     # TODO Do we still want phone number to mandatory for app users?
-    MANDATORY_KEYS = set([CFields.PHONE_NUMBER])
+    MANDATORY_KEYS = set([CFields.PHONE_NUMBER]) # TODO remove this later
 
     def __init__(self, item):
         super().__init__(item)
@@ -312,7 +312,26 @@ class Transaction(Model):
 
     # Overriden Methods
     def is_unique(self):
-        return set(self.get_data()) >= self.MANDATORY_KEYS
+        data = self.get_data()
+        if not set(data) >= self.MANDATORY_KEYS:
+            return False
+
+        # Check to see if of the customers transactions are SMS
+        if data[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
+            customer = Model.load_from_db(Customer, data[TFields.CUSTOMER_UUID])
+            
+            # Short circuit if the customer doesn't have any transactions
+            # NOTE: ignores the current transaction if it exists in the customer
+            if customer[CFields.A_TRANS_UUIDS] is not None:
+                transaction_list = [Model.load_from_db(Transaction, transaction_uuid)
+                        for transaction_uuid in customer[CFields.A_TRANS_UUIDS]
+                        if transaction_uuid != data[TFields.UUID]]
+
+                if any([transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS
+                        for transaction in transaction_list]):
+                    return False
+
+        return True
 
     # Utility Methods
     def add_message(self, message):

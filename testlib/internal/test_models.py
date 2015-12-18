@@ -6,6 +6,7 @@ import gator.apiclient as apiclient
 from gator.models import Model, Customer, Delegator, Transaction, Message,\
                          CFields, DFields, TFields, MFields,\
                          customers, delegators, transactions, handlers
+from gator.common import Platforms
 
 def clear():
     apiclient.clear_database()
@@ -275,6 +276,26 @@ class TestTransaction(unittest.TestCase):
 
         transaction[TFields.CUSTOMER_PLATFORM_TYPE] = "2"
         self.assertTrue(transaction.create())
+
+    def test_duplicate_sms(self):
+        customer = Customer.create_new({CFields.PHONE_NUMBER: "1"})
+        self.assertTrue(customer.create())
+
+        transaction_data = {
+            TFields.CUSTOMER_UUID: customer[CFields.UUID],
+            TFields.CUSTOMER_PLATFORM_TYPE: Platforms.SMS
+        }
+
+        transaction_orig = Transaction.create_new(transaction_data)
+        self.assertTrue(transaction_orig.is_unique())
+        self.assertTrue(transaction_orig.create())
+
+        customer.add_transaction(transaction_orig)
+        customer.save()
+        self.assertTrue(transaction_orig.is_unique()) # Should still be true
+
+        transaction_new = Transaction.create_new(transaction_data)
+        self.assertFalse(transaction_new.is_unique())
 
 class TestMessage(unittest.TestCase):
     def test_init(self):
