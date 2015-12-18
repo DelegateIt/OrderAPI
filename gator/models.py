@@ -34,6 +34,12 @@ delegators   = Table(table_prefix + TableNames.DELEGATORS,   connection=conn)
 transactions = Table(table_prefix + TableNames.TRANSACTIONS, connection=conn)
 handlers     = Table(table_prefix + TableNames.HANDLERS,     connection=conn)
 
+# Use boolean for the tables
+customers.use_boolean()
+delegators.use_boolean()
+transactions.use_boolean()
+handlers.use_boolean()
+
 SCHEMA_VERSION_KEY = "schema_version"
 
 # Base class for all object models
@@ -324,7 +330,7 @@ class Transaction(Model):
         # Check to see if of the customers transactions are SMS
         if data[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
             customer = Model.load_from_db(Customer, data[TFields.CUSTOMER_UUID])
-            
+
             # Short circuit if the customer doesn't have any transactions
             # NOTE: ignores the current transaction if it exists in the customer
             if customer[CFields.A_TRANS_UUIDS] is not None:
