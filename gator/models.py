@@ -34,6 +34,8 @@ delegators   = Table(table_prefix + TableNames.DELEGATORS,   connection=conn)
 transactions = Table(table_prefix + TableNames.TRANSACTIONS, connection=conn)
 handlers     = Table(table_prefix + TableNames.HANDLERS,     connection=conn)
 
+SCHEMA_VERSION_KEY = "schema_version"
+
 # Base class for all object models
 class Model():
     def __init__(self, item):
@@ -181,6 +183,7 @@ class CFields():
     STRIPE_ID = "stripe_id"
     A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
+    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class Customer(Model):
     FIELDS = CFields
@@ -228,6 +231,7 @@ class DFields():
     FBUSER_ID = "fbuser_id"
     A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
+    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class Delegator(Model):
     FIELDS = DFields
@@ -280,6 +284,7 @@ class TFields():
     RECEIPT = "receipt"
     PAYMENT_URL = "payment_url"
     CUSTOMER_PLATFORM_TYPE = "customer_platform_type"
+    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class RFields():
     ITEMS = "items"
