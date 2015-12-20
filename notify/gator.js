@@ -19,8 +19,10 @@ module.exports.request = function(host, port, path, method, json, callback) {
         method: method,
         headers: {}
     };
-    if (json != null)
+    if (json != null) {
         options.headers['Content-Type'] = 'application/json';
+        options.headers['Content-Length'] = JSON.stringify(json).length;
+    }
     var req = http.request(options, function(res) {
         res.setEncoding('utf8');
         var allChunks = "";
@@ -53,7 +55,7 @@ module.exports.updateHandler = function(callback) {
             module.exports.config.api_host.recv_port,
             '/notify/handler',
             'POST',
-            null,
+            {"port": module.exports.config.notifier_host.recv_port},
             callback);
 };
 
@@ -89,4 +91,3 @@ var tryLoadingEnvConfig = function() {
         console.warn("'GATOR_CONFIG_PATH' not found in the environment variables; cannot load config");
 };
 tryLoadingEnvConfig();
-
