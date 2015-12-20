@@ -136,48 +136,45 @@ class TCFields():
     A_TRANS_UUIDS = "active_transaction_uuids"
     IA_TRANS_UUIDS = "inactive_transaction_uuids"
 
-class TransactionContainerFunctions():
-    @staticmethod
-    def add_transaction(obj, transaction):
+class TransactionContainerFuncs():
+    def add_transaction(self, transaction):
         if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
             raise ValueError("Transaction must have UUID and STATUS fields")
 
         is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
         trans_type = TCFields.A_TRANS_UUIDS if is_active else TCFields.IA_TRANS_UUIDS
 
-        if obj.item[trans_type] is None:
-            obj.item[trans_type] = []
+        if self.item[trans_type] is None:
+            self.item[trans_type] = []
 
-        obj.item[trans_type].append(transaction[TFields.UUID])
+        self.item[trans_type].append(transaction[TFields.UUID])
 
-    @staticmethod
-    def update_transaction_status(obj, transaction):
+    def update_transaction_status(self, transaction):
         if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
             raise ValueError("Transaction must have UUID and STATUS fields")
 
-        old_is_active = transaction[TFields.UUID] in obj[TCFields.A_TRANS_UUIDS]
+        old_is_active = transaction[TFields.UUID] in self[TCFields.A_TRANS_UUIDS]
         new_is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
 
         if old_is_active == (not new_is_active):
             old_trans_type = TCFields.A_TRANS_UUIDS if old_is_active else TCFields.IA_TRANS_UUIDS
             new_trans_type = TCFields.A_TRANS_UUIDS if new_is_active else TCFields.IA_TRANS_UUIDS
 
-            obj[old_trans_type].remove(transaction[TFields.UUID])
+            self[old_trans_type].remove(transaction[TFields.UUID])
 
-            if obj[new_trans_type] is None:
-                obj[new_trans_type] = []
+            if self[new_trans_type] is None:
+                self[new_trans_type] = []
 
-            obj[new_trans_type].append(transaction[TFields.UUID])
+            self[new_trans_type].append(transaction[TFields.UUID])
 
-    @staticmethod
-    def remove_transaction(obj, transaction):
+    def remove_transaction(self, transaction):
         if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
             raise ValueError("Transaction must have UUID and STATUS fields")
 
         is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
         trans_type = TCFields.A_TRANS_UUIDS if is_active else TCFields.IA_TRANS_UUIDS
 
-        obj.item[trans_type].remove(transaction[TFields.UUID])
+        self.item[trans_type].remove(transaction[TFields.UUID])
 
 class CFields():
     UUID = "uuid"
@@ -191,7 +188,7 @@ class CFields():
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
     SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
-class Customer(Model):
+class Customer(Model, TransactionContainerFuncs):
     FIELDS = CFields
     VALID_KEYS = set([getattr(CFields, attr) for attr in vars(CFields)
         if not attr.startswith("__")])
@@ -221,13 +218,6 @@ class Customer(Model):
 
         return customers.query_count(index="phone_number-index", phone_number__eq=self["phone_number"]) == 0
 
-    # Utility Methods
-    def add_transaction(self, transaction):
-        TransactionContainerFunctions.add_transaction(self, transaction)
-
-    def update_transaction_status(self, transaction):
-        TransactionContainerFunctions.update_transaction_status(self, transaction)
-
 class DFields():
     UUID = "uuid"
     PHONE_NUMBER = "phone_number"
@@ -239,7 +229,7 @@ class DFields():
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
     SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
-class Delegator(Model):
+class Delegator(Model, TransactionContainerFuncs):
     FIELDS = DFields
     VALID_KEYS = set([getattr(DFields, attr) for attr in vars(DFields)
         if not attr.startswith("__")])
@@ -269,16 +259,6 @@ class Delegator(Model):
         fbuser_id_is_uniq    = delegators.query_count(index="fbuser_id-index", fbuser_id__eq=self["fbuser_id"], limit=1) == 0
 
         return phone_number_is_uniq and email_is_uniq and fbuser_id_is_uniq
-
-    # Utility Methods
-    def add_transaction(self, transaction):
-        TransactionContainerFunctions.add_transaction(self, transaction)
-
-    def remove_transaction(self, transaction):
-        TransactionContainerFunctions.remove_transaction(self, transaction)
-
-    def update_transaction_status(self, transaction):
-        TransactionContainerFunctions.update_transaction_status(self, transaction)
 
 class TFields():
     UUID = "uuid"
