@@ -86,7 +86,7 @@ def customer_post():
 
     customer = Customer.create_new(data)
 
-    if not customer.is_unique():
+    if not customer.is_valid():
         return common.error_to_json(Errors.CUSTOMER_ALREADY_EXISTS)
 
     # Save the customer to db
@@ -148,7 +148,7 @@ def delegator_post():
 
     delegator = Delegator.create_new(data)
 
-    if not delegator.is_unique():
+    if not delegator.is_valid():
         return common.error_to_json(Errors.DELEGATOR_ALREADY_EXISTS)
 
     if not delegator.create():

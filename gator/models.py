@@ -120,7 +120,7 @@ class Model():
             return False
 
     def create(self):
-        if self.is_unique():
+        if self.is_valid():
             return self.item.save()
         else:
             return False
@@ -213,7 +213,7 @@ class Customer(Model):
 
         return customer
 
-    def is_unique(self):
+    def is_valid(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
             return False
         if self["fbuser_id"] is not None and customers.query_count(index="fbuser_id-index", fbuser_id__eq=self["fbuser_id"]) != 0:
@@ -260,7 +260,7 @@ class Delegator(Model):
 
         return delegator
 
-    def is_unique(self):
+    def is_valid(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
             return False
 
@@ -322,7 +322,7 @@ class Transaction(Model):
         return transaction
 
     # Overriden Methods
-    def is_unique(self):
+    def is_valid(self):
         data = self.get_data()
         if not set(data) >= self.MANDATORY_KEYS:
             return False

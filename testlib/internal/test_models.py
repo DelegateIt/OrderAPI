@@ -172,20 +172,20 @@ class TestCustomer(unittest.TestCase):
         # Default values for the fields
         self.assertIsNotNone(customer[CFields.UUID])
 
-    def test_is_unique(self):
+    def test_is_valid(self):
         customer_1 = Customer.create_new({})
 
-        self.assertFalse(customer_1.is_unique())
+        self.assertFalse(customer_1.is_valid())
 
         customer_1[CFields.PHONE_NUMBER] = "1"
-        self.assertTrue(customer_1.is_unique())
+        self.assertTrue(customer_1.is_valid())
 
         customer_1.create()
 
         customer_2 = Customer.create_new({
             CFields.PHONE_NUMBER: "1"})
 
-        self.assertFalse(customer_2.is_unique())
+        self.assertFalse(customer_2.is_valid())
 
     def test_create(self):
         customer = Customer.create_new({})
@@ -215,13 +215,13 @@ class TestDelegator(unittest.TestCase):
             DFields.LAST_NAME: "3",
             DFields.FBUSER_ID: "4"})
 
-        self.assertFalse(delegator.is_unique())
+        self.assertFalse(delegator.is_valid())
 
         delegator[DFields.PHONE_NUMBER] = "5"
-        self.assertTrue(delegator.is_unique())
+        self.assertTrue(delegator.is_valid())
 
         delegator.create()
-        self.assertFalse(delegator.is_unique())
+        self.assertFalse(delegator.is_valid())
 
     def test_create(self):
         delegator = Delegator.create_new({
@@ -287,15 +287,15 @@ class TestTransaction(unittest.TestCase):
         }
 
         transaction_orig = Transaction.create_new(transaction_data)
-        self.assertTrue(transaction_orig.is_unique())
+        self.assertTrue(transaction_orig.is_valid())
         self.assertTrue(transaction_orig.create())
 
         customer.add_transaction(transaction_orig)
         customer.save()
-        self.assertTrue(transaction_orig.is_unique()) # Should still be true
+        self.assertTrue(transaction_orig.is_valid()) # Should still be true
 
         transaction_new = Transaction.create_new(transaction_data)
-        self.assertFalse(transaction_new.is_unique())
+        self.assertFalse(transaction_new.is_valid())
 
 class TestMessage(unittest.TestCase):
     def test_init(self):
