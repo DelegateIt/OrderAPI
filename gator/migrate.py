@@ -22,15 +22,15 @@ def migrate():
 
 
 def _migrate_item(table, item, handlers):
-    version = item.get(models.SCHEMA_VERSION_KEY, 0)
+    version = item.get(config.SCHEMA_VERSION, 0)
     while version < len(handlers):
         try:
             handlers[version](item)
-            item[models.SCHEMA_VERSION_KEY] = version + 1
+            item[config.SCHEMA_VERSION] = version + 1
             item.save()
         except ConditionalCheckFailedException:
             item = table.get(item["uuid"])
-        version = item.get(models.SCHEMA_VERSION_KEY, 0)
+        version = item.get(config.SCHEMA_VERSION, 0)
 
 ################################
 # BEGIN transaction migrations #

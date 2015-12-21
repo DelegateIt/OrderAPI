@@ -3,7 +3,6 @@ from gator import apiclient
 from endpoint.rest import RestTest
 
 class TransactionTest(RestTest):
-
     def create(self):
         rsp = apiclient.create_transaction(self.customer_uuid, self.customer_platform_type)
         self.assertResponse(0, rsp)
@@ -65,6 +64,7 @@ class TransactionTest(RestTest):
             "result": 0,
             "transaction": {
                 "uuid": uuid,
+                "version": transaction["transaction"]["version"],
                 "customer_platform_type": "sms",
                 "status": "started",
                 "customer_uuid": transaction["transaction"]["customer_uuid"],

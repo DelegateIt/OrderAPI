@@ -40,8 +40,6 @@ delegators.use_boolean()
 transactions.use_boolean()
 handlers.use_boolean()
 
-SCHEMA_VERSION_KEY = "schema_version"
-
 # Base class for all object models
 class Model():
     def __init__(self, item):
@@ -178,6 +176,7 @@ class TransactionContainerFuncs():
 
 class CFields():
     UUID = "uuid"
+    VERSION = "version"
     PHONE_NUMBER = "phone_number"
     EMAIL = "email"
     FIRST_NAME = "first_name"
@@ -186,7 +185,6 @@ class CFields():
     STRIPE_ID = "stripe_id"
     A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
-    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class Customer(Model, TransactionContainerFuncs):
     FIELDS = CFields
@@ -205,8 +203,9 @@ class Customer(Model, TransactionContainerFuncs):
     def create_new(attributes={}):
         customer = Model.load_from_data(Customer, attributes)
 
-        # Default values
+        # Default Values
         customer[CFields.UUID] = common.get_uuid()
+        customer[CFields.VERSION] = config.SCHEMA_VERSION
 
         return customer
 
@@ -220,6 +219,7 @@ class Customer(Model, TransactionContainerFuncs):
 
 class DFields():
     UUID = "uuid"
+    VERSION = "version"
     PHONE_NUMBER = "phone_number"
     EMAIL = "email"
     FIRST_NAME = "first_name"
@@ -227,7 +227,6 @@ class DFields():
     FBUSER_ID = "fbuser_id"
     A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
-    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class Delegator(Model, TransactionContainerFuncs):
     FIELDS = DFields
@@ -245,8 +244,9 @@ class Delegator(Model, TransactionContainerFuncs):
     def create_new(attributes={}):
         delegator = Model.load_from_data(Delegator, attributes)
 
-        # Default values
+        # Default Values
         delegator[DFields.UUID] = common.get_uuid()
+        delegator[DFields.VERSION] = config.SCHEMA_VERSION
 
         return delegator
 
@@ -262,6 +262,7 @@ class Delegator(Model, TransactionContainerFuncs):
 
 class TFields():
     UUID = "uuid"
+    VERSION = "version"
     CUSTOMER_UUID = "customer_uuid"
     DELEGATOR_UUID = "delegator_uuid"
     STATUS = "status"
@@ -270,7 +271,6 @@ class TFields():
     RECEIPT = "receipt"
     PAYMENT_URL = "payment_url"
     CUSTOMER_PLATFORM_TYPE = "customer_platform_type"
-    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class RFields():
     ITEMS = "items"
@@ -293,7 +293,10 @@ class Transaction(Model):
     @staticmethod
     def create_new(attributes={}):
         transaction = Model.load_from_data(Transaction, attributes)
+
+        # Default Values
         transaction[TFields.UUID] = common.get_uuid()
+        transaction[TFields.VERSION] = config.SCHEMA_VERSION
         transaction[TFields.TIMESTAMP] = common.get_current_timestamp()
 
         if transaction[TFields.STATUS] is None:

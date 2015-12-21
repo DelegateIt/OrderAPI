@@ -2,6 +2,7 @@ import unittest
 
 import gator.common as common
 import gator.apiclient as apiclient
+import gator.config as config
 
 from gator.models import Model, Customer, Delegator, Transaction, Message,\
                          CFields, DFields, TFields, MFields,\
@@ -97,7 +98,8 @@ class TestModel(unittest.TestCase):
             CFields.PHONE_NUMBER: "2"})
 
         customer_data = customer.get_data()
-        self.assertEquals(len(customer_data), 3)
+        self.assertEquals(len(customer_data), 4)
+        self.assertEquals(customer_data[CFields.VERSION], config.SCHEMA_VERSION)
         self.assertEquals(customer_data[CFields.FIRST_NAME], "1")
         self.assertEquals(customer_data[CFields.PHONE_NUMBER], "2")
         self.assertIsNotNone(customer_data[CFields.UUID])
@@ -204,7 +206,8 @@ class TestDelegator(unittest.TestCase):
         delegator = Delegator.create_new({
             DFields.EMAIL: "1"})
 
-        self.assertEquals(len(delegator.get_data()), 2)
+        self.assertEquals(len(delegator.get_data()), 3)
+        self.assertEquals(delegator[DFields.VERSION], config.SCHEMA_VERSION)
         self.assertEquals(delegator[DFields.EMAIL], "1")
         self.assertIsNotNone(delegator[DFields.UUID])
 
@@ -251,8 +254,9 @@ class TestTransaction(unittest.TestCase):
         transaction.add_message(Message(from_customer="2"))
 
         data = transaction.get_data()
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 6)
         self.assertIsNotNone(data[TFields.UUID])
+        self.assertEquals(data[TFields.VERSION], config.SCHEMA_VERSION)
         self.assertEquals(data[TFields.CUSTOMER_UUID], "1")
         self.assertEquals(data[TFields.STATUS], common.TransactionStates.STARTED)
         self.assertIsNotNone(data[TFields.TIMESTAMP])
