@@ -31,6 +31,8 @@ class Errors():
     PERMISSION_DENIED          = ErrorType(14, "You do not have the access rights for that resource")
     CONSISTENCY_ERROR          = ErrorType(15, "The request could not be completed due to a consistency issue")
     INVALID_PLATFORM           = ErrorType(16, "The specified platform is invalid")
+    STRIPE_ERROR               = ErrorType(17, "Stripe encountered an internal error")
+    RECEIPT_NOT_SAVED          = ErrorType(18, "The receipt for the transaction has not been saved")
 
 def error_to_json(error):
     return jsonpickle.encode({

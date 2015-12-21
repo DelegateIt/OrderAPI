@@ -208,6 +208,24 @@ def send_sms_to_api(from_phone_num, message):
     }
     return send_api_request("POST", ["sms", "handle_sms"], token=auth_token, query=query)
 
+def get_payment_cards(customer_uuid):
+    return send_api_request("GET", ["payment", "card", customer_uuid], token=auth_token)
+
+def add_payment_card(customer_uuid, stripe_token):
+    data = {"stripe_token": stripe_token}
+    return send_api_request("POST", ["payment", "card", customer_uuid], data, token=auth_token)
+
+def delete_payment_card(customer_uuid, card_id):
+    data = {"stripe_card_id": card_id}
+    return send_api_request("DELETE", ["payment", "card", customer_uuid], data, token=auth_token)
+
+def charge_transaction_payment(transaction_uuid, stripe_source, email=None):
+    data = {"stripe_source": stripe_source}
+    if email is not None:
+        data["email"] = email
+    return send_api_request("POST", ["payment", "charge", transaction_uuid], data, token=auth_token)
+
+
 ######END api wrapper
 
 if __name__ == "__main__":

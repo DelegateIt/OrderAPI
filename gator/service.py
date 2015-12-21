@@ -104,6 +104,7 @@ def _create_urlshortener():
 
 def _setup_stripe():
         stripe.api_key = config.store["stripe"]["secret_key"]
+        stripe.api_version = config.store["stripe"]["version"]
 
 sms = _create_sms()
 dynamodb = _create_dynamodb()

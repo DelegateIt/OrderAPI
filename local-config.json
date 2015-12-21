@@ -25,7 +25,8 @@
     },
     "stripe": {
         "public_key": "pk_test_ZoK03rN4pxc2hfeYTzjByrdV",
-        "secret_key": "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH"
+        "secret_key": "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH",
+        "version": "2015-10-16"
     },
     "twilio": {
         "auth_token": null,
