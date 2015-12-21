@@ -1,5 +1,6 @@
 """ Migrates items in the db to newer versions """
 
+from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from gator import models
 
 # maps dynamodb tables to list of migration handler functions
@@ -22,24 +23,37 @@ def migrate():
 
 
 def _migrate_item(table, item, handlers):
-    version = item.get(models.SCHEMA_VERSION_KEY, 0)
+    version = int(item.get(models.SCHEMA_VERSION_KEY, 0))
     while version < len(handlers):
         try:
             handlers[version](item)
             item[models.SCHEMA_VERSION_KEY] = version + 1
             item.save()
         except ConditionalCheckFailedException:
-            item = table.get(item["uuid"])
-        version = item.get(models.SCHEMA_VERSION_KEY, 0)
+            item = table.get_item(item["uuid"])
+        version = int(item.get(models.SCHEMA_VERSION_KEY, 0))
 
 ################################
 # BEGIN transaction migrations #
 ################################
 
+# Adds a 'customer_platform_type' field to all transaction objects with default value 'sms'
 def _migrate_transaction_to_1(item):
     if models.TFields.CUSTOMER_PLATFORM_TYPE not in item:
         item[models.TFields.CUSTOMER_PLATFORM_TYPE] = "sms"
 _migraters[models.transactions].append(_migrate_transaction_to_1)
+
+# Removes the 'platform_type' field from all message
+# Adds the 'type' field to all messages with default value 'text'
+def _migrate_transaction_to_2(item):
+    if "messages" not in item:
+        return
+    for msg in item["messages"]:
+        if "platform_type" in msg:
+            del msg["platform_type"]
+        if "type" not in msg:
+            msg["type"] = "text"
+_migraters[models.transactions].append(_migrate_transaction_to_2)
 
 ##############################
 # END transaction migrations #
