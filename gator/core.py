@@ -76,7 +76,13 @@ def delegator_login():
 def customer_post():
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not Customer.MANDATORY_KEYS <= set(data.keys()):
+    required = set([
+        CFields.FIRST_NAME,
+        CFields.LAST_NAME,
+        CFields.FBUSER_ID,
+        "fbuser_token"
+    ])
+    if not required <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     # Authenticate the request

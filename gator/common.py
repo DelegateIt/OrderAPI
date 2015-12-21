@@ -15,7 +15,7 @@ class ErrorType():
 
 class Errors():
     # NOTE: do not change the return code of these variables
-    DATA_NOT_PRESENT           = ErrorType(1, "The request could not be completed without the required data")
+    DATA_NOT_PRESENT           = ErrorType(1, "The request was missing required data")
     CUSTOMER_ALREADY_EXISTS    = ErrorType(2, "The specified customer already exists")
     TRANSACTION_DOES_NOT_EXIST = ErrorType(3, "The specified transaction does not exist")
     DELEGATOR_ALREADY_EXISTS   = ErrorType(4, "The specified delegator already exists")

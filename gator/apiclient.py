@@ -90,12 +90,13 @@ def populate_with_dummy_data():
 
 #######BEGIN api wrapper
 
-def create_customer(first_name, last_name, phone_number, fbuser_id=None, fbuser_token=None):
+def create_customer(first_name, last_name, phone_number=None, fbuser_id=None, fbuser_token=None):
     json_data = {
         "first_name": first_name,
         "last_name": last_name,
-        "phone_number": phone_number
     }
+    if phone_number is not None:
+        json_data["phone_number"] = phone_number
     if fbuser_id is not None:
         json_data["fbuser_id"] = fbuser_id
     if fbuser_token is not None:

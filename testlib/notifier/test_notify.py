@@ -9,7 +9,7 @@ class NotifyTest(unittest.TestCase):
 
     def setUp(self):
         apiclient.clear_database()
-        cid = apiclient.create_customer("asdf", "sadfs", "15555555551")["uuid"]
+        cid = apiclient.create_customer("asdf", "sadfs", "15555555551", "1", "")["uuid"]
         self.transaction_uuid = apiclient.create_transaction(cid, "sms")["uuid"]
 
     def test_end_2_end(self):

@@ -16,6 +16,8 @@ class CustomerTest(RestTest):
 
     def test_create(self):
         rsp = self.create()
+        self.assertResponse(0,
+                apiclient.create_customer("first", "last", fbuser_id="1", fbuser_token=""))
         self.assertResponse(0, apiclient.get_customer(rsp["uuid"]))
 
     def test_retreive(self):
@@ -30,7 +32,7 @@ class CustomerTest(RestTest):
 
     def test_uniqueness(self):
         self.create()
-        self.assertResponse(2, apiclient.create_customer("slkdfjsk", "sldkfj", "15555555551"))
+        self.assertResponse(2, apiclient.create_customer("slkdfjsk", "sldkfj", "15555555551", "1", ""))
         self.assertResponse(2, apiclient.create_customer("slkdfjsk", "sldkfj", "15555555552",
                 fbuser_id=self.fbuser_id, fbuser_token=""))
 
@@ -64,4 +66,3 @@ class CustomerTest(RestTest):
         self.assertResponse(14, rsp_get)
         rsp_get = apiclient.send_api_request("GET", ["core", "customer", uuid], token=None)
         self.assertResponse(12, rsp_get)
-

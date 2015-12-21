@@ -195,8 +195,7 @@ class Customer(Model, TransactionContainerFuncs):
     TABLE_NAME = TableNames.CUSTOMERS
     TABLE = customers
     KEY = CFields.UUID
-    # TODO Do we still want phone number to mandatory for app users?
-    MANDATORY_KEYS = set([CFields.PHONE_NUMBER]) # TODO remove this later
+    MANDATORY_KEYS = set([])
 
     def __init__(self, item):
         super().__init__(item)
@@ -216,7 +215,8 @@ class Customer(Model, TransactionContainerFuncs):
         if self["fbuser_id"] is not None and customers.query_count(index="fbuser_id-index", fbuser_id__eq=self["fbuser_id"]) != 0:
             return False
 
-        return customers.query_count(index="phone_number-index", phone_number__eq=self["phone_number"]) == 0
+        return (self["phone_number"] is None or
+                customers.query_count(index="phone_number-index", phone_number__eq=self["phone_number"]) == 0)
 
 class DFields():
     UUID = "uuid"
