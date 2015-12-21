@@ -187,8 +187,9 @@ def fb_login_delegator(fbuser_id, fbuser_token):
     }
     return send_api_request("POST", ["core", "login", "delegator"], data)
 
-def add_notify_handler():
-    return send_api_request("POST", ["notify", "handler"], token=auth_token)
+def add_notify_handler(port):
+    data = {"port": port}
+    return send_api_request("POST", ["notify", "handler"], data, token=auth_token)
 
 def get_notify_handlers():
     return send_api_request("GET", ["notify", "handler"], token=auth_token)
