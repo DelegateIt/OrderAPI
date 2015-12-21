@@ -33,6 +33,7 @@ class Errors():
     INVALID_PLATFORM           = ErrorType(16, "The specified platform is invalid")
     STRIPE_ERROR               = ErrorType(17, "Stripe encountered an internal error")
     RECEIPT_NOT_SAVED          = ErrorType(18, "The receipt for the transaction has not been saved")
+    INVALID_MSG_TYPE           = ErrorType(19, "The specified message type is invalid")
 
 def error_to_json(error):
     return jsonpickle.encode({

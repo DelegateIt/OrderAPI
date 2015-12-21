@@ -81,12 +81,12 @@ def populate_with_dummy_data():
         print("Transactions", transactions)
         for t in transactions:
             update_transaction(t["uuid"], "helped", dlgt["uuid"])
-        send_message(transactions[0]["uuid"], "test", "I want Pizza", True)
-        send_message(transactions[1]["uuid"], "test", "How's it going?", True)
-        send_message(transactions[2]["uuid"], "test", "Bring me the declaration of independence", True)
-        send_message(transactions[3]["uuid"], "test", "lskjfklsdfjksjf", True)
-        send_message(transactions[4]["uuid"], "test", "I need my lawn mowed pronto", True)
-        send_message(transactions[5]["uuid"], "test", "you.. uh.. got anymore of the dank bud", True)
+        send_message(transactions[0]["uuid"], "I want Pizza", True)
+        send_message(transactions[1]["uuid"], "How's it going?", True)
+        send_message(transactions[2]["uuid"], "Bring me the declaration of independence", True)
+        send_message(transactions[3]["uuid"], "lskjfklsdfjksjf", True)
+        send_message(transactions[4]["uuid"], "I need my lawn mowed pronto", True)
+        send_message(transactions[5]["uuid"], "you.. uh.. got anymore of the dank bud", True)
 
 #######BEGIN api wrapper
 
@@ -151,13 +151,13 @@ def get_delegator_list():
 def update_delegator(delegator_uuid, update):
     return send_api_request("PUT", ["core", "delegator", delegator_uuid], update, token=auth_token)
 
-def send_message(transaction_uuid, platform_type, content, from_customer):
+def send_message(transaction_uuid, content, from_customer, mtype="text"):
     if type(from_customer) is str:
         from_customer = from_customer.lower() == "true"
     json_data = {
-        "platform_type": platform_type,
         "content": content,
-        "from_customer": from_customer
+        "from_customer": from_customer,
+        "type": mtype
     }
 
     return send_api_request("POST", ["core", "send_message", transaction_uuid], json_data, token=auth_token)
@@ -263,7 +263,7 @@ if __name__ == "__main__":
         print("\tscript.py method_name [method_arg_1] [method_arg_2] ...")
         print("Examples:")
         print("\tscript.py create_customer jon doe 1113334444")
-        print("\tscript.py send_message 3934020959504 sms 'hows it going?'")
+        print("\tscript.py send_message 3934020959504 'hows it going?'")
         print("Available methods:")
         for k in method_map.keys():
             print("\t{}".format(k))

@@ -5,7 +5,7 @@ import gator.service as service
 import gator.models as models
 import gator.common as common
 import gator.business_logic as bl
-from gator.models import Customer, CFields, TFields, Model, Transaction, DFields
+from gator.models import Customer, CFields, TFields, Model, Transaction, DFields, MTypes
 from gator.common import TransactionStates, Platforms
 from gator.auth import validate_permission, authenticate, Permission, validate_token
 
@@ -57,7 +57,7 @@ def handle_sms():
                 to=delegator["phone_number"])
 
     # Add the messages to the transaction
-    message = models.Message(from_customer=True, content=request.values["Body"])
+    message = models.Message(from_customer=True, content=request.values["Body"], mtype=MTypes.TEXT.value)
     transaction.add_message(message)
 
     if not (customer.save() and transaction.save()):

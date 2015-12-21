@@ -27,6 +27,7 @@ class NotifyTest(RestTest):
 
         self.assertEqual(2, len(transaction["messages"]))
         self.assertEqual("second msg", transaction["messages"][1]["content"])
+        self.assertEqual("text", transaction["messages"][1]["type"])
 
         self.assertResponse(0, apiclient.update_transaction(transaction_uuid, status="completed"))
         self.assertResponse(0, apiclient.send_sms_to_api("15555555551", "new transaction"))

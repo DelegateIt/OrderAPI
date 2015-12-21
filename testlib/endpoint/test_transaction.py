@@ -129,19 +129,21 @@ class TransactionTest(RestTest):
 
     def test_send_message(self):
         transaction_uuid = self.create()["uuid"]
-        apiclient.send_message(transaction_uuid, platform_type="test", from_customer=True, content="test1")
+        self.assertResponse(0, apiclient.send_message(transaction_uuid, from_customer=True, content="test1"))
         messages = apiclient.get_transaction(transaction_uuid)["transaction"]["messages"]
         expected = [{
-            "platform_type": "test",
+            "type": "text",
             "content": "test1",
             "from_customer": True,
             "timestamp": messages[0]["timestamp"]
         }]
-        apiclient.send_message(transaction_uuid, platform_type="test", from_customer=False, content="test2")
+        apiclient.send_message(transaction_uuid, from_customer=False, content="test2")
         messages = apiclient.get_transaction(transaction_uuid)["transaction"]["messages"]
         expected.append({
-            "platform_type": "test",
+            "type": "text",
             "content": "test2",
             "from_customer": False,
             "timestamp": messages[1]["timestamp"]
         })
+        self.assertResponse(19, apiclient.send_message(transaction_uuid,
+                from_customer=False, content="test3", mtype="asdf"))
