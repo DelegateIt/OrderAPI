@@ -2,7 +2,6 @@ import json
 import os
 
 # Static variables for easy access
-SCHEMA_VERSION = 1
 NEW_CUSTOMER_MESSAGE = "Welcome to DelegateIt! Text us whatever you want and we will get it to you."
 MAX_TWILIO_MSG_SIZE = 1600
 

@@ -99,7 +99,7 @@ class TestModel(unittest.TestCase):
 
         customer_data = customer.get_data()
         self.assertEquals(len(customer_data), 4)
-        self.assertEquals(customer_data[CFields.VERSION], config.SCHEMA_VERSION)
+        self.assertEquals(customer_data[CFields.VERSION], Customer.VERSION)
         self.assertEquals(customer_data[CFields.FIRST_NAME], "1")
         self.assertEquals(customer_data[CFields.PHONE_NUMBER], "2")
         self.assertIsNotNone(customer_data[CFields.UUID])
@@ -207,7 +207,7 @@ class TestDelegator(unittest.TestCase):
             DFields.EMAIL: "1"})
 
         self.assertEquals(len(delegator.get_data()), 3)
-        self.assertEquals(delegator[DFields.VERSION], config.SCHEMA_VERSION)
+        self.assertEquals(delegator[DFields.VERSION], Delegator.VERSION)
         self.assertEquals(delegator[DFields.EMAIL], "1")
         self.assertIsNotNone(delegator[DFields.UUID])
 
@@ -256,7 +256,7 @@ class TestTransaction(unittest.TestCase):
         data = transaction.get_data()
         self.assertEquals(len(data), 6)
         self.assertIsNotNone(data[TFields.UUID])
-        self.assertEquals(data[TFields.VERSION], config.SCHEMA_VERSION)
+        self.assertEquals(data[TFields.VERSION], Transaction.VERSION)
         self.assertEquals(data[TFields.CUSTOMER_UUID], "1")
         self.assertEquals(data[TFields.STATUS], common.TransactionStates.STARTED)
         self.assertIsNotNone(data[TFields.TIMESTAMP])

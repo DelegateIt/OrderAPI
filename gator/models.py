@@ -11,8 +11,10 @@ from enum import Enum, unique
 import gator.service as service
 import gator.common as common
 import gator.config as config
+import gator.version as version
 
 from gator.common import TransactionStates, Platforms
+from gator.version import MigrationHandlers
 
 ##############################
 # Global vars, consts, extra #
@@ -21,18 +23,18 @@ from gator.common import TransactionStates, Platforms
 conn = service.dynamodb
 
 # Class of table names
+table_prefix = config.store["dynamodb"]["table_prefix"]
 class TableNames():
-    CUSTOMERS    = "DelegateIt_Customers"
-    DELEGATORS   = "DelegateIt_Delegators"
-    TRANSACTIONS = "DelegateIt_Transactions"
-    HANDLERS     = "DelegateIt_Handlers"
+    CUSTOMERS    = table_prefix + "DelegateIt_Customers"
+    DELEGATORS   = table_prefix + "DelegateIt_Delegators"
+    TRANSACTIONS = table_prefix + "DelegateIt_Transactions"
+    HANDLERS     = table_prefix + "DelegateIt_Handlers"
 
 # Tables
-table_prefix = config.store["dynamodb"]["table_prefix"]
-customers    = Table(table_prefix + TableNames.CUSTOMERS,    connection=conn)
-delegators   = Table(table_prefix + TableNames.DELEGATORS,   connection=conn)
-transactions = Table(table_prefix + TableNames.TRANSACTIONS, connection=conn)
-handlers     = Table(table_prefix + TableNames.HANDLERS,     connection=conn)
+customers    = Table(TableNames.CUSTOMERS,    connection=conn)
+delegators   = Table(TableNames.DELEGATORS,   connection=conn)
+transactions = Table(TableNames.TRANSACTIONS, connection=conn)
+handlers     = Table(TableNames.HANDLERS,     connection=conn)
 
 # Use boolean for the tables
 customers.use_boolean()
@@ -195,6 +197,11 @@ class Customer(Model, TransactionContainerFuncs):
     KEY = CFields.UUID
     # TODO Do we still want phone number to mandatory for app users?
     MANDATORY_KEYS = set([CFields.PHONE_NUMBER]) # TODO remove this later
+    VERSION = 1
+
+    # Initialize the migration handlers
+    HANDLERS = MigrationHandlers(VERSION)
+    HANDLERS.add_handler(0, version.VersionHandler)
 
     def __init__(self, item):
         super().__init__(item)
@@ -205,7 +212,7 @@ class Customer(Model, TransactionContainerFuncs):
 
         # Default Values
         customer[CFields.UUID] = common.get_uuid()
-        customer[CFields.VERSION] = config.SCHEMA_VERSION
+        customer[CFields.VERSION] = Customer.VERSION
 
         return customer
 
@@ -236,6 +243,11 @@ class Delegator(Model, TransactionContainerFuncs):
     TABLE = delegators
     KEY = DFields.UUID
     MANDATORY_KEYS = set([DFields.FBUSER_ID, DFields.PHONE_NUMBER, DFields.EMAIL, DFields.FIRST_NAME, DFields.LAST_NAME])
+    VERSION = 1
+
+    # Initialize the migration handlers
+    HANDLERS = MigrationHandlers(VERSION)
+    HANDLERS.add_handler(0, version.VersionHandler)
 
     def __init__(self, item):
         super().__init__(item)
@@ -246,7 +258,7 @@ class Delegator(Model, TransactionContainerFuncs):
 
         # Default Values
         delegator[DFields.UUID] = common.get_uuid()
-        delegator[DFields.VERSION] = config.SCHEMA_VERSION
+        delegator[DFields.VERSION] = Delegator.VERSION
 
         return delegator
 
@@ -286,6 +298,11 @@ class Transaction(Model):
     TABLE = transactions
     KEY = TFields.UUID
     MANDATORY_KEYS = set([TFields.CUSTOMER_UUID, TFields.CUSTOMER_PLATFORM_TYPE])
+    VERSION = 1
+
+    # Initialize the migration handlers
+    HANDLERS = MigrationHandlers(VERSION)
+    HANDLERS.add_handler(0, version.VersionHandler)
 
     def __init__(self, item):
         super().__init__(item)
@@ -296,7 +313,7 @@ class Transaction(Model):
 
         # Default Values
         transaction[TFields.UUID] = common.get_uuid()
-        transaction[TFields.VERSION] = config.SCHEMA_VERSION
+        transaction[TFields.VERSION] = Transaction.VERSION
         transaction[TFields.TIMESTAMP] = common.get_current_timestamp()
 
         if transaction[TFields.STATUS] is None:
