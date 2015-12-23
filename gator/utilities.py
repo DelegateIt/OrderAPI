@@ -14,6 +14,10 @@ import base64
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + "../../../"))
 
+import gator.models as models
+
+from gator.models import Customer, Delegator, Transaction
+
 def mass_text(body_fn, numbers_fn):
     from gator.service import sms
     body = open(body_fn, "r").read()
@@ -77,8 +81,38 @@ def generate_api_key(key_type):
         "id": uuid
     }
 
-def migrate_db(table):
-    pass
+def migrate_db(tablename):
+    colloquial_table_names = {
+        "customers":    Customer,
+        "delegators":   Delegator,
+        "transactions": Transaction
+    }
+
+    num_failures = 0
+    total_migrations = 0
+    tragic_failure = False
+    model_cls = colloquial_table_names[tablename]
+
+    for item in model_cls.TABLE.scan():
+        # Necessary for first migration
+        if item.get("version") is None:
+            item["version"] = 0
+
+        version = int(item["version"])
+        if version < model_cls.VERSION:
+            num_failures += not model_cls.HANDLERS.migrate_forward_item(item)
+            total_migrations += 1
+        elif version > model_cls.VERSION:
+            # This only happens if you screwed up
+            tragic_failure = True
+            num_failures += 1
+
+    if tragic_failure:
+        print ("WARNING TRAGIC FAILURE: item versions are inconsistent\n")
+
+    print ("Migration was %s\nTotal Failures: %s\nTotal Migrations: %s" % (
+        "SUCCESSFUL" if num_failures == 0 else "UNSUCCESSFUL",
+        num_failures, total_migrations))
 
 if __name__ == "__main__":
     actions = {
