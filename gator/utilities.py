@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
+
 """ The misc and utility file
 
 Put things in here that are scripts or tangential
 uses of the backend
 """
 
+import argparse
 import copy
 import sys
 import os
 import base64
+
+sys.path.append(os.path.abspath(os.path.dirname(__file__) + "../../../"))
 
 def mass_text(body_fn, numbers_fn):
     from gator.service import sms
@@ -73,20 +77,26 @@ def generate_api_key(key_type):
         "id": uuid
     }
 
+def migrate_db(table):
+    pass
 
 if __name__ == "__main__":
-    method_map = {
-        "mass_text": mass_text
+    actions = {
+        "mass_text": mass_text,
+        "retreive_transaction_info": retreive_transaction_info,
+        "generate_entropy": generate_entropy,
+        "generate_api_key": generate_api_key,
+        "migrate_db": migrate_db
     }
 
-    method = None
-    args = []
-    if len(sys.argv) > 1:
-        method = sys.argv[1]
-        args = sys.argv[2:]
+    choices = actions.keys()
 
-    if method is None:
-        print("Please specify a method to execute.")
-        exit(0)
+    parser = argparse.ArgumentParser(
+        description="Command line wrapper for miscellaneous utility functions",
+        epilog="Valid commands: [%s]" % ", ".join(choices))
 
-    method_map[method](*args)
+    parser.add_argument("command", type=str, choices=choices, help="Action to execute")
+    parser.add_argument("args", nargs="*", help="Args to pass to action")
+
+    args = parser.parse_args()
+    actions[args.command](*args.args)
