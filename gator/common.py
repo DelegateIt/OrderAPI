@@ -31,6 +31,7 @@ class Errors():
     PERMISSION_DENIED          = ErrorType(14, "You do not have the access rights for that resource")
     CONSISTENCY_ERROR          = ErrorType(15, "The request could not be completed due to a consistency issue")
     INVALID_PLATFORM           = ErrorType(16, "The specified platform is invalid")
+    UNSUPORTED_VERSION         = ErrorType(17, "The specified version is not supported")
 
 def error_to_json(error):
     return jsonpickle.encode({
