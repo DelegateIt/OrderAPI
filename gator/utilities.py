@@ -100,7 +100,8 @@ def migrate_db(tablename):
 
         version = int(item["version"])
         if version < model_cls.VERSION:
-            num_failures += not model_cls.HANDLERS.migrate_forward_item(item)
+            model_cls.HANDLERS.migrate_forward_item(item)
+            num_failures += not item.save()
             total_migrations += 1
         elif version > model_cls.VERSION:
             # This only happens if you screwed up

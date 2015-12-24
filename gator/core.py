@@ -20,7 +20,7 @@ from gator.auth import authenticate, Permission, validate_permission,\
 
 @app.after_request
 def after_request(response):
-    #TODO - Important Security - replace '*' with name of the server hosting the delegator web client
+    # TODO - Important Security - replace '*' with name of the server hosting the delegator web client
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')

@@ -7,7 +7,7 @@ import gator.config as config
 from gator.models import Model, Customer, Delegator, Transaction, Message,\
                          CFields, DFields, TFields, MFields,\
                          customers, delegators, transactions, handlers
-from gator.common import Platforms
+from gator.common import Platforms, GatorException
 
 def clear():
     apiclient.clear_database()
@@ -15,10 +15,10 @@ def clear():
 class TestModel(unittest.TestCase):
     def setUp(self):
         clear()
-        self.customer = Model.load_from_data(Customer, {})
+        self.customer = Customer.create_new({})
 
     def test_invalid_init(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(GatorException):
             Model.load_from_data(Customer, {"invalid_key": "DOES NOT MATTER"})
 
     def test_load_from_db(self):
@@ -50,11 +50,13 @@ class TestModel(unittest.TestCase):
     def test_load_from_data(self):
         customer = Model.load_from_data(Customer, {
             CFields.UUID: "1",
+            CFields.VERSION: Customer.VERSION,
             CFields.FIRST_NAME: "2"
         })
 
-        self.assertEquals(2, len(customer.get_data()))
+        self.assertEquals(3, len(customer.get_data()))
         self.assertEquals(customer[CFields.UUID], "1")
+        self.assertEquals(customer[CFields.VERSION], Customer.VERSION)
         self.assertEquals(customer[CFields.FIRST_NAME], "2")
 
     def test_invalid_load_from_data(self):
@@ -84,7 +86,7 @@ class TestModel(unittest.TestCase):
         self.assertEquals(self.customer[CFields.FIRST_NAME], "2")
 
     def test_atts_are_valid(self):
-        customer = Model.load_from_data(Customer, {})
+        customer = Customer.create_new({})
         self.assertTrue(customer._atts_are_valid({
             CFields.UUID,
             CFields.FIRST_NAME}))
@@ -141,7 +143,7 @@ class TestModel(unittest.TestCase):
         self.assertFalse(customer_2.save())
 
     def  test_create(self):
-        customer = Customer.load_from_data(Customer, {
+        customer = Customer.create_new({
             CFields.UUID: "1",
             CFields.FIRST_NAME: "2",
             CFields.LAST_NAME: "3",

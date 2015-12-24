@@ -1,3 +1,5 @@
+import copy
+
 import gator.config as config
 
 from gator.common import GatorException, Errors
@@ -18,6 +20,10 @@ class MigrationHandlers():
         self.handlers[version] = handler_cls
 
     def migrate_forward_item(self, item):
+        # Short circuit if we are at the correct version
+        if item["version"] == self.cur_version:
+            return
+
         # Assumes that handlers continuous and up to date
         # i.e. 2 -> 3 -> 4 -> 5
         if self.handlers.get(int(item["version"])) is None:
@@ -26,16 +32,15 @@ class MigrationHandlers():
         for version in range(int(item["version"]), self.cur_version):
             self.handlers[version].forward(item)
 
-        return item.save()
+    def migrate_backward_item(self, item, version):
+        if item["version"] == self.cur_version:
+            return
 
-    def migrate_backward_item(self, item):
-        if self.handlers.get(int(item["version"])) is None:
+        if self.handlers.get(version) is None:
             raise GatorException(Errors.UNSUPORTED_VERSION)
 
-        for version in range(self.cur_version, item["version"]):
+        for version in range(self.cur_version, version):
             self.handlers[version].backward(item)
-
-        return item.save()
 
 ####################
 # General Handlers #

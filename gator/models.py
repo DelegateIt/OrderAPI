@@ -1,5 +1,6 @@
 from boto.dynamodb2.table import Table, Item
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException, ItemNotFound
+from copy import deepcopy
 
 import jsonpickle
 
@@ -13,7 +14,7 @@ import gator.common as common
 import gator.config as config
 import gator.version as version
 
-from gator.common import TransactionStates, Platforms
+from gator.common import TransactionStates, Platforms, Errors, GatorException
 from gator.version import MigrationHandlers
 
 ##############################
@@ -46,10 +47,11 @@ handlers.use_boolean()
 class Model():
     def __init__(self, item):
         if not self._atts_are_valid(item._data):
-            #TODO change this to a GatorException
-            raise ValueError("One or more of the item's attributes is invalid")
+            raise GatorException(Errors.INVALID_DATA_PRESENT)
 
         self.item = item
+        self.original_version = int(item["version"])
+        self.HANDLERS.migrate_forward_item(item)
 
     # Factory methods
     @staticmethod
@@ -68,6 +70,12 @@ class Model():
                 **{
                     cls.KEY: key
                 }))
+
+            # Migrate the item forward if it is on an old version
+            if item["version"] <= cls.VERSION:
+                cls.HANDLERS.migrate_forward_item(item)
+                if not item.save():
+                    return None
         except ItemNotFound:
             pass
 
@@ -106,7 +114,11 @@ class Model():
         return True
 
     def get_data(self):
-        return self.item._data
+        self.HANDLERS.migrate_backward_item(self.item, self.original_version)
+        data = deepcopy(self.item._data)
+        self.HANDLERS.migrate_forward_item(self.item)
+
+        return data
 
     # Database Logic
     def save(self):
@@ -208,11 +220,11 @@ class Customer(Model, TransactionContainerFuncs):
 
     @staticmethod
     def create_new(attributes={}):
-        customer = Model.load_from_data(Customer, attributes)
-
         # Default Values
-        customer[CFields.UUID] = common.get_uuid()
-        customer[CFields.VERSION] = Customer.VERSION
+        attributes[CFields.UUID] = common.get_uuid()
+        attributes[CFields.VERSION] = Customer.VERSION
+
+        customer = Model.load_from_data(Customer, attributes)
 
         return customer
 
@@ -254,11 +266,11 @@ class Delegator(Model, TransactionContainerFuncs):
 
     @staticmethod
     def create_new(attributes={}):
-        delegator = Model.load_from_data(Delegator, attributes)
-
         # Default Values
-        delegator[DFields.UUID] = common.get_uuid()
-        delegator[DFields.VERSION] = Delegator.VERSION
+        attributes[DFields.UUID] = common.get_uuid()
+        attributes[DFields.VERSION] = Delegator.VERSION
+
+        delegator = Model.load_from_data(Delegator, attributes)
 
         return delegator
 
@@ -309,15 +321,15 @@ class Transaction(Model):
 
     @staticmethod
     def create_new(attributes={}):
-        transaction = Model.load_from_data(Transaction, attributes)
-
         # Default Values
-        transaction[TFields.UUID] = common.get_uuid()
-        transaction[TFields.VERSION] = Transaction.VERSION
-        transaction[TFields.TIMESTAMP] = common.get_current_timestamp()
+        attributes[TFields.UUID] = common.get_uuid()
+        attributes[TFields.VERSION] = Transaction.VERSION
+        attributes[TFields.TIMESTAMP] = common.get_current_timestamp()
 
-        if transaction[TFields.STATUS] is None:
-            transaction[TFields.STATUS] = TransactionStates.STARTED
+        if attributes.get(TFields.STATUS) is None:
+            attributes[TFields.STATUS] = TransactionStates.STARTED
+
+        transaction = Model.load_from_data(Transaction, attributes)
 
         return transaction
 
