@@ -9,12 +9,9 @@ from gator.models import Model, Customer, Delegator, Transaction, Message,\
                          customers, delegators, transactions, handlers
 from gator.common import Platforms, GatorException
 
-def clear():
-    apiclient.clear_database()
-
 class TestModel(unittest.TestCase):
     def setUp(self):
-        clear()
+        apiclient.clear_database()
         self.customer = Customer.create_new({})
 
     def test_invalid_init(self):
@@ -163,7 +160,7 @@ class TestModel(unittest.TestCase):
 
 class TestCustomer(unittest.TestCase):
     def setUp(self):
-        clear()
+        apiclient.clear_database()
 
     def test_create_new(self):
         customer = Customer.create_new({
@@ -202,7 +199,7 @@ class TestCustomer(unittest.TestCase):
 
 class TestDelegator(unittest.TestCase):
     def setUp(self):
-        clear()
+        apiclient.clear_database()
 
     def test_create_new(self):
         delegator = Delegator.create_new({

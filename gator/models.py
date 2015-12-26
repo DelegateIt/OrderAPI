@@ -142,7 +142,7 @@ class Model():
 
     # Parsing and json
     def to_json(self):
-        return jsonpickle.encode(get_data())
+        return jsonpickle.encode(self.get_data())
 
 class TCFields():
     A_TRANS_UUIDS = "active_transaction_uuids"
@@ -224,9 +224,7 @@ class Customer(Model, TransactionContainerFuncs):
         attributes[CFields.UUID] = common.get_uuid()
         attributes[CFields.VERSION] = Customer.VERSION
 
-        customer = Model.load_from_data(Customer, attributes)
-
-        return customer
+        return Model.load_from_data(Customer, attributes)
 
     def is_valid(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
@@ -270,9 +268,7 @@ class Delegator(Model, TransactionContainerFuncs):
         attributes[DFields.UUID] = common.get_uuid()
         attributes[DFields.VERSION] = Delegator.VERSION
 
-        delegator = Model.load_from_data(Delegator, attributes)
-
-        return delegator
+        return Model.load_from_data(Delegator, attributes)
 
     def is_valid(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
@@ -329,9 +325,7 @@ class Transaction(Model):
         if attributes.get(TFields.STATUS) is None:
             attributes[TFields.STATUS] = TransactionStates.STARTED
 
-        transaction = Model.load_from_data(Transaction, attributes)
-
-        return transaction
+        return Model.load_from_data(Transaction, attributes)
 
     # Overriden Methods
     def is_valid(self):
