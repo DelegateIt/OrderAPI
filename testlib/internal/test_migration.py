@@ -80,7 +80,6 @@ class TestMigration(unittest.TestCase):
 
         # Check to make sure that the db has been updated to
         # the latest version
-        # db_item = customers.get_item("1", consistent_read=True)
         db_item = customers.get_item(consistent=True, **{"uuid": "1"})
         self.assertEquals(customer["uuid"], "1")
         self.assertEquals(customer["version"], 1)
