@@ -1,5 +1,3 @@
-import copy
-
 import gator.config as config
 
 from gator.common import GatorException, Errors
@@ -32,25 +30,32 @@ class MigrationHandlers():
         for version in range(int(item["version"]), self.cur_version):
             self.handlers[version].forward(item)
 
-    def migrate_backward_item(self, item, version):
-        if item["version"] == self.cur_version:
+        item["version"] = self.cur_version
+
+    def migrate_backward_item(self, item, target_version):
+        if item["version"] == target_version:
             return
 
-        if self.handlers.get(version) is None:
+        if target_version > item["version"]:
+            raise ValueError("target_version must be less than item version")
+        elif self.handlers.get(target_version) is None:
             raise GatorException(Errors.UNSUPORTED_VERSION)
 
-        for version in range(self.cur_version, version):
+        for version in range(item["version"] - 1, target_version - 1, -1):
             self.handlers[version].backward(item)
+
+        item["version"] = target_version
 
 ####################
 # General Handlers #
 ####################
 
+# NOTE: this is only necessary to migrate the db to use the versions system
 class VersionHandler():
     @staticmethod
     def forward(item):
-        item["version"] = 1
+        pass
 
     @staticmethod
     def backward(item):
-        item["version"] = 0
+        pass
