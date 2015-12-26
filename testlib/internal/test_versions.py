@@ -94,3 +94,15 @@ class TestVersion(unittest.TestCase):
     def test_add_duplicate_handler(self):
         with self.assertRaises(ValueError):
             self.handlers.add_handler(0, None)
+
+class TestCurrentHandlers(unittest.TestCase):
+    def test_version_handler(self):
+        handlers = MigrationHandlers(1)
+        handlers.add_handler(0, version.VersionHandler)
+        item = {"version": 0}
+
+        handlers.migrate_forward_item(item)
+        self.assertEquals(item["version"], 1)
+
+        handlers.migrate_backward_item(item, 0)
+        self.assertEquals(item["version"], 0)
