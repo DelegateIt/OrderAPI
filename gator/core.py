@@ -63,14 +63,14 @@ def login(uuid_type):
 @app.route('/core/login/customer', methods=["POST"])
 def customer_login():
     (uuid, token) = login(UuidType.CUSTOMER)
-    customer = models.customers.get_item(uuid=uuid, consistent=True)
-    return jsonpickle.encode({"result": 0, "customer": customer._data, "token": token})
+    customer = Model.load_from_db(Customer, uuid)
+    return jsonpickle.encode({"result": 0, "customer": customer.get_data(), "token": token})
 
 @app.route('/core/login/delegator', methods=["POST"])
 def delegator_login():
     (uuid, token) = login(UuidType.DELEGATOR)
-    delegator = models.delegators.get_item(uuid=uuid, consistent=True)
-    return jsonpickle.encode({"result": 0, "delegator": delegator._data, "token": token})
+    delegator = Model.load_from_db(Delegator, uuid)
+    return jsonpickle.encode({"result": 0, "delegator": delegator.get_data(), "token": token})
 
 @app.route('/core/customer', methods=['POST'])
 def customer_post():

@@ -5,9 +5,11 @@ import gator.service as service
 import gator.models as models
 import gator.common as common
 import gator.business_logic as bl
-from gator.models import Customer, CFields, TFields, Model, Transaction, DFields
+from gator.models import Customer, CFields, TFields, Model, Transaction,\
+                         DFields, messages
 from gator.common import TransactionStates, Platforms
-from gator.auth import validate_permission, authenticate, Permission, validate_token
+from gator.auth import validate_permission, authenticate, Permission,\
+                       validate_token
 
 import jsonpickle
 
@@ -57,14 +59,14 @@ def handle_sms():
                 to=delegator["phone_number"])
 
     # Add the messages to the transaction
-    message = models.Message(from_customer=True, content=request.values["Body"])
+    message = Message(from_customer=True, content=request.values["Body"])
     transaction.add_message(message)
 
     if not (customer.save() and transaction.save()):
         return common.error_to_json(Errors.CONSISTENCY_ERROR)
 
     if "delegator_uuid" in transaction:
-        delegator = models.delegators.get_item(uuid=transaction["delegator_uuid"], consistent=True)
-        service.sms.send_msg(to=delegator["phone_number"], body="ALERT: New message from %s" % request.values["From"])
+        delegator = Model.load_from_db(Delegator, transaction[TFields.DELEGATOR_UUID])
+        service.sms.send_msg(to=delegator[DFields.PHONE_NUMBER], body="ALERT: New message from %s" % request.values["From"])
 
     return jsonpickle.encode({"result": 0})
