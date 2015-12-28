@@ -70,10 +70,16 @@ def generate_redirect(success, message=None):
     url = "/payment/uistatus?" + urllib.parse.urlencode(args)
     return redirect(url, code=302)
 
-def create_url(transaction_uuid):
+def create_url(transaction_uuid, token, use_test_api):
     host = config.store["api_host"]["name"]
     port = config.store["api_host"]["recv_port"]
-    long_url = 'http://%s:%s/payment/uiform/%s' % (host, port, transaction_uuid)
+    args = {
+        "token": token,
+        "transaction": transaction_uuid,
+        "test": use_test_api
+    }
+    long_url = 'http://%s:%s/payment/uiform/?%s' % \
+            (host, port, urllib.parse.urlencode(args))
     return service.shorturl.shorten_url(long_url)
 
 @app.route('/payment/uiform/<transaction_uuid>', methods=['GET'])
