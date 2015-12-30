@@ -1,4 +1,5 @@
 import nose
+import requests
 import urllib.parse
 from gator import apiclient
 from endpoint.rest import RestTest
@@ -51,12 +52,21 @@ class TransactionTest(RestTest):
 
     def test_payment_link(self):
         uuid = self.create()["uuid"]
+        receipt = {
+            "total": 100,
+            "items": [{
+                "Pizza": 90
+            }]
+        }
+        self.assertResponse(0, apiclient.update_transaction(uuid, receipt=receipt))
         transaction = apiclient.get_transaction(uuid)["transaction"]
+
         query = urllib.parse.parse_qs(urllib.parse.urlparse(transaction["payment_url"])[4])
         self.assertEqual(transaction["uuid"], query["transaction"][0])
         self.assertEqual("True", query["test"][0])
         rsp = apiclient.send_api_request("GET", ["core", "transaction", transaction["uuid"]], token=query["token"][0])
         self.assertResponse(0, rsp)
+        self.assertEqual(200, requests.get(transaction["payment_url"]).status_code)
 
     def test_create(self):
         #TODO test status is valid
