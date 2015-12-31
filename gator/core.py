@@ -323,6 +323,45 @@ def assign_transaction(delegator_uuid):
         "result": 0, "transaction_uuid": transaction[TFields.UUID]},
         unpicklable=False)
 
+@app.route("/core/quickorders", methods=["GET"])
+def get_quickorders():
+    return jsonpickle.encode({
+        "result": 0,
+        "quickorders": [
+            {
+                    "name": "airplane",
+                    "order_text": "buy me an airplane",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/airplane.jpg"
+            },
+            {
+                    "name": "coffee",
+                    "order_text": "buy me a coffee",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/coffee.jpg"
+            },
+            {
+                    "name": "concert",
+                    "order_text": "buy me a concert ticket",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/concert.jpg"
+            },
+            {
+                    "name": "pizza",
+                    "order_text": "buy me a pizza",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/pizza.jpg"
+            },
+            {
+                    "name": "rentals",
+                    "order_text": "buy me some'm dem rentals, bitch",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/rental.jpg"
+            },
+            {
+                    "name": "toilet paper",
+                    "order_text": "buy me a toilet paper",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/toilet-paper.jpg"
+            },
+        ]
+    })
+
+
 @app.errorhandler(BaseException)
 def handle_exception(e):
     if issubclass(type(e), GatorException):
