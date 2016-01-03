@@ -1,5 +1,6 @@
 import logging # TODO: remove later
 
+from gator import config, auth
 from gator.models import Model, Customer, Delegator, Transaction
 from gator.models import TFields
 from gator.common import Errors, TransactionStates, Platforms
@@ -13,7 +14,10 @@ def create_transaction(attributes={}):
 
     # Create a new transaction
     transaction = Transaction.create_new(attributes)
-    transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID])
+    use_test_stripe = config.store["stripe"]["public_key"].startswith("pk_test")
+    customer_token = auth.generate_token(transaction[TFields.CUSTOMER_UUID], auth.UuidType.CUSTOMER)
+    transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID],
+            customer_token, use_test_stripe)
 
     # Load the customer associated with the transaction
     # NOTE: a customer must always be initially associated with the transaction

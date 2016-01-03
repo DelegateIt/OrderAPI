@@ -25,5 +25,6 @@ There are three different types of tests within `testlib`:
 - `internal` tests the internal `gator` python package
 - `notifier` tests the socket.io notification system
 
-The tests are run using the *run_tests.py* script in the `testlib` directory.
+The tests are run using the *run_tests.py* script in the `testlib` directory. To tail output from the container you can use *docker logs -f api*.
+
 NOTE: the docker containers must be created before the running the tests

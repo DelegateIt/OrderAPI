@@ -68,7 +68,7 @@ def generate_api_key(key_type):
     permission = permission_map[key_type]
     uuid = get_uuid()
     expires = 5 * 356 * 24 * 60 * 60 # 5 years.. chosen by fair dice roll
-    token = auth._create_token(uuid, auth.UuidType.API, expires)
+    token = auth.generate_token(uuid, auth.UuidType.API, expires)
     return {
         "token": token,
         "permissions": permission,

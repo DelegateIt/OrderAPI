@@ -1,3 +1,4 @@
+var child_process = require("child_process")
 var http = require("http");
 var fs = require("fs");
 
@@ -19,8 +20,10 @@ module.exports.request = function(host, port, path, method, json, callback) {
         method: method,
         headers: {}
     };
-    if (json != null)
+    if (json != null) {
         options.headers['Content-Type'] = 'application/json';
+        options.headers['Content-Length'] = JSON.stringify(json).length;
+    }
     var req = http.request(options, function(res) {
         res.setEncoding('utf8');
         var allChunks = "";
@@ -53,7 +56,7 @@ module.exports.updateHandler = function(callback) {
             module.exports.config.api_host.recv_port,
             '/notify/handler',
             'POST',
-            null,
+            {"port": module.exports.config.notifier_host.recv_port},
             callback);
 };
 
@@ -78,6 +81,31 @@ module.exports.notifyHandlers = function(transactionUuid, callback) {
             callback);
 };
 
+module.exports.execApiClient = function(method, args, callback) {
+    var argString = "";
+    if (args.length > 0) {
+        argString = "\"";
+        for (var i = 0; i < args.length - 1; i++)
+            argString += args[i] + "\", \"";
+        argString += args[args.length - 1] + "\"";
+    }
+
+    var cmd = "/usr/bin/python3 -c '" +
+              "import json; " +
+              "from gator import apiclient; " +
+              "print(json.dumps(apiclient." + method + "(" + argString + ")))'";
+
+    return child_process.exec(cmd, function(error, stdout) {
+        var result = null;
+        try {
+            result = JSON.parse(stdout);
+        } catch (e) {
+            //do nothing
+        }
+        callback(error, result);
+    });
+};
+
 var getTime = function() {
     return Math.floor(new Date() / 1000);
 };
@@ -89,4 +117,3 @@ var tryLoadingEnvConfig = function() {
         console.warn("'GATOR_CONFIG_PATH' not found in the environment variables; cannot load config");
 };
 tryLoadingEnvConfig();
-

@@ -11,9 +11,10 @@ from gator.auth import authenticate, validate_permission, Permission, validate_t
 
 from gator.models import Model, TFields, Transaction
 
-def add_handler(ip_address, expires):
+def add_handler(ip_address, port, expires):
     data = {
         "ip_address": ip_address,
+        "port": port,
         "expires": expires
     }
     models.handlers.put_item(data=data, overwrite=True)
@@ -35,10 +36,9 @@ def notify_handlers(transaction_uuid):
     payload = jsonpickle.encode({"result": 0, "transaction": transaction.get_data()})
     handlers = models.handlers.scan()
     headers = {"Content-Type": "application/json"}
-    port = gator.config.store["notifier_host"]["recv_port"]
 
     for handler in handlers:
-        url = "http://%s:%s/transaction_change" % (handler["ip_address"], port)
+        url = "http://%s:%s/transaction_change" % (handler["ip_address"], handler["port"])
         try:
             requests.post(url, data=payload, headers=headers, timeout=0.5)
         except requests.exceptions.RequestException:
@@ -54,7 +54,9 @@ def flask_add_handler():
     ip_address = request.remote_addr
     if "x-forwarded-for" in request.headers:
         ip_address = request.headers.get("x-forwarded-for").split(",")[0]
-    handler = add_handler(ip_address, expires)
+
+    port = jsonpickle.decode(request.data.decode("utf-8"))["port"]
+    handler = add_handler(ip_address, port, expires)
     return jsonpickle.encode({"result": 0, "handler": handler})
 
 @app.route("/notify/handler", methods=["GET"])

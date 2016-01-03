@@ -11,7 +11,7 @@ class AuthTest(unittest.TestCase):
     def setUp(self):
         apiclient.clear_database()
         self.customer_fbuser_id = "1"
-        self.customer_uuid = apiclient.create_customer("name", "name", "15555555551")["uuid"]
+        self.customer_uuid = apiclient.create_customer("name", "name", "15555555551", "1", "")["uuid"]
         fb = {"fbuser_id": self.customer_fbuser_id, "fbuser_token": "12313123sffsdf"}
         apiclient.update_customer(self.customer_uuid, fb)
         self.delegator_fbuser_id = "2"
@@ -58,5 +58,3 @@ class AuthTest(unittest.TestCase):
                 lambda: validate_permission(customer_identity, [Permission.CUSTOMER_OWNER], "12313123123"))
         self.assertException(GatorException,
                 lambda: validate_permission(customer_identity, [Permission.DELEGATOR_OWNER], customer_identity[0]))
-
-

@@ -15,7 +15,7 @@ class ErrorType():
 
 class Errors():
     # NOTE: do not change the return code of these variables
-    DATA_NOT_PRESENT           = ErrorType(1, "The request could not be completed without the required data")
+    DATA_NOT_PRESENT           = ErrorType(1, "The request was missing required data")
     CUSTOMER_ALREADY_EXISTS    = ErrorType(2, "The specified customer already exists")
     TRANSACTION_DOES_NOT_EXIST = ErrorType(3, "The specified transaction does not exist")
     DELEGATOR_ALREADY_EXISTS   = ErrorType(4, "The specified delegator already exists")
@@ -31,6 +31,9 @@ class Errors():
     PERMISSION_DENIED          = ErrorType(14, "You do not have the access rights for that resource")
     CONSISTENCY_ERROR          = ErrorType(15, "The request could not be completed due to a consistency issue")
     INVALID_PLATFORM           = ErrorType(16, "The specified platform is invalid")
+    STRIPE_ERROR               = ErrorType(17, "Stripe encountered an internal error")
+    RECEIPT_NOT_SAVED          = ErrorType(18, "The receipt for the transaction has not been saved")
+    INVALID_MSG_TYPE           = ErrorType(19, "The specified message type is invalid")
 
 def error_to_json(error):
     return jsonpickle.encode({

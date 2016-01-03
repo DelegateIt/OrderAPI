@@ -100,11 +100,11 @@ def sigint_handler(signal, frame):
     cleanup(long_wait=False)
     exit(0)
 
-def run_suites(suites):
+def run_suites(suites, noseargs):
     actions = {
-        "endpoint": (command.run_nb, [command.RUN_ENDPOINT_TEST]),
-        "internal": (command.run_nb, [command.RUN_INTERNAL_TEST]),
-        "notifier": (command.run_nb, [command.RUN_NOTIFIER_TEST])
+        "endpoint": (command.run_nb, [command.RUN_ENDPOINT_TEST + noseargs]),
+        "internal": (command.run_nb, [command.RUN_INTERNAL_TEST + noseargs]),
+        "notifier": (command.run_nb, [command.RUN_NOTIFIER_TEST + noseargs])
     }
 
     # Run all of the specified tests
@@ -125,11 +125,14 @@ if __name__ == "__main__":
 
     parser.add_argument("suite", metavar="suite", type=str, choices=VALID_SUITES + ["all"],
         help="The test suite to be run")
+    parser.add_argument("noseargs", default="", nargs="?",
+        help="Any args to pass to nosetests")
 
     args = parser.parse_args()
     suites = VALID_SUITES if args.suite == "all" else [args.suite]
 
-    run_suites(suites)
+
+    run_suites(suites, args.noseargs.split(" "))
 
     # Make sure that the output files have been closed
     out.close()

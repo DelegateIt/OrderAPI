@@ -76,7 +76,13 @@ def delegator_login():
 def customer_post():
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not Customer.MANDATORY_KEYS <= set(data.keys()):
+    required = set([
+        CFields.FIRST_NAME,
+        CFields.LAST_NAME,
+        CFields.FBUSER_ID,
+        "fbuser_token"
+    ])
+    if not required <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     # Authenticate the request
@@ -204,7 +210,7 @@ def delegator_list():
 def send_message(transaction_uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not set([MFields.FROM_CUSTOMER, MFields.CONTENT]) <= set(data.keys()):
+    if not set([MFields.FROM_CUSTOMER, MFields.CONTENT, MFields.MTYPE]) <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     transaction = Model.load_from_db(Transaction, transaction_uuid)
@@ -218,7 +224,8 @@ def send_message(transaction_uuid):
 
     message = Message(
         from_customer=data[MFields.FROM_CUSTOMER],
-        content=data[MFields.CONTENT])
+        content=data[MFields.CONTENT],
+        mtype=data[MFields.MTYPE])
 
     transaction.add_message(message)
 
@@ -315,6 +322,45 @@ def assign_transaction(delegator_uuid):
     return jsonpickle.encode({
         "result": 0, "transaction_uuid": transaction[TFields.UUID]},
         unpicklable=False)
+
+@app.route("/core/quickorders", methods=["GET"])
+def get_quickorders():
+    return jsonpickle.encode({
+        "result": 0,
+        "quickorders": [
+            {
+                    "name": "airplane",
+                    "order_text": "buy me an airplane",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/airplane.jpg"
+            },
+            {
+                    "name": "coffee",
+                    "order_text": "buy me a coffee",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/coffee.jpg"
+            },
+            {
+                    "name": "concert",
+                    "order_text": "buy me a concert ticket",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/concert.jpg"
+            },
+            {
+                    "name": "pizza",
+                    "order_text": "buy me a pizza",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/pizza.jpg"
+            },
+            {
+                    "name": "rentals",
+                    "order_text": "buy me some'm dem rentals, bitch",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/rental.jpg"
+            },
+            {
+                    "name": "toilet paper",
+                    "order_text": "buy me a toilet paper",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/toilet-paper.jpg"
+            },
+        ]
+    })
+
 
 @app.errorhandler(BaseException)
 def handle_exception(e):

@@ -80,7 +80,7 @@ class DelegatorTest(RestTest):
         self.assertResponse(12, rsp_get)
 
     def test_assign_transaction(self):
-        customer_uuid = apiclient.create_customer("asf", "asdf", "15555555551")["uuid"]
+        customer_uuid = apiclient.create_customer("asf", "asdf", "15555555551", "1", "")["uuid"]
         delegator_uuid = self.create()["uuid"]
         self.assertResponse(8, apiclient.assign_new_transaction(delegator_uuid))
         transaction_uuid = apiclient.create_transaction(customer_uuid, "ios")["uuid"]
