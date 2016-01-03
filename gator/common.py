@@ -94,3 +94,7 @@ def get_uuid():
 
 def get_current_timestamp():
     return int(time.time() * 10**6)
+
+def convert_query(cls, query):
+    for item in query:
+        yield cls(item)

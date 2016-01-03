@@ -194,10 +194,10 @@ def delegator_list():
     token = request.args.get("token", "")
     validate_permission(validate_token(token), [Permission.ALL_DELEGATORS])
 
-    query = models.delegators.scan()
+    query = common.convert_query(Delegator, models.delegators.scan())
 
     return jsonpickle.encode({
-        "result": 0, "delegators": [delegator._data for delegator in query]},
+        "result": 0, "delegators": [delegator.get_data() for delegator in query]},
         unpicklable=False)
 
 @app.route('/core/send_message/<transaction_uuid>', methods=['POST'])
@@ -298,9 +298,9 @@ def assign_transaction(delegator_uuid):
         return common.error_to_json(Errors.NO_TRANSACTIONS_AVAILABLE)
 
     # Update the transaction
-    transaction_data = models.transactions.query_2(
+    transaction_data = Transaction(models.transactions.query_2(
         index="status-index",
-        status__eq=TransactionStates.STARTED).next()._data
+        status__eq=TransactionStates.STARTED).next()).get_data()
 
     transaction = Model.load_from_db(Transaction, transaction_data["uuid"])
     transaction[TFields.DELEGATOR_UUID] = delegator_uuid
