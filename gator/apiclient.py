@@ -1,9 +1,10 @@
-#!/usr/bin/env python3.4
+#!/usr/bin/env python3
 
 from requests import Request, Session
 import urllib.parse
 import json
 import os
+import argparse
 
 import sys
 
@@ -246,27 +247,12 @@ if __name__ == "__main__":
         "populate": populate_with_dummy_data,
     }
 
-    method = "--help"
-    args = []
-    if len(sys.argv) > 1:
-        method = sys.argv[1]
-        args = sys.argv[2:]
+    parser = argparse.ArgumentParser(description="DelegateIt low-level api client")
+    parser.add_argument("method", choices=method_map.keys(), help="The method to call")
+    parser.add_argument('args', nargs=argparse.REMAINDER,
+            help="Any arguments to pass to the method")
 
-    needs_help = method == "--help" or method == "-h"
-    if not needs_help and method not in method_map:
-        print("Error: {} not in the list of available methods".format(method))
-        needs_help = True
 
-    if needs_help:
-        print("DelegateIt API python wrapper.")
-        print("Usage:")
-        print("\tscript.py method_name [method_arg_1] [method_arg_2] ...")
-        print("Examples:")
-        print("\tscript.py create_customer jon doe 1113334444")
-        print("\tscript.py send_message 3934020959504 'hows it going?'")
-        print("Available methods:")
-        for k in method_map.keys():
-            print("\t{}".format(k))
-        exit(1)
+    args = parser.parse_args()
 
-    print(method_map[method](*args))
+    print(method_map[args.method](*args.args))
