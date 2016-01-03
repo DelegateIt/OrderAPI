@@ -1,3 +1,4 @@
+import re
 import decimal
 import uuid
 import time
@@ -34,6 +35,8 @@ class Errors():
     STRIPE_ERROR               = ErrorType(17, "Stripe encountered an internal error")
     RECEIPT_NOT_SAVED          = ErrorType(18, "The receipt for the transaction has not been saved")
     INVALID_MSG_TYPE           = ErrorType(19, "The specified message type is invalid")
+    INVALID_EMAIL              = ErrorType(20, "The email address is invalid")
+    INVALID_PHONE_NUMBER       = ErrorType(21, "The phone number is invalid")
 
 def error_to_json(error):
     return jsonpickle.encode({
@@ -42,9 +45,10 @@ def error_to_json(error):
         })
 
 class GatorException(Exception):
-    def __init__(self, error_type, message=None):
+    def __init__(self, error_type, message=None, data=None):
         self.message = error_type.err_message if message is None else message
         self.error_type = error_type
+        self.data = data
         Exception.__init__(self, self.message)
 
     def __str__(self):
@@ -87,6 +91,21 @@ class Platforms():
     WEB =     "web"
 
     VALID_PLATFORMS = [SMS, ANDROID, IOS, WEB]
+
+##############
+# Validators #
+##############
+
+EMAIL_REGEX = re.compile("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+PHONE_REGEX = re.compile("^\+?[0-9]{11}$")
+
+def validate_email(email):
+    if EMAIL_REGEX.match(email) is None:
+        raise GatorException(Errors.INVALID_EMAIL, data={"email": email})
+
+def validate_phonenumber(phonenumber):
+    if PHONE_REGEX.match(phonenumber) is None:
+        raise GatorException(Errors.INVALID_PHONE_NUMBER, data={"phone": phonenumber})
 
 ####################
 # Helper Functions #

@@ -19,6 +19,10 @@ class CustomerTest(RestTest):
         self.assertResponse(0,
                 apiclient.create_customer("first", "last", fbuser_id="1", fbuser_token=""))
         self.assertResponse(0, apiclient.get_customer(rsp["uuid"]))
+        self.assertResponse(20,
+                apiclient.create_customer("first", "last", fbuser_id="1", fbuser_token="", email="sdf"))
+        self.assertResponse(21,
+                apiclient.create_customer("first", "last", "1551", fbuser_id="1", fbuser_token=""))
 
     def test_retreive(self):
         self.assertResponse(10, apiclient.get_customer("fake uuid"))
@@ -53,6 +57,10 @@ class CustomerTest(RestTest):
             self.assertEqual(update[key], get_rsp[key])
 
         self.assertResponse(10, apiclient.update_customer("fake uuid", update))
+        self.assertResponse(20,
+                apiclient.update_customer(uuid, {"email": "sdfdsf.com"}))
+        self.assertResponse(21,
+                apiclient.update_customer(uuid, {"phone_number": "slfjd"}))
 
     def test_login(self):
         uuid = self.create()["uuid"]
