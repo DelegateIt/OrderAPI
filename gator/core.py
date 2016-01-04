@@ -14,7 +14,8 @@ import gator.business_logic as bl
 from gator.flask import app
 from gator.models import Model, Customer, Delegator, Transaction, Message
 from gator.models import CFields, DFields, TFields, MFields
-from gator.common import Errors, TransactionStates, GatorException, Platforms
+from gator.common import Errors, TransactionStates, GatorException, Platforms,\
+                         validate_phonenumber, validate_email
 from gator.auth import authenticate, Permission, validate_permission,\
                        validate_fb_token, UuidType, login_facebook, validate_token
 
@@ -82,6 +83,12 @@ def customer_post():
         CFields.FBUSER_ID,
         "fbuser_token"
     ])
+
+    if CFields.PHONE_NUMBER in data:
+        validate_phonenumber(data[CFields.PHONE_NUMBER])
+    if CFields.EMAIL in data:
+        validate_email(data[CFields.EMAIL])
+
     if not required <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
@@ -129,6 +136,11 @@ def customer_put(uuid):
     if customer is None:
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
+    if CFields.PHONE_NUMBER in data:
+        validate_phonenumber(data[CFields.PHONE_NUMBER])
+    if CFields.EMAIL in data:
+        validate_email(data[CFields.EMAIL])
+
     if "fbuser_id" in data or "fbuser_token" in data:
         validate_fb_token(data["fbuser_token"], data["fbuser_id"])
         del data["fbuser_token"]
@@ -147,6 +159,11 @@ def delegator_post():
 
     if not Delegator.MANDATORY_KEYS <= set(data):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
+
+    if DFields.PHONE_NUMBER in data:
+        validate_phonenumber(data[DFields.PHONE_NUMBER])
+    if DFields.EMAIL in data:
+        validate_email(data[DFields.EMAIL])
 
     # Authenticate the request
     validate_fb_token(data.get("fbuser_token"), data["fbuser_id"])
@@ -182,6 +199,11 @@ def delegator_put(uuid):
 
     if delegator is None:
         return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
+
+    if DFields.PHONE_NUMBER in data:
+        validate_phonenumber(data[DFields.PHONE_NUMBER])
+    if DFields.EMAIL in data:
+        validate_email(data[DFields.EMAIL])
 
     if "fbuser_id" in data or "fbuser_token" in data:
         validate_fb_token(data["fbuser_token"], data["fbuser_id"])
@@ -365,11 +387,14 @@ def get_quickorders():
 @app.errorhandler(BaseException)
 def handle_exception(e):
     if issubclass(type(e), GatorException):
-        return (jsonpickle.encode({
+        resp = {
             "result": e.error_type.returncode,
             "error_message": e.message,
             "type": type(e).__name__
-        }), 400)
+        }
+        if e.data is not None:
+            resp["data"] = e.data
+        return (jsonpickle.encode(resp), 400)
     else:
         logging.exception(e)
         return common.error_to_json(Errors.UNCAUGHT_EXCEPTION), 500
