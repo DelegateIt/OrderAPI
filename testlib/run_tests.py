@@ -82,12 +82,12 @@ setup_build_dir()
 
 command = Command()
 
-def cleanup(long_wait=True):
+def cleanup(timeout_time=SHORT_TIMEOUT):
     # Wait for the commands to finish and kill them if they don't
     wait_lambda = lambda: command.wait()
     thread = Thread(target=wait_lambda)
     thread.start()
-    thread.join(LONG_TIMEOUT if long_wait else SHORT_TIMEOUT)
+    thread.join(timeout_time)
 
     # If all commands exited then return
     if len(command.active_cmds) == 0:
@@ -97,7 +97,7 @@ def cleanup(long_wait=True):
     command.reap()
 
 def sigint_handler(signal, frame):
-    cleanup(long_wait=False)
+    cleanup(timeout_time=TINY_TIMEOUT)
     exit(0)
 
 def run_suites(suites, noseargs):
@@ -110,8 +110,10 @@ def run_suites(suites, noseargs):
     # Run all of the specified tests
     for ste in suites:
         if actions.get(ste) is not None:
+            print("%s:" % ste.capitalize())
             process = actions[ste][0](*actions[ste][1])
             process.wait()
+            print("\n")
 
     cleanup()
 
