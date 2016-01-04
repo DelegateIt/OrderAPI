@@ -57,7 +57,7 @@ class TestMigration(unittest.TestCase):
         self.assertEquals(customer["key"], True)
 
         # Get the data and make sure its on the old version
-        retreived_data = customer.get_data()
+        retreived_data = customer.get_data(version=0)
         self.assertEquals(retreived_data["uuid"], "1")
         self.assertEquals(retreived_data["version"], 0)
         self.assertIsNone(retreived_data.get("key"))

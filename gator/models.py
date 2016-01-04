@@ -50,7 +50,6 @@ class Model():
             raise GatorException(Errors.INVALID_DATA_PRESENT)
 
         self.item = item
-        self.original_version = int(item["version"])
         self.HANDLERS.migrate_forward_item(item)
 
     # Factory methods
@@ -113,8 +112,11 @@ class Model():
 
         return True
 
-    def get_data(self):
-        self.HANDLERS.migrate_backward_item(self.item, self.original_version)
+    def get_data(self, version=None):
+        # Default to the latest version
+        new_version = version if version is not None else self.VERSION
+
+        self.HANDLERS.migrate_backward_item(self.item, new_version)
         data = deepcopy(self.item._data)
         self.HANDLERS.migrate_forward_item(self.item)
 
@@ -139,10 +141,6 @@ class Model():
 
     def delete(self):
         return self.item.delete()
-
-    # Parsing and json
-    def to_json(self):
-        return jsonpickle.encode(self.get_data())
 
 class TCFields():
     A_TRANS_UUIDS = "active_transaction_uuids"

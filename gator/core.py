@@ -111,7 +111,8 @@ def customer(uuid):
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
     return jsonpickle.encode({
-        "result": 0, "customer": customer.get_data()},
+        "result": 0, "customer": customer.get_data(
+            version=request.args.get("customer_version"))},
         unpicklable=False)
 
 @app.route('/core/customer/<uuid>', methods=['PUT'])
@@ -165,7 +166,8 @@ def delegator_get(uuid):
         return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
 
     return jsonpickle.encode({
-        "result": 0, "delegator": delegator.get_data()},
+        "result": 0, "delegator": delegator.get_data(
+            version=request.args.get("delegator_version"))},
         unpicklable=False)
 
 @app.route('/core/delegator/<uuid>', methods=['PUT'])
@@ -186,7 +188,7 @@ def delegator_put(uuid):
     if not delegator.save():
         return common.error_to_json(Errors.CONSISTENCY_ERROR)
 
-    return jsonpickle.encode({"result": 0, "delegator": delegator.get_data()})
+    return jsonpickle.encode({"result": 0}, unpicklable=False)
 
 @app.route('/core/delegator', methods=['GET'])
 def delegator_list():
@@ -270,7 +272,8 @@ def transaction_get(uuid):
     validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
 
     return jsonpickle.encode({
-        "result": 0, "transaction": transaction.get_data()},
+        "result": 0, "transaction": transaction.get_data(
+            version=request.args.get("transaction_version"))},
         unpicklable=False)
 
 @app.route('/core/transaction/<uuid>', methods=['PUT'])
