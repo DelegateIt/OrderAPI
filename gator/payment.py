@@ -131,7 +131,7 @@ def get_stripe_customer(customer, save_on_create=True):
         return stripe.Customer.retrieve(customer[CFields.STRIPE_ID])
     else:
         stripe_customer = stripe.Customer.create(
-                metadata={"gator_customer_uuid": customer["uuid"]})
+                metadata={"gator_customer_uuid": customer[CFields.UUID]})
         customer[CFields.STRIPE_ID] = stripe_customer.id
         if save_on_create:
             customer.save()
