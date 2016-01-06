@@ -5,16 +5,16 @@ The order api is responsible for creating and handling the orders for DelegateIt
 To start your own local version of the api for developement or testing purpses, review the instructions found in the GatorCore repo. GatorCore is responsible for setting up the environment while OrderAPI focuses on code.
 
 ## Interacting with the API
-Included within the repo is a client wrapper for the API. With the client you can easily create/edit customers, delegators, transactions and more. To get started you will need python3 and pip installed. With pip installed run `pip3 install requests`. To simulate sending a sms to the api do the following:
+Included within the repo is a client wrapper for the API called `apiclient.py`. With the client you can easily create/edit customers, delegators, transactions and more. To enter the python interactive shell run `docker exec -ti api python3`; from there you can import the apiclient and start sending api requests.
 ```
-$ python3
 > from gator import apiclient
-> 
-> # change the api url to the test api if you want
-> apiclient.default_host = "test-gator-api.elasticbeanstalk.com"
 > 
 > # simulate sending a sms to the api.
 > apiclient.send_sms_to_api("+15555554444", "this is the message body")
+> 
+> # Create a delegator.
+> apiclient.create_delegator(firstname, lastname, phone, email, fbuser_id, fbuser_token)
+> # The locally running API does not validate the fbuser id or token so you can set whatever values
 ```
 
 ## Tests
