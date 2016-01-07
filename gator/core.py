@@ -383,6 +383,13 @@ def get_quickorders():
         ]
     })
 
+@app.route("/core/sendgreeting", methods=["POST"])
+def send_greeting():
+    data = jsonpickle.decode(request.data.decode("utf-8"))
+    if "phone_number" not in data.keys():
+        return common.error_to_json(Errors.DATA_NOT_PRESENT)
+    service.sms.send_msg(body=config.NEW_CUSTOMER_MESSAGE, to=data["phone_number"])
+    return jsonpickle.encode({"result": 0})
 
 @app.errorhandler(BaseException)
 def handle_exception(e):

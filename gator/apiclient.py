@@ -232,6 +232,10 @@ def charge_transaction_payment(transaction_uuid, stripe_source, email=None):
 def get_quickorders():
     return send_api_request("GET", ["core", "quickorders"], token=auth_token)
 
+def send_greeting(phone_number):
+    data = {"phone_number": phone_number}
+    return send_api_request("POST", ["core", "sendgreeting"], data, token=auth_token)
+
 ######END api wrapper
 
 if __name__ == "__main__":
