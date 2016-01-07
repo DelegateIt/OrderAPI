@@ -229,6 +229,8 @@ def charge_transaction_payment(transaction_uuid, stripe_source, email=None):
         data["email"] = email
     return send_api_request("POST", ["payment", "charge", transaction_uuid], data, token=auth_token)
 
+def get_quickorders():
+    return send_api_request("GET", ["core", "quickorders"], token=auth_token)
 
 ######END api wrapper
 
