@@ -18,6 +18,12 @@ class DelegatorTest(RestTest):
     def test_create(self):
         rsp = self.create()
         self.assertResponse(0, apiclient.get_delegator(rsp["uuid"]))
+        apiclient.create_delegator("firstname", "lastname", "15555555555", "noreply@gmail.com",
+                self.fbuser_id, "sdfd")
+        self.assertResponse(20, apiclient.create_delegator("firstname", "lastname",
+                "15555555555", "noreply@@@@gmail.com", "1", "sdfd"))
+        self.assertResponse(21, apiclient.create_delegator("firstname", "lastname",
+                "1555AAA5555555", "noreply@gmail.com", "1", "sdfd"))
 
     def test_retreive(self):
         self.assertResponse(9, apiclient.get_delegator("fake uuid"))
@@ -48,6 +54,10 @@ class DelegatorTest(RestTest):
             self.assertEqual(update[key], get_rsp[key])
 
         self.assertResponse(9, apiclient.update_delegator("fake uuid", update))
+        self.assertResponse(20,
+                apiclient.update_delegator(uuid, {"email": "sdfdsf.com"}))
+        self.assertResponse(21,
+                apiclient.update_delegator(uuid, {"phone_number": "slfjd"}))
 
     def test_uniqueness(self):
         self.create()
@@ -80,7 +90,7 @@ class DelegatorTest(RestTest):
         self.assertResponse(12, rsp_get)
 
     def test_assign_transaction(self):
-        customer_uuid = apiclient.create_customer("asf", "asdf", "15555555551")["uuid"]
+        customer_uuid = apiclient.create_customer("asf", "asdf", "15555555551", "1", "")["uuid"]
         delegator_uuid = self.create()["uuid"]
         self.assertResponse(8, apiclient.assign_new_transaction(delegator_uuid))
         transaction_uuid = apiclient.create_transaction(customer_uuid, "ios")["uuid"]

@@ -1,9 +1,10 @@
-#!/usr/bin/env python3.4
+#!/usr/bin/env python3
 
 from requests import Request, Session
 import urllib.parse
 import json
 import os
+import argparse
 
 import sys
 
@@ -68,12 +69,12 @@ def send_api_request(method, components, json_data=None, token=None, query=None)
 def populate_with_dummy_data():
         dlgt = create_delegator("Test", "Delegator", "phone#1", "sfksdfj@ldjfd.com", "1", "1")
         print("Delegator", dlgt)
-        c1 = create_customer("George", "Bush", "phone#2")
-        c2 = create_customer("John", "Adams", "phone#3")
-        c3 = create_customer("Andrew", "Johnson", "phone#4")
-        c4 = create_customer("Creepy", "Nixon", "phone#5")
-        c5 = create_customer("Frank", "Roosevelt", "phone#6")
-        c6 = create_customer("Barack", "Obama", "phone#7")
+        c1 = create_customer("George", "Bush", "phone#2", "2", "")
+        c2 = create_customer("John", "Adams", "phone#3", "3", "")
+        c3 = create_customer("Andrew", "Johnson", "phone#4", "4", "")
+        c4 = create_customer("Creepy", "Nixon", "phone#5", "5", "")
+        c5 = create_customer("Frank", "Roosevelt", "phone#6", "6", "")
+        c6 = create_customer("Barack", "Obama", "phone#7", "7", "")
         customers = [c1, c2, c3, c4, c5, c6]
         transactions = []
         for c in customers:
@@ -81,25 +82,29 @@ def populate_with_dummy_data():
         print("Transactions", transactions)
         for t in transactions:
             update_transaction(t["uuid"], "helped", dlgt["uuid"])
-        send_message(transactions[0]["uuid"], "test", "I want Pizza", True)
-        send_message(transactions[1]["uuid"], "test", "How's it going?", True)
-        send_message(transactions[2]["uuid"], "test", "Bring me the declaration of independence", True)
-        send_message(transactions[3]["uuid"], "test", "lskjfklsdfjksjf", True)
-        send_message(transactions[4]["uuid"], "test", "I need my lawn mowed pronto", True)
-        send_message(transactions[5]["uuid"], "test", "you.. uh.. got anymore of the dank bud", True)
+        send_message(transactions[0]["uuid"], "I want Pizza", True)
+        send_message(transactions[1]["uuid"], "How's it going?", True)
+        send_message(transactions[2]["uuid"], "Bring me the declaration of independence", True)
+        send_message(transactions[3]["uuid"], "lskjfklsdfjksjf", True)
+        send_message(transactions[4]["uuid"], "I need my lawn mowed pronto", True)
+        send_message(transactions[5]["uuid"], "you.. uh.. got anymore of the dank bud", True)
 
 #######BEGIN api wrapper
 
-def create_customer(first_name, last_name, phone_number, fbuser_id=None, fbuser_token=None):
+def create_customer(first_name, last_name, phone_number=None, fbuser_id=None, fbuser_token=None,
+                    email=None):
     json_data = {
         "first_name": first_name,
         "last_name": last_name,
-        "phone_number": phone_number
     }
+    if phone_number is not None:
+        json_data["phone_number"] = phone_number
     if fbuser_id is not None:
         json_data["fbuser_id"] = fbuser_id
     if fbuser_token is not None:
         json_data["fbuser_token"] = fbuser_token
+    if email is not None:
+        json_data["email"] = email
 
     return send_api_request("POST", ["core", "customer"], json_data, token=auth_token)
 
@@ -150,13 +155,13 @@ def get_delegator_list():
 def update_delegator(delegator_uuid, update):
     return send_api_request("PUT", ["core", "delegator", delegator_uuid], update, token=auth_token)
 
-def send_message(transaction_uuid, platform_type, content, from_customer):
+def send_message(transaction_uuid, content, from_customer, mtype="text"):
     if type(from_customer) is str:
         from_customer = from_customer.lower() == "true"
     json_data = {
-        "platform_type": platform_type,
         "content": content,
-        "from_customer": from_customer
+        "from_customer": from_customer,
+        "type": mtype
     }
 
     return send_api_request("POST", ["core", "send_message", transaction_uuid], json_data, token=auth_token)
@@ -187,8 +192,9 @@ def fb_login_delegator(fbuser_id, fbuser_token):
     }
     return send_api_request("POST", ["core", "login", "delegator"], data)
 
-def add_notify_handler():
-    return send_api_request("POST", ["notify", "handler"], token=auth_token)
+def add_notify_handler(port):
+    data = {"port": port}
+    return send_api_request("POST", ["notify", "handler"], data, token=auth_token)
 
 def get_notify_handlers():
     return send_api_request("GET", ["notify", "handler"], token=auth_token)
@@ -205,6 +211,24 @@ def send_sms_to_api(from_phone_num, message):
         "Body": message
     }
     return send_api_request("POST", ["sms", "handle_sms"], token=auth_token, query=query)
+
+def get_payment_cards(customer_uuid):
+    return send_api_request("GET", ["payment", "card", customer_uuid], token=auth_token)
+
+def add_payment_card(customer_uuid, stripe_token):
+    data = {"stripe_token": stripe_token}
+    return send_api_request("POST", ["payment", "card", customer_uuid], data, token=auth_token)
+
+def delete_payment_card(customer_uuid, card_id):
+    data = {"stripe_card_id": card_id}
+    return send_api_request("DELETE", ["payment", "card", customer_uuid], data, token=auth_token)
+
+def charge_transaction_payment(transaction_uuid, stripe_source, email=None):
+    data = {"stripe_source": stripe_source}
+    if email is not None:
+        data["email"] = email
+    return send_api_request("POST", ["payment", "charge", transaction_uuid], data, token=auth_token)
+
 
 ######END api wrapper
 
@@ -226,27 +250,12 @@ if __name__ == "__main__":
         "populate": populate_with_dummy_data,
     }
 
-    method = "--help"
-    args = []
-    if len(sys.argv) > 1:
-        method = sys.argv[1]
-        args = sys.argv[2:]
+    parser = argparse.ArgumentParser(description="DelegateIt low-level api client")
+    parser.add_argument("method", choices=method_map.keys(), help="The method to call")
+    parser.add_argument('args', nargs=argparse.REMAINDER,
+            help="Any arguments to pass to the method")
 
-    needs_help = method == "--help" or method == "-h"
-    if not needs_help and method not in method_map:
-        print("Error: {} not in the list of available methods".format(method))
-        needs_help = True
 
-    if needs_help:
-        print("DelegateIt API python wrapper.")
-        print("Usage:")
-        print("\tscript.py method_name [method_arg_1] [method_arg_2] ...")
-        print("Examples:")
-        print("\tscript.py create_customer jon doe 1113334444")
-        print("\tscript.py send_message 3934020959504 sms 'hows it going?'")
-        print("Available methods:")
-        for k in method_map.keys():
-            print("\t{}".format(k))
-        exit(1)
+    args = parser.parse_args()
 
-    print(method_map[method](*args))
+    print(method_map[args.method](*args.args))

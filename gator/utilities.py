@@ -29,14 +29,16 @@ def mass_text(body_fn, numbers_fn):
             cur_line = cur_file.readline()
 
 def retreive_transaction_info():
-    import gator.models
+    import gator.models as models
+    import gator.common as common
+    from gator.models import Transaction, TFields
     customers = {}
-    for t in gator.models.transactions.scan():
+    for t in common.convert_query(Transaction, models.transactions.scan()):
         if t["customer_uuid"] not in customers:
             customers[t["customer_uuid"]] = {
                 "transactions": []
             }
-        transaction = copy.deepcopy(t._data)
+        transaction = copy.deepcopy(t.get_data())
         del transaction["customer_uuid"]
         del transaction["payment_url"]
         if "messages" in transaction:
@@ -74,7 +76,7 @@ def generate_api_key(key_type):
     permission = permission_map[key_type]
     uuid = get_uuid()
     expires = 5 * 356 * 24 * 60 * 60 # 5 years.. chosen by fair dice roll
-    token = auth._create_token(uuid, auth.UuidType.API, expires)
+    token = auth.generate_token(uuid, auth.UuidType.API, expires)
     return {
         "token": token,
         "permissions": permission,

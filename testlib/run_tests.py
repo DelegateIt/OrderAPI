@@ -82,12 +82,12 @@ setup_build_dir()
 
 command = Command()
 
-def cleanup(long_wait=True):
+def cleanup(timeout_time=SHORT_TIMEOUT):
     # Wait for the commands to finish and kill them if they don't
     wait_lambda = lambda: command.wait()
     thread = Thread(target=wait_lambda)
     thread.start()
-    thread.join(LONG_TIMEOUT if long_wait else SHORT_TIMEOUT)
+    thread.join(timeout_time)
 
     # If all commands exited then return
     if len(command.active_cmds) == 0:
@@ -97,21 +97,23 @@ def cleanup(long_wait=True):
     command.reap()
 
 def sigint_handler(signal, frame):
-    cleanup(long_wait=False)
+    cleanup(timeout_time=TINY_TIMEOUT)
     exit(0)
 
-def run_suites(suites):
+def run_suites(suites, noseargs):
     actions = {
-        "endpoint": (command.run_nb, [command.RUN_ENDPOINT_TEST]),
-        "internal": (command.run_nb, [command.RUN_INTERNAL_TEST]),
-        "notifier": (command.run_nb, [command.RUN_NOTIFIER_TEST])
+        "endpoint": (command.run_nb, [command.RUN_ENDPOINT_TEST + noseargs]),
+        "internal": (command.run_nb, [command.RUN_INTERNAL_TEST + noseargs]),
+        "notifier": (command.run_nb, [command.RUN_NOTIFIER_TEST + noseargs])
     }
 
     # Run all of the specified tests
     for ste in suites:
         if actions.get(ste) is not None:
+            print("%s:" % ste.capitalize())
             process = actions[ste][0](*actions[ste][1])
             process.wait()
+            print("\n")
 
     cleanup()
 
@@ -125,11 +127,14 @@ if __name__ == "__main__":
 
     parser.add_argument("suite", metavar="suite", type=str, choices=VALID_SUITES + ["all"],
         help="The test suite to be run")
+    parser.add_argument("noseargs", default="", nargs="?",
+        help="Any args to pass to nosetests")
 
     args = parser.parse_args()
     suites = VALID_SUITES if args.suite == "all" else [args.suite]
 
-    run_suites(suites)
+
+    run_suites(suites, args.noseargs.split(" "))
 
     # Make sure that the output files have been closed
     out.close()

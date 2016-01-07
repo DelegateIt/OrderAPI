@@ -176,7 +176,7 @@ class TestCustomer(unittest.TestCase):
     def test_is_valid(self):
         customer_1 = Customer.create_new({})
 
-        self.assertFalse(customer_1.is_valid())
+        self.assertTrue(customer_1.is_valid())
 
         customer_1[CFields.PHONE_NUMBER] = "1"
         self.assertTrue(customer_1.is_valid())
@@ -191,7 +191,7 @@ class TestCustomer(unittest.TestCase):
     def test_create(self):
         customer = Customer.create_new({})
 
-        self.assertFalse(customer.create())
+        self.assertTrue(customer.create())
 
         customer[CFields.PHONE_NUMBER] = "1"
 

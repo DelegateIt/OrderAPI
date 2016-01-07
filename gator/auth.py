@@ -37,7 +37,7 @@ def _hash(uuid, uuid_type, expires):
     data = uuid + ":" + uuid_type.value + ":" + str(expires) + ":" + store["authentication"]["secret"]
     return base64.b64encode(hashlib.sha256(data.encode("utf-8")).digest()).decode("utf-8")
 
-def _create_token(uuid, uuid_type, expire_delta=24*60*60): # expires in one day
+def generate_token(uuid, uuid_type, expire_delta=24*60*60): # expires in one day
         expires = get_current_timestamp() // 10**6 + expire_delta
         data = uuid + ":" + uuid_type.value + ":" + str(expires)
         data_hash = _hash(uuid, uuid_type, expires)
@@ -84,7 +84,7 @@ def _validate_api_permission(uuid, permission_list):
 def login_facebook(fbuser_token, fbuser_id, uuid_type):
     validate_fb_token(fbuser_token, fbuser_id)
     uuid = _retreive_uuid(fbuser_id, uuid_type)
-    return (uuid, _create_token(uuid, uuid_type))
+    return (uuid, generate_token(uuid, uuid_type))
 
 def validate_permission(identity, permission_list, resource_uuid=None):
     (uuid, uuid_type) = identity

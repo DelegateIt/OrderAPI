@@ -1,4 +1,6 @@
 import nose
+import requests
+import urllib.parse
 from gator import apiclient
 from endpoint.rest import RestTest
 
@@ -46,6 +48,24 @@ class TransactionTest(RestTest):
 
         rsp = apiclient.update_transaction(uuid, receipt=receipt)
         self.assertResponse(7, rsp)
+
+    def test_payment_link(self):
+        uuid = self.create()["uuid"]
+        receipt = {
+            "total": 100,
+            "items": [{
+                "Pizza": 90
+            }]
+        }
+        self.assertResponse(0, apiclient.update_transaction(uuid, receipt=receipt))
+        transaction = apiclient.get_transaction(uuid)["transaction"]
+
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(transaction["payment_url"])[4])
+        self.assertEqual(transaction["uuid"], query["transaction"][0])
+        self.assertEqual("True", query["test"][0])
+        rsp = apiclient.send_api_request("GET", ["core", "transaction", transaction["uuid"]], token=query["token"][0])
+        self.assertResponse(0, rsp)
+        self.assertEqual(200, requests.get(transaction["payment_url"]).status_code)
 
     def test_create(self):
         #TODO test status is valid
@@ -129,19 +149,21 @@ class TransactionTest(RestTest):
 
     def test_send_message(self):
         transaction_uuid = self.create()["uuid"]
-        apiclient.send_message(transaction_uuid, platform_type="test", from_customer=True, content="test1")
+        self.assertResponse(0, apiclient.send_message(transaction_uuid, from_customer=True, content="test1"))
         messages = apiclient.get_transaction(transaction_uuid)["transaction"]["messages"]
         expected = [{
-            "platform_type": "test",
+            "type": "text",
             "content": "test1",
             "from_customer": True,
             "timestamp": messages[0]["timestamp"]
         }]
-        apiclient.send_message(transaction_uuid, platform_type="test", from_customer=False, content="test2")
+        apiclient.send_message(transaction_uuid, from_customer=False, content="test2")
         messages = apiclient.get_transaction(transaction_uuid)["transaction"]["messages"]
         expected.append({
-            "platform_type": "test",
+            "type": "text",
             "content": "test2",
             "from_customer": False,
             "timestamp": messages[1]["timestamp"]
         })
+        self.assertResponse(19, apiclient.send_message(transaction_uuid,
+                from_customer=False, content="test3", mtype="asdf"))

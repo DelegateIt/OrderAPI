@@ -14,7 +14,8 @@ import gator.business_logic as bl
 from gator.flask import app
 from gator.models import Model, Customer, Delegator, Transaction, Message
 from gator.models import CFields, DFields, TFields, MFields
-from gator.common import Errors, TransactionStates, GatorException, Platforms
+from gator.common import Errors, TransactionStates, GatorException, Platforms,\
+                         validate_phonenumber, validate_email
 from gator.auth import authenticate, Permission, validate_permission,\
                        validate_fb_token, UuidType, login_facebook, validate_token
 
@@ -63,20 +64,32 @@ def login(uuid_type):
 @app.route('/core/login/customer', methods=["POST"])
 def customer_login():
     (uuid, token) = login(UuidType.CUSTOMER)
-    customer = models.customers.get_item(uuid=uuid, consistent=True)
-    return jsonpickle.encode({"result": 0, "customer": customer._data, "token": token})
+    customer = Model.load_from_db(Customer, uuid)
+    return jsonpickle.encode({"result": 0, "customer": customer.get_data(), "token": token})
 
 @app.route('/core/login/delegator', methods=["POST"])
 def delegator_login():
     (uuid, token) = login(UuidType.DELEGATOR)
-    delegator = models.delegators.get_item(uuid=uuid, consistent=True)
-    return jsonpickle.encode({"result": 0, "delegator": delegator._data, "token": token})
+    delegator = Model.load_from_db(Delegator, uuid)
+    return jsonpickle.encode({"result": 0, "delegator": delegator.get_data(), "token": token})
 
 @app.route('/core/customer', methods=['POST'])
 def customer_post():
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not Customer.MANDATORY_KEYS <= set(data.keys()):
+    required = set([
+        CFields.FIRST_NAME,
+        CFields.LAST_NAME,
+        CFields.FBUSER_ID,
+        "fbuser_token"
+    ])
+
+    if CFields.PHONE_NUMBER in data:
+        validate_phonenumber(data[CFields.PHONE_NUMBER])
+    if CFields.EMAIL in data:
+        validate_email(data[CFields.EMAIL])
+
+    if not required <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     # Authenticate the request
@@ -124,6 +137,11 @@ def customer_put(uuid):
     if customer is None:
         return common.error_to_json(Errors.CUSTOMER_DOES_NOT_EXIST)
 
+    if CFields.PHONE_NUMBER in data:
+        validate_phonenumber(data[CFields.PHONE_NUMBER])
+    if CFields.EMAIL in data:
+        validate_email(data[CFields.EMAIL])
+
     if "fbuser_id" in data or "fbuser_token" in data:
         validate_fb_token(data["fbuser_token"], data["fbuser_id"])
         del data["fbuser_token"]
@@ -142,6 +160,11 @@ def delegator_post():
 
     if not Delegator.MANDATORY_KEYS <= set(data):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
+
+    if DFields.PHONE_NUMBER in data:
+        validate_phonenumber(data[DFields.PHONE_NUMBER])
+    if DFields.EMAIL in data:
+        validate_email(data[DFields.EMAIL])
 
     # Authenticate the request
     validate_fb_token(data.get("fbuser_token"), data["fbuser_id"])
@@ -179,6 +202,11 @@ def delegator_put(uuid):
     if delegator is None:
         return common.error_to_json(Errors.DELEGATOR_DOES_NOT_EXIST)
 
+    if DFields.PHONE_NUMBER in data:
+        validate_phonenumber(data[DFields.PHONE_NUMBER])
+    if DFields.EMAIL in data:
+        validate_email(data[DFields.EMAIL])
+
     if "fbuser_id" in data or "fbuser_token" in data:
         validate_fb_token(data["fbuser_token"], data["fbuser_id"])
         del data["fbuser_token"]
@@ -196,17 +224,17 @@ def delegator_list():
     token = request.args.get("token", "")
     validate_permission(validate_token(token), [Permission.ALL_DELEGATORS])
 
-    query = models.delegators.scan()
+    query = common.convert_query(Delegator, models.delegators.scan())
 
     return jsonpickle.encode({
-        "result": 0, "delegators": [delegator._data for delegator in query]},
+        "result": 0, "delegators": [delegator.get_data() for delegator in query]},
         unpicklable=False)
 
 @app.route('/core/send_message/<transaction_uuid>', methods=['POST'])
 def send_message(transaction_uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
-    if not set([MFields.FROM_CUSTOMER, MFields.CONTENT]) <= set(data.keys()):
+    if not set([MFields.FROM_CUSTOMER, MFields.CONTENT, MFields.MTYPE]) <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
     transaction = Model.load_from_db(Transaction, transaction_uuid)
@@ -220,7 +248,8 @@ def send_message(transaction_uuid):
 
     message = Message(
         from_customer=data[MFields.FROM_CUSTOMER],
-        content=data[MFields.CONTENT])
+        content=data[MFields.CONTENT],
+        mtype=data[MFields.MTYPE])
 
     transaction.add_message(message)
 
@@ -301,9 +330,9 @@ def assign_transaction(delegator_uuid):
         return common.error_to_json(Errors.NO_TRANSACTIONS_AVAILABLE)
 
     # Update the transaction
-    transaction_data = models.transactions.query_2(
+    transaction_data = Transaction(models.transactions.query_2(
         index="status-index",
-        status__eq=TransactionStates.STARTED).next()._data
+        status__eq=TransactionStates.STARTED).next()).get_data()
 
     transaction = Model.load_from_db(Transaction, transaction_data["uuid"])
     transaction[TFields.DELEGATOR_UUID] = delegator_uuid
@@ -319,14 +348,56 @@ def assign_transaction(delegator_uuid):
         "result": 0, "transaction_uuid": transaction[TFields.UUID]},
         unpicklable=False)
 
+@app.route("/core/quickorders", methods=["GET"])
+def get_quickorders():
+    return jsonpickle.encode({
+        "result": 0,
+        "quickorders": [
+            {
+                    "name": "airplane",
+                    "order_text": "buy me an airplane",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/airplane.jpg"
+            },
+            {
+                    "name": "coffee",
+                    "order_text": "buy me a coffee",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/coffee.jpg"
+            },
+            {
+                    "name": "concert",
+                    "order_text": "buy me a concert ticket",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/concert.jpg"
+            },
+            {
+                    "name": "pizza",
+                    "order_text": "buy me a pizza",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/pizza.jpg"
+            },
+            {
+                    "name": "rentals",
+                    "order_text": "buy me some'm dem rentals, bitch",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/rental.jpg"
+            },
+            {
+                    "name": "toilet paper",
+                    "order_text": "buy me a toilet paper",
+                    "image": "http://delegateit-quickorders.s3-website-us-west-2.amazonaws.com/toilet-paper.jpg"
+            },
+        ]
+    })
+
+
 @app.errorhandler(BaseException)
 def handle_exception(e):
     if issubclass(type(e), GatorException):
-        return (jsonpickle.encode({
+        resp = {
             "result": e.error_type.returncode,
             "error_message": e.message,
             "type": type(e).__name__
-        }), 400)
+        }
+        if e.data is not None:
+            resp["data"] = e.data
+        return (jsonpickle.encode(resp), 400)
     else:
         logging.exception(e)
         return common.error_to_json(Errors.UNCAUGHT_EXCEPTION), 500
