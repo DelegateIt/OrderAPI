@@ -63,8 +63,8 @@ class TransactionTest(RestTest):
 
         hashmark = urllib.parse.parse_qs(urllib.parse.urlparse(transaction["payment_url"])[5])
         print(hashmark)
-        self.assertEqual(transaction["uuid"], hashmark["?transaction"][0])
-        self.assertTrue("test" in hashmark)
+        self.assertEqual(transaction["uuid"], hashmark["transaction"][0])
+        self.assertTrue("?test" in hashmark)
 
         rsp = apiclient.send_api_request("GET", ["core", "transaction", transaction["uuid"]], token=hashmark["token"][0])
         self.assertResponse(0, rsp)
