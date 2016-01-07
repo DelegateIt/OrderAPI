@@ -76,10 +76,11 @@ def create_url(transaction_uuid, token, use_test_api):
     args = {
         "token": token,
         "transaction": transaction_uuid,
-        "test": use_test_api
     }
-    long_url = 'http://%s:%s/payment/uiform/%s?%s' % \
-            (host, port, transaction_uuid, urllib.parse.urlencode(args))
+    if use_test_api:
+        args["test"] = True
+    long_url = 'http://%s:%s/static/payment.html#?%s' % \
+            (host, port, urllib.parse.urlencode(args))
     return service.shorturl.shorten_url(long_url)
 
 @app.route('/payment/uiform/<transaction_uuid>', methods=['GET'])

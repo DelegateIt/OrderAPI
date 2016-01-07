@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>DelegateIt</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+
+</head>
+<body ng-app="app" ng-controller="mainCtrl" style="padding-top: 20px">
+    <div class="container">
+        <noscript>
+            <div class="alert alert-danger text-center">
+                Please turn on javascript to view this website
+            </div>
+        </noscript>
+        <div class="row">
+            <div class="col-md-4">
+            </div>
+            <div class="col-md-4 ng-cloak">
+                <div ng-hide="errorMsg == ''" class="alert alert-danger text-center">
+                    {{ errorMsg }}
+                </div>
+                <div ng-show="hasPaid()" class="alert alert-success text-center">
+                    Thank you for using DelegateIt!
+                </div>
+                <div ng-hide="hasPaid()" class="panel panel-default">
+                    <div class="panel-heading"><h3>Receipt</h3></div>
+                    <ul class="list-group">
+                        <li ng-repeat="item in receipt.items" class="list-group-item">
+                            {{ item.name }}
+                        </li>
+                    </ul>
+                    <div ng-hide="receipt == null" class="panel-body">
+                        <div><label>Total</label>: ${{ receipt.total / 100 }}</div>
+                        <div ng-hide="typeof(receipt.notes) != 'undefined'" style="padding-top:15px">
+                            <label>Notes:</label>
+                            <pre style="word-wrap:normal">{{ receipt.notes }}</pre>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <button ng-click="onPayBtnClick($event)" ng-disabled="isPayBtnDisabled()" class="btn btn-primary">Purchase</button>
+                        <img ng-show="loading" src="spiffygif_28x28.gif" alt="Loading...">
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+            </div>
+        </div>
+    </div>
+    <script src="angular.min.js"></script>
+    <script src="https://checkout.stripe.com/checkout.js"></script>
+    <script src="payment.js"></script>
+</body>
+</html>

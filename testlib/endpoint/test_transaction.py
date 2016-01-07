@@ -61,10 +61,12 @@ class TransactionTest(RestTest):
         self.assertResponse(0, apiclient.update_transaction(uuid, receipt=receipt))
         transaction = apiclient.get_transaction(uuid)["transaction"]
 
-        query = urllib.parse.parse_qs(urllib.parse.urlparse(transaction["payment_url"])[4])
-        self.assertEqual(transaction["uuid"], query["transaction"][0])
-        self.assertEqual("True", query["test"][0])
-        rsp = apiclient.send_api_request("GET", ["core", "transaction", transaction["uuid"]], token=query["token"][0])
+        hashmark = urllib.parse.parse_qs(urllib.parse.urlparse(transaction["payment_url"])[5])
+        print(hashmark)
+        self.assertEqual(transaction["uuid"], hashmark["?transaction"][0])
+        self.assertTrue("test" in hashmark)
+
+        rsp = apiclient.send_api_request("GET", ["core", "transaction", transaction["uuid"]], token=hashmark["token"][0])
         self.assertResponse(0, rsp)
         self.assertEqual(200, requests.get(transaction["payment_url"]).status_code)
 
