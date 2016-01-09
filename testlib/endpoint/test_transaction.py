@@ -63,10 +63,14 @@ class TransactionTest(RestTest):
 
         hashmark = urllib.parse.parse_qs(urllib.parse.urlparse(transaction["payment_url"])[5])
         print(hashmark)
-        self.assertEqual(transaction["uuid"], hashmark["transaction"][0])
-        self.assertTrue("?test" in hashmark)
 
-        rsp = apiclient.send_api_request("GET", ["core", "transaction", transaction["uuid"]], token=hashmark["token"][0])
+        transaction_hashmark = hashmark["transaction"] if "transaction" in hashmark else hashmark["?transaction"]
+        token_hashmark = hashmark["token"] if "token" in hashmark else hashmark["?token"]
+
+        self.assertEqual(transaction["uuid"], transaction_hashmark[0])
+        self.assertTrue("test" in hashmark or "?test" in hashmark)
+
+        rsp = apiclient.send_api_request("GET", ["core", "transaction", transaction["uuid"]], token=token_hashmark[0])
         self.assertResponse(0, rsp)
         self.assertEqual(200, requests.get(transaction["payment_url"]).status_code)
 
