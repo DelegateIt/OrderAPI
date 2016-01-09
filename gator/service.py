@@ -27,12 +27,18 @@ dynamodb = None
 #######################
 
 class SmsService(object):
+    def is_connected(self):
+        return True
+
     def send_msg(self, to, body, _from="+15123593557"):
         logging.info("TEST: Sent SMS to {} from {} with body: {}".format(to, _from, body))
 
 class TwilioService(SmsService):
     def __init__(self, account_sid, auth_token):
         self.twilio = TwilioRestClient(account_sid, auth_token)
+
+    def is_connected(self):
+        return len(self.twilio.accounts.list()) > 0
 
     def send_msg(self, to, body, from_="+15123593557"):
         sms_chunks = [body[i : i + config.MAX_TWILIO_MSG_SIZE]

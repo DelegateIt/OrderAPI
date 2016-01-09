@@ -42,8 +42,7 @@ def get_health():
         last_status_check = common.get_current_timestamp()
         try:
             models.customers.describe()
-            accounts = service.sms.twilio.accounts.list()
-            is_api_operational = len(accounts) > 0
+            is_api_operational = service.sms.is_connected()
         except Exception as e:
             logging.exception(e)
             is_api_operational = False

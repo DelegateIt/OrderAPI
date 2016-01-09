@@ -10,3 +10,9 @@ class QuickOrdersTest(RestTest):
 class SendGreetingTest(RestTest):
     def test(self):
         self.assertResponse(0, apiclient.send_greeting("15555551234"))
+
+class HealthTest(RestTest):
+    def test(self):
+        rsp = apiclient.get_health()
+        self.assertResponse(0, rsp)
+        self.assertEqual("good", rsp["status"])

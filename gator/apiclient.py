@@ -236,6 +236,9 @@ def send_greeting(phone_number):
     data = {"phone_number": phone_number}
     return send_api_request("POST", ["core", "sendgreeting"], data, token=auth_token)
 
+def get_health():
+    return send_api_request("GET", ["health"])
+
 ######END api wrapper
 
 if __name__ == "__main__":
