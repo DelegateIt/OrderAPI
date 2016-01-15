@@ -92,7 +92,6 @@ class AddMessageType():
             return
 
         for msg in item["messages"]:
-            print (msg)
             if msg.get("type") is None:
                 msg["type"] = "text"
 

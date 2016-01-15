@@ -98,8 +98,8 @@ class Model():
             raise ValueError("Attribute %s is not valid." % key)
 
     def __contains__(self, key):
-        return key in self.item
-
+        return key in self.get_data()
+        
     def update(self, atts):
         for key, val in atts.items():
             self[key] = val
@@ -304,11 +304,13 @@ class Transaction(Model):
     TABLE = transactions
     KEY = TFields.UUID
     MANDATORY_KEYS = set([TFields.CUSTOMER_UUID, TFields.CUSTOMER_PLATFORM_TYPE])
-    VERSION = 1
+    VERSION = 3
 
     # Initialize the migration handlers
     HANDLERS = MigrationHandlers(VERSION)
     HANDLERS.add_handler(0, version.VersionHandler)
+    HANDLERS.add_handler(1, version.MigratePlatformType)
+    HANDLERS.add_handler(2, version.AddMessageType)
 
     def __init__(self, item):
         super().__init__(item)
