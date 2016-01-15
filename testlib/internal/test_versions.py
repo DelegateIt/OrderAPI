@@ -5,6 +5,7 @@ import gator.version as version
 
 from gator.version import MigrationHandlers
 from gator.common import GatorException
+from gator.models import MFields, MTypes
 
 # Test handlers used to mock a real migration
 class TestHandler1():
@@ -106,3 +107,37 @@ class TestCurrentHandlers(unittest.TestCase):
 
         handlers.migrate_backward_item(item, 0)
         self.assertEquals(item["version"], 0)
+
+    def test_migrate_platform_type(self):
+        handlers = MigrationHandlers(1)
+        handlers.add_handler(0, version.MigratePlatformType)
+        item = {"version": 0, "customer_platform_type": "SMS", "messages": [
+                    {"from_customer": 1, "platform_type": "SMS"},
+                    {"from_customer": 0, "platform_type": "web_client"}]}
+
+        item_dup = deepcopy(item)
+
+        handlers.migrate_forward_item(item)
+        self.assertEquals(item["version"], 1)
+        self.assertEquals(item["customer_platform_type"], "SMS")
+        self.assertIsNone(item["messages"][0].get("platform_type"))
+        self.assertIsNone(item["messages"][1].get("platform_type"))
+
+        handlers.migrate_backward_item(item, 0)
+        self.assertEquals(item, item_dup)
+
+    def test_add_message_type(self):
+        handlers = MigrationHandlers(1)
+        handlers.add_handler(0, version.AddMessageType)
+        item = {"version": 0, "messages": [
+            {MFields.MTYPE: MTypes.TEXT},
+            {MFields.MTYPE: "not text"},
+            {}]}
+
+        handlers.migrate_forward_item(item)
+        self.assertEquals(item["version"], 1)
+        self.assertEquals(item["messages"][0][MFields.MTYPE], MTypes.TEXT)
+        self.assertEquals(item["messages"][1][MFields.MTYPE], "not text")
+        self.assertEquals(item["messages"][2][MFields.MTYPE], MTypes.TEXT)
+
+        handlers.migrate_backward_item(item, 0)

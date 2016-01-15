@@ -355,7 +355,7 @@ class Transaction(Model):
 
         self.item[TFields.MESSAGES].append(message.get_data())
 
-class MTypes(Enum):
+class MTypes():
     TEXT = "text"
     RECEIPT = "receipt"
     IMAGE = "image"
@@ -367,12 +367,15 @@ class MFields():
     MTYPE = "type"
 
 class Message():
+    VALID_MESSAGE_TYPES = set([getattr(MTypes, attr) for attr in vars(MTypes)
+            if not attr.startswith("__")])
+
     def __init__(self, from_customer=None, content=None, mtype=None):
         setattr(self, MFields.FROM_CUSTOMER, from_customer)
         setattr(self, MFields.CONTENT, content)
         setattr(self, MFields.MTYPE, mtype)
         setattr(self, MFields.TIMESTAMP, common.get_current_timestamp())
-        if mtype is not None and mtype not in [v.value for v in MTypes.__members__.values()]:
+        if mtype is not None and mtype not in self.VALID_MESSAGE_TYPES:
             raise GatorException(Errors.INVALID_MSG_TYPE)
 
     def get_timestamp(self):
