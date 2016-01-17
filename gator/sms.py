@@ -59,7 +59,7 @@ def handle_sms():
                 to=delegator["phone_number"])
 
     # Add the messages to the transaction
-    message = Message(from_customer=True, content=request.values["Body"], mtype=MTypes.TEXT.value)
+    message = Message(from_customer=True, content=request.values["Body"], mtype=MTypes.TEXT)
     transaction.add_message(message)
 
     if not (customer.save() and transaction.save()):

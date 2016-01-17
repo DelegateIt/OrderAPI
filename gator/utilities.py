@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
+
 """ The misc and utility file
 
 Put things in here that are scripts or tangential
 uses of the backend
 """
 
+import argparse
 import copy
 import sys
 import os
 import base64
+
+sys.path.append(os.path.abspath(os.path.dirname(__file__) + "../../../"))
+
+import gator.models as models
+
+from gator.models import Customer, Delegator, Transaction
 
 def mass_text(body_fn, numbers_fn):
     from gator.service import sms
@@ -75,20 +83,57 @@ def generate_api_key(key_type):
         "id": uuid
     }
 
-
-if __name__ == "__main__":
-    method_map = {
-        "mass_text": mass_text
+def migrate_db(tablename):
+    colloquial_table_names = {
+        "customers":    Customer,
+        "delegators":   Delegator,
+        "transactions": Transaction
     }
 
-    method = None
-    args = []
-    if len(sys.argv) > 1:
-        method = sys.argv[1]
-        args = sys.argv[2:]
+    num_failures = 0
+    total_migrations = 0
+    tragic_failure = False
+    model_cls = colloquial_table_names[tablename]
 
-    if method is None:
-        print("Please specify a method to execute.")
-        exit(0)
+    for item in model_cls.TABLE.scan():
+        # Necessary for first migration
+        if item.get("version") is None:
+            item["version"] = 0
 
-    method_map[method](*args)
+        version = int(item["version"])
+        if version < model_cls.VERSION:
+            model_cls.HANDLERS.migrate_forward_item(item)
+            num_failures += not item.save()
+            total_migrations += 1
+        elif version > model_cls.VERSION:
+            # This only happens if you screwed up
+            tragic_failure = True
+            num_failures += 1
+
+    if tragic_failure:
+        print ("WARNING TRAGIC FAILURE: item versions are inconsistent\n")
+
+    print ("Migration was %s\nTotal Failures: %s\nTotal Migrations: %s" % (
+        "SUCCESSFUL" if num_failures == 0 else "UNSUCCESSFUL",
+        num_failures, total_migrations))
+
+if __name__ == "__main__":
+    actions = {
+        "mass_text": mass_text,
+        "retreive_transaction_info": retreive_transaction_info,
+        "generate_entropy": generate_entropy,
+        "generate_api_key": generate_api_key,
+        "migrate_db": migrate_db
+    }
+
+    choices = actions.keys()
+
+    parser = argparse.ArgumentParser(
+        description="Command line wrapper for miscellaneous utility functions",
+        epilog="Valid commands: [%s]" % ", ".join(choices))
+
+    parser.add_argument("command", type=str, choices=choices, help="Action to execute")
+    parser.add_argument("args", nargs="*", help="Args to pass to action")
+
+    args = parser.parse_args()
+    actions[args.command](*args.args)

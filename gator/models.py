@@ -1,5 +1,6 @@
 from boto.dynamodb2.table import Table, Item
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException, ItemNotFound
+from copy import deepcopy
 
 import jsonpickle
 
@@ -11,8 +12,10 @@ from enum import Enum, unique
 import gator.service as service
 import gator.common as common
 import gator.config as config
+import gator.version as version
 
-from gator.common import TransactionStates, Platforms, GatorException, Errors
+from gator.common import TransactionStates, Platforms, Errors, GatorException
+from gator.version import MigrationHandlers
 
 ##############################
 # Global vars, consts, extra #
@@ -21,18 +24,18 @@ from gator.common import TransactionStates, Platforms, GatorException, Errors
 conn = service.dynamodb
 
 # Class of table names
+table_prefix = config.store["dynamodb"]["table_prefix"]
 class TableNames():
-    CUSTOMERS    = "DelegateIt_Customers"
-    DELEGATORS   = "DelegateIt_Delegators"
-    TRANSACTIONS = "DelegateIt_Transactions"
-    HANDLERS     = "DelegateIt_Handlers"
+    CUSTOMERS    = table_prefix + "DelegateIt_Customers"
+    DELEGATORS   = table_prefix + "DelegateIt_Delegators"
+    TRANSACTIONS = table_prefix + "DelegateIt_Transactions"
+    HANDLERS     = table_prefix + "DelegateIt_Handlers"
 
 # Tables
-table_prefix = config.store["dynamodb"]["table_prefix"]
-customers    = Table(table_prefix + TableNames.CUSTOMERS,    connection=conn)
-delegators   = Table(table_prefix + TableNames.DELEGATORS,   connection=conn)
-transactions = Table(table_prefix + TableNames.TRANSACTIONS, connection=conn)
-handlers     = Table(table_prefix + TableNames.HANDLERS,     connection=conn)
+customers    = Table(TableNames.CUSTOMERS,    connection=conn)
+delegators   = Table(TableNames.DELEGATORS,   connection=conn)
+transactions = Table(TableNames.TRANSACTIONS, connection=conn)
+handlers     = Table(TableNames.HANDLERS,     connection=conn)
 
 # Use boolean for the tables
 customers.use_boolean()
@@ -40,16 +43,14 @@ delegators.use_boolean()
 transactions.use_boolean()
 handlers.use_boolean()
 
-SCHEMA_VERSION_KEY = "schema_version"
-
 # Base class for all object models
 class Model():
     def __init__(self, item):
         if not self._atts_are_valid(item._data):
-            #TODO change this to a GatorException
-            raise ValueError("One or more of the item's attributes is invalid")
+            raise GatorException(Errors.INVALID_DATA_PRESENT)
 
         self.item = item
+        self.HANDLERS.migrate_forward_item(item)
 
     # Factory methods
     @staticmethod
@@ -68,6 +69,12 @@ class Model():
                 **{
                     cls.KEY: key
                 }))
+
+            # Migrate the item forward if it is on an old version
+            if item["version"] <= cls.VERSION:
+                cls.HANDLERS.migrate_forward_item(item)
+                if not item.save():
+                    return None
         except ItemNotFound:
             pass
 
@@ -91,8 +98,8 @@ class Model():
             raise ValueError("Attribute %s is not valid." % key)
 
     def __contains__(self, key):
-        return key in self.item
-
+        return key in self.get_data()
+        
     def update(self, atts):
         for key, val in atts.items():
             self[key] = val
@@ -105,8 +112,15 @@ class Model():
 
         return True
 
-    def get_data(self):
-        return self.item._data
+    def get_data(self, version=None):
+        # Default to the latest version
+        new_version = version if version is not None else self.VERSION
+
+        self.HANDLERS.migrate_backward_item(self.item, new_version)
+        data = deepcopy(self.item._data)
+        self.HANDLERS.migrate_forward_item(self.item)
+
+        return data
 
     # Database Logic
     def save(self):
@@ -127,10 +141,6 @@ class Model():
 
     def delete(self):
         return self.item.delete()
-
-    # Parsing and json
-    def to_json(self):
-        return jsonpickle.encode(get_data())
 
 class TCFields():
     A_TRANS_UUIDS = "active_transaction_uuids"
@@ -178,6 +188,7 @@ class TransactionContainerFuncs():
 
 class CFields():
     UUID = "uuid"
+    VERSION = "version"
     PHONE_NUMBER = "phone_number"
     EMAIL = "email"
     FIRST_NAME = "first_name"
@@ -186,7 +197,6 @@ class CFields():
     STRIPE_ID = "stripe_id"
     A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
-    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class Customer(Model, TransactionContainerFuncs):
     FIELDS = CFields
@@ -196,18 +206,22 @@ class Customer(Model, TransactionContainerFuncs):
     TABLE = customers
     KEY = CFields.UUID
     MANDATORY_KEYS = set([])
+    VERSION = 1
+
+    # Initialize the migration handlers
+    HANDLERS = MigrationHandlers(VERSION)
+    HANDLERS.add_handler(0, version.VersionHandler)
 
     def __init__(self, item):
         super().__init__(item)
 
     @staticmethod
     def create_new(attributes={}):
-        customer = Model.load_from_data(Customer, attributes)
+        # Default Values
+        attributes[CFields.UUID] = common.get_uuid()
+        attributes[CFields.VERSION] = Customer.VERSION
 
-        # Default values
-        customer[CFields.UUID] = common.get_uuid()
-
-        return customer
+        return Model.load_from_data(Customer, attributes)
 
     def is_valid(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
@@ -220,6 +234,7 @@ class Customer(Model, TransactionContainerFuncs):
 
 class DFields():
     UUID = "uuid"
+    VERSION = "version"
     PHONE_NUMBER = "phone_number"
     EMAIL = "email"
     FIRST_NAME = "first_name"
@@ -227,7 +242,6 @@ class DFields():
     FBUSER_ID = "fbuser_id"
     A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
     IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
-    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class Delegator(Model, TransactionContainerFuncs):
     FIELDS = DFields
@@ -237,18 +251,22 @@ class Delegator(Model, TransactionContainerFuncs):
     TABLE = delegators
     KEY = DFields.UUID
     MANDATORY_KEYS = set([DFields.FBUSER_ID, DFields.PHONE_NUMBER, DFields.EMAIL, DFields.FIRST_NAME, DFields.LAST_NAME])
+    VERSION = 1
+
+    # Initialize the migration handlers
+    HANDLERS = MigrationHandlers(VERSION)
+    HANDLERS.add_handler(0, version.VersionHandler)
 
     def __init__(self, item):
         super().__init__(item)
 
     @staticmethod
     def create_new(attributes={}):
-        delegator = Model.load_from_data(Delegator, attributes)
+        # Default Values
+        attributes[DFields.UUID] = common.get_uuid()
+        attributes[DFields.VERSION] = Delegator.VERSION
 
-        # Default values
-        delegator[DFields.UUID] = common.get_uuid()
-
-        return delegator
+        return Model.load_from_data(Delegator, attributes)
 
     def is_valid(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
@@ -262,6 +280,7 @@ class Delegator(Model, TransactionContainerFuncs):
 
 class TFields():
     UUID = "uuid"
+    VERSION = "version"
     CUSTOMER_UUID = "customer_uuid"
     DELEGATOR_UUID = "delegator_uuid"
     STATUS = "status"
@@ -270,7 +289,6 @@ class TFields():
     RECEIPT = "receipt"
     PAYMENT_URL = "payment_url"
     CUSTOMER_PLATFORM_TYPE = "customer_platform_type"
-    SCHEMA_VERSION = SCHEMA_VERSION_KEY
 
 class RFields():
     ITEMS = "items"
@@ -286,20 +304,28 @@ class Transaction(Model):
     TABLE = transactions
     KEY = TFields.UUID
     MANDATORY_KEYS = set([TFields.CUSTOMER_UUID, TFields.CUSTOMER_PLATFORM_TYPE])
+    VERSION = 3
+
+    # Initialize the migration handlers
+    HANDLERS = MigrationHandlers(VERSION)
+    HANDLERS.add_handler(0, version.VersionHandler)
+    HANDLERS.add_handler(1, version.MigratePlatformType)
+    HANDLERS.add_handler(2, version.AddMessageType)
 
     def __init__(self, item):
         super().__init__(item)
 
     @staticmethod
     def create_new(attributes={}):
-        transaction = Model.load_from_data(Transaction, attributes)
-        transaction[TFields.UUID] = common.get_uuid()
-        transaction[TFields.TIMESTAMP] = common.get_current_timestamp()
+        # Default Values
+        attributes[TFields.UUID] = common.get_uuid()
+        attributes[TFields.VERSION] = Transaction.VERSION
+        attributes[TFields.TIMESTAMP] = common.get_current_timestamp()
 
-        if transaction[TFields.STATUS] is None:
-            transaction[TFields.STATUS] = TransactionStates.STARTED
+        if attributes.get(TFields.STATUS) is None:
+            attributes[TFields.STATUS] = TransactionStates.STARTED
 
-        return transaction
+        return Model.load_from_data(Transaction, attributes)
 
     # Overriden Methods
     def is_valid(self):
@@ -331,7 +357,7 @@ class Transaction(Model):
 
         self.item[TFields.MESSAGES].append(message.get_data())
 
-class MTypes(Enum):
+class MTypes():
     TEXT = "text"
     RECEIPT = "receipt"
     IMAGE = "image"
@@ -343,12 +369,15 @@ class MFields():
     MTYPE = "type"
 
 class Message():
+    VALID_MESSAGE_TYPES = set([getattr(MTypes, attr) for attr in vars(MTypes)
+            if not attr.startswith("__")])
+
     def __init__(self, from_customer=None, content=None, mtype=None):
         setattr(self, MFields.FROM_CUSTOMER, from_customer)
         setattr(self, MFields.CONTENT, content)
         setattr(self, MFields.MTYPE, mtype)
         setattr(self, MFields.TIMESTAMP, common.get_current_timestamp())
-        if mtype is not None and mtype not in [v.value for v in MTypes.__members__.values()]:
+        if mtype is not None and mtype not in self.VALID_MESSAGE_TYPES:
             raise GatorException(Errors.INVALID_MSG_TYPE)
 
     def get_timestamp(self):

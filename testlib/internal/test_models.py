@@ -2,22 +2,20 @@ import unittest
 
 import gator.common as common
 import gator.apiclient as apiclient
+import gator.config as config
 
 from gator.models import Model, Customer, Delegator, Transaction, Message,\
                          CFields, DFields, TFields, MFields,\
                          customers, delegators, transactions, handlers
-from gator.common import Platforms
-
-def clear():
-    apiclient.clear_database()
+from gator.common import Platforms, GatorException
 
 class TestModel(unittest.TestCase):
     def setUp(self):
-        clear()
-        self.customer = Model.load_from_data(Customer, {})
+        apiclient.clear_database()
+        self.customer = Customer.create_new({})
 
     def test_invalid_init(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(GatorException):
             Model.load_from_data(Customer, {"invalid_key": "DOES NOT MATTER"})
 
     def test_load_from_db(self):
@@ -49,11 +47,13 @@ class TestModel(unittest.TestCase):
     def test_load_from_data(self):
         customer = Model.load_from_data(Customer, {
             CFields.UUID: "1",
+            CFields.VERSION: Customer.VERSION,
             CFields.FIRST_NAME: "2"
         })
 
-        self.assertEquals(2, len(customer.get_data()))
+        self.assertEquals(3, len(customer.get_data()))
         self.assertEquals(customer[CFields.UUID], "1")
+        self.assertEquals(customer[CFields.VERSION], Customer.VERSION)
         self.assertEquals(customer[CFields.FIRST_NAME], "2")
 
     def test_invalid_load_from_data(self):
@@ -83,7 +83,7 @@ class TestModel(unittest.TestCase):
         self.assertEquals(self.customer[CFields.FIRST_NAME], "2")
 
     def test_atts_are_valid(self):
-        customer = Model.load_from_data(Customer, {})
+        customer = Customer.create_new({})
         self.assertTrue(customer._atts_are_valid({
             CFields.UUID,
             CFields.FIRST_NAME}))
@@ -97,7 +97,8 @@ class TestModel(unittest.TestCase):
             CFields.PHONE_NUMBER: "2"})
 
         customer_data = customer.get_data()
-        self.assertEquals(len(customer_data), 3)
+        self.assertEquals(len(customer_data), 4)
+        self.assertEquals(customer_data[CFields.VERSION], Customer.VERSION)
         self.assertEquals(customer_data[CFields.FIRST_NAME], "1")
         self.assertEquals(customer_data[CFields.PHONE_NUMBER], "2")
         self.assertIsNotNone(customer_data[CFields.UUID])
@@ -139,7 +140,7 @@ class TestModel(unittest.TestCase):
         self.assertFalse(customer_2.save())
 
     def  test_create(self):
-        customer = Customer.load_from_data(Customer, {
+        customer = Customer.create_new({
             CFields.UUID: "1",
             CFields.FIRST_NAME: "2",
             CFields.LAST_NAME: "3",
@@ -159,7 +160,7 @@ class TestModel(unittest.TestCase):
 
 class TestCustomer(unittest.TestCase):
     def setUp(self):
-        clear()
+        apiclient.clear_database()
 
     def test_create_new(self):
         customer = Customer.create_new({
@@ -198,13 +199,14 @@ class TestCustomer(unittest.TestCase):
 
 class TestDelegator(unittest.TestCase):
     def setUp(self):
-        clear()
+        apiclient.clear_database()
 
     def test_create_new(self):
         delegator = Delegator.create_new({
             DFields.EMAIL: "1"})
 
-        self.assertEquals(len(delegator.get_data()), 2)
+        self.assertEquals(len(delegator.get_data()), 3)
+        self.assertEquals(delegator[DFields.VERSION], Delegator.VERSION)
         self.assertEquals(delegator[DFields.EMAIL], "1")
         self.assertIsNotNone(delegator[DFields.UUID])
 
@@ -251,8 +253,9 @@ class TestTransaction(unittest.TestCase):
         transaction.add_message(Message(from_customer="2"))
 
         data = transaction.get_data()
-        self.assertEquals(len(data), 5)
+        self.assertEquals(len(data), 6)
         self.assertIsNotNone(data[TFields.UUID])
+        self.assertEquals(data[TFields.VERSION], Transaction.VERSION)
         self.assertEquals(data[TFields.CUSTOMER_UUID], "1")
         self.assertEquals(data[TFields.STATUS], common.TransactionStates.STARTED)
         self.assertIsNotNone(data[TFields.TIMESTAMP])
