@@ -11,9 +11,9 @@ from copy import deepcopy
 from threading import Thread
 
 class Command:
-    RUN_ENDPOINT_TEST = ["docker", "exec", "-iu", "0", "api", "/usr/local/bin/nosetests", "-w", "/var/gator/api/testlib/endpoint/"]
-    RUN_INTERNAL_TEST = ["docker", "exec", "-iu", "0", "api", "/usr/local/bin/nosetests", "-w", "/var/gator/api/testlib/internal/"]
-    RUN_NOTIFIER_TEST = ["docker", "exec", "-iu", "0", "ntfy", "/usr/local/bin/nosetests", "-w", "/var/gator/api/testlib/notifier/"]
+    RUN_ENDPOINT_TEST = ["docker", "exec", "-iu", "0", "api", "/usr/local/bin/nosetests", "--with-id", "-w", "/var/gator/api/testlib/endpoint/"]
+    RUN_INTERNAL_TEST = ["docker", "exec", "-iu", "0", "api", "/usr/local/bin/nosetests", "--with-id", "-w", "/var/gator/api/testlib/internal/"]
+    RUN_NOTIFIER_TEST = ["docker", "exec", "-iu", "0", "ntfy", "/usr/local/bin/nosetests", "--with-id", "-w", "/var/gator/api/testlib/notifier/"]
 
     def __init__(self):
         self.active_cmds = []
@@ -127,14 +127,13 @@ if __name__ == "__main__":
 
     parser.add_argument("suite", metavar="suite", type=str, choices=VALID_SUITES + ["all"],
         help="The test suite to be run")
-    parser.add_argument("noseargs", default="", nargs="?",
+    parser.add_argument("noseargs", default="", nargs=argparse.REMAINDER,
         help="Any args to pass to nosetests")
 
     args = parser.parse_args()
     suites = VALID_SUITES if args.suite == "all" else [args.suite]
 
-
-    run_suites(suites, args.noseargs.split(" "))
+    run_suites(suites, args.noseargs)
 
     # Make sure that the output files have been closed
     out.close()
