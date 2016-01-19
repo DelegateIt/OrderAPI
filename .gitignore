@@ -4,3 +4,4 @@
 *.swo
 *.pyc
 /testlib/build/
+*.noseids
