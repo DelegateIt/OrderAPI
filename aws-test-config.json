@@ -17,7 +17,7 @@
     },
     "notifier_host": {
         "bind_port": 8060,
-        "recv_port": 80,
+        "recv_port": 8060,
         "gator_key": "MTkzNzU5Mzc0OTg0ODM6YXBpOjE2MDQ3MzA0NjQ6NXN3RjN1bGZQY2FmdkdnanVabzErZGkwTXYzZGs2K1hYcXkyZVBiYlNGQT0="
     },
     "stripe": {
@@ -26,7 +26,6 @@
         "version": "2015-09-03"
     },
     "twilio": {
-
         "auth_token": "dd9b4240a96556da1abb1e49646c73f3",
         "account_sid": "ACb5440a719947d5edf7d760155a39a768"
     },
