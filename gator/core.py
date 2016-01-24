@@ -25,6 +25,8 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    if request.method == 'OPTIONS':
+        response.headers.add('Cache-Control', 'max-age=3153600')
     return response
 
 @app.route('/')
