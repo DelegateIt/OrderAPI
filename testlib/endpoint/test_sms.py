@@ -8,7 +8,7 @@ class NotifyTest(RestTest):
         apiclient.clear_database()
 
     def test_handle_sms(self):
-        delegator_uuid = apiclient.create_delegator("", "", "15555555552", "noreply@gmail.com", "1", "")["uuid"]
+        delegator_uuid = apiclient.create_delegator("1", "2", "15555555552", "noreply@gmail.com", "1", "2")["uuid"]
         self.assertResponse(0, apiclient.send_sms_to_api("15555555551", "hello"))
         transaction_uuid = apiclient.assign_new_transaction(delegator_uuid)["transaction_uuid"]
         transaction = apiclient.get_transaction(transaction_uuid)["transaction"]

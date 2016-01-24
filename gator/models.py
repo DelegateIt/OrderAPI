@@ -99,7 +99,7 @@ class Model():
 
     def __contains__(self, key):
         return key in self.get_data()
-        
+
     def update(self, atts):
         for key, val in atts.items():
             self[key] = val
@@ -127,6 +127,9 @@ class Model():
         # Defauult dynamodb behavior returns false if no save was performed
         if not self.item.needs_save():
             return True
+        # Don't allow empty keys to be saved
+        elif any([val == "" for val in self.get_data().values()]):
+            raise GatorException(Errors.INVALID_DATA_PRESENT)
 
         try:
             return self.item.partial_save()
@@ -134,6 +137,10 @@ class Model():
             return False
 
     def create(self):
+        # Don't allow empty keys to be saved
+        if any([val == "" for val in self.get_data().values()]):
+            raise GatorException(Errors.INVALID_DATA_PRESENT)
+
         if self.is_valid():
             return self.item.save()
         else:

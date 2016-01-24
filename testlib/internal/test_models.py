@@ -139,7 +139,7 @@ class TestModel(unittest.TestCase):
 
         self.assertFalse(customer_2.save())
 
-    def  test_create(self):
+    def test_create(self):
         customer = Customer.create_new({
             CFields.UUID: "1",
             CFields.FIRST_NAME: "2",
@@ -157,6 +157,19 @@ class TestModel(unittest.TestCase):
         self.assertTrue(customer_db[CFields.UUID], "1")
         self.assertTrue(customer_db[CFields.FIRST_NAME], "2")
         self.assertTrue(customer_db[CFields.LAST_NAME], "3")
+
+    def test_empty_value(self):
+        customer = Customer.create_new({
+            CFields.UUID: "1",
+            CFields.FIRST_NAME: "2",
+            CFields.PHONE_NUMBER: ""
+        })
+
+        with self.assertRaises(GatorException):
+            customer.save()
+
+        with self.assertRaises(GatorException):
+            customer.create()
 
 class TestCustomer(unittest.TestCase):
     def setUp(self):
