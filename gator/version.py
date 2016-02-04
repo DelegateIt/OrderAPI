@@ -24,6 +24,8 @@ class MigrationHandlers():
 
         # Assumes that handlers continuous and up to date
         # i.e. 2 -> 3 -> 4 -> 5
+        if item["version"] > self.cur_version:
+            raise GatorException(Errors.STALE_API_VERSION)
         if self.handlers.get(int(item["version"])) is None:
             raise GatorException(Errors.UNSUPORTED_VERSION)
 

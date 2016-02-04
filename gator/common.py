@@ -37,7 +37,9 @@ class Errors():
     INVALID_MSG_TYPE           = ErrorType(19, "The specified message type is invalid")
     INVALID_EMAIL              = ErrorType(20, "The email address is invalid")
     INVALID_PHONE_NUMBER       = ErrorType(21, "The phone number is invalid")
-    UNSUPORTED_VERSION         = ErrorType(22, "The specified version is not supported")
+    UNSUPORTED_VERSION         = ErrorType(22, "The specified version is no longer supported")
+    STALE_API_VERSION          = ErrorType(23, "The API is not up to date with the latest version")
+
 
 def error_to_json(error):
     return jsonpickle.encode({

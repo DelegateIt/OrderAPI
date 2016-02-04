@@ -6,6 +6,7 @@ import gator.config as config
 
 from gator.version import MigrationHandlers
 from gator.models import Model, customers
+from gator.common import GatorException
 
 class TestHandler():
     @staticmethod
@@ -85,3 +86,27 @@ class TestMigration(unittest.TestCase):
         self.assertEquals(db_item["uuid"], "1")
         self.assertEquals(db_item["version"], 1)
         self.assertEquals(db_item["key"], True)
+
+    """
+        The following test is an example of what can happen during a rolling
+        deployment when a new version is introduced and the database contains
+        items on version N + 1 and current API node only supports up to version
+        N
+    """
+    def test_invalid_migration(self):
+        data = {
+            "uuid": "1",
+            "version": 2
+        }
+
+        # Manually put the item into the database
+        customers.put_item(data)
+
+        with self.assertRaises(GatorException) as e:
+            customer = Model.load_from_db(TestCustomer, "1")
+
+        try:
+            Model.load_from_db(TestCustomer, "1")
+            self.assertTrue(False) # Should never reach this point
+        except GatorException as e:
+            self.assertEquals(e.error_type.returncode, 23)
