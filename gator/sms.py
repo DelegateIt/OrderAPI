@@ -6,7 +6,7 @@ import gator.models as models
 import gator.common as common
 import gator.business_logic as bl
 from gator.models import Model, Customer, CFields, Delegator, DFields,\
-                         Transaction, TFields, Message, MTypes
+                         Transaction, TFields, Message, MTypes, Errors
 from gator.common import TransactionStates, Platforms
 from gator.auth import validate_permission, authenticate, Permission,\
                        validate_token

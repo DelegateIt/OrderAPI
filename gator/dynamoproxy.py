@@ -24,7 +24,7 @@ def _process_event(event):
         record["dynamodb"]["Keys"] = {}
         record["dynamodb"]["Keys"]["uuid"] = event["Item"]["uuid"]
     else:
-        raise Excpetion("Unable to process event " + repr(event))
+        raise Exception("Unable to process event " + repr(event))
     return record
 
 def _send_records(update_url, events):

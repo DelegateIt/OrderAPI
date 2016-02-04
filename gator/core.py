@@ -105,7 +105,7 @@ def customer_post():
 
     # Save the customer to db
     if not customer.create():
-        return common.error_to_json(Erros.CONSISTENCY_ERROR)
+        return common.error_to_json(Errors.CONSISTENCY_ERROR)
 
     # Send a text to the user if they signed up from the LandingPage
     if request.args.get('sendtext', 'false') == 'true':
@@ -151,7 +151,7 @@ def customer_put(uuid):
 
     # Save the customer to db
     if not customer.save():
-        return common.error_to_json(Erros.CONSISTENCY_ERROR)
+        return common.error_to_json(Errors.CONSISTENCY_ERROR)
 
     return jsonpickle.encode({"result": 0}, unpicklable=False)
 

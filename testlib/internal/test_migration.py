@@ -27,6 +27,7 @@ class TestCustomer(Model):
     def __init__(self, item):
         super().__init__(item)
 
+    @staticmethod
     def create_new(attributes={}):
         attributes["uuid"] = "1"
         attributes["version"] = TestCustomer.VERSION
