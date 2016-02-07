@@ -6,7 +6,7 @@ angular.module("app", [])
     var productionUrl = "https://api.godelegateit.com";
     var validTestHosts = {
         "localhost:8000": null,
-        "test-gatorapi.us-west-2.elasticbeanstalk.com": null
+        "test-gatorapi.us-west-2.elasticbeanstalk.com:80": null
     };
 
     var apiUrl = ($location.search().host in validTestHosts) ? "http://" + $location.search().host : productionUrl;
