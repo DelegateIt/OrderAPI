@@ -11,15 +11,14 @@ from gator.auth import authenticate, Permission, validate
 from gator.models import Model, Transaction, TFields, RFields, Customer, CFields
 from gator.flask import app
 
-def create_url(transaction_uuid, token, use_test_api):
+def create_url(transaction_uuid, token):
     host = config.store["api_host"]["name"]
     port = config.store["api_host"]["recv_port"]
     args = {
         "token": token,
         "transaction": transaction_uuid,
+        "host": host + ":" + str(port)
     }
-    if use_test_api:
-        args["test"] = True
     long_url = 'http://%s:%s/static/payment.html#?%s' % \
             (host, port, urllib.parse.urlencode(args))
     return service.shorturl.shorten_url(long_url)

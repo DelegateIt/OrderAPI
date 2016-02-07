@@ -14,10 +14,8 @@ def create_transaction(attributes={}):
 
     # Create a new transaction
     transaction = Transaction.create_new(attributes)
-    use_test_stripe = config.store["stripe"]["public_key"].startswith("pk_test")
     customer_token = auth.generate_token(transaction[TFields.CUSTOMER_UUID], auth.UuidType.CUSTOMER)
-    transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID],
-            customer_token, use_test_stripe)
+    transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID], customer_token)
 
     # Load the customer associated with the transaction
     # NOTE: a customer must always be initially associated with the transaction

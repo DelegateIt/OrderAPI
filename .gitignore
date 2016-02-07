@@ -5,3 +5,4 @@
 *.pyc
 /testlib/build/
 *.noseids
+aws-prod-config.json

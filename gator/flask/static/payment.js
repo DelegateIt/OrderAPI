@@ -3,16 +3,26 @@
 angular.module("app", [])
 .controller("mainCtrl", ["$scope", "$window", "$http", "$location", function($scope, $window, $http, $location) {
 
-    var apiUrl = $location.search().test ? "http://localhost:8000" : "http://gatorapi.elasticbeanstalk.com";
+    var productionUrl = "https://api.godelegateit.com";
+    var validTestHosts = {
+        "localhost:8000": null,
+        "test-gatorapi.us-west-2.elasticbeanstalk.com": null
+    };
+
+    var apiUrl = ($location.search().host in validTestHosts) ? "http://" + $location.search().host : productionUrl;
     var apiToken = $location.search().token;
-    var transactionUuid = $location.search().transaction
+    var transactionUuid = $location.search().transaction;
+
+    console.log("api: ", apiUrl);
+    console.log("token: ", apiToken);
+    console.log("uuid: ", transactionUuid);
 
     $scope.loading = true;
     $scope.receipt = null;
     $scope.errorMsg = "";
 
     var stripe = StripeCheckout.configure({
-        key: $location.search().test ? 'pk_test_ZoK03rN4pxc2hfeYTzjByrdV' : "pk_live_S32yhEieSboL59e75AWjUGBb",
+        key: apiUrl == productionUrl ?  "pk_live_S32yhEieSboL59e75AWjUGBb" : "pk_test_ZoK03rN4pxc2hfeYTzjByrdV",
         //image: '/img/documentation/checkout/marketplace.png',
         locale: 'auto',
         token: function(token) { payTransaction(token); }
