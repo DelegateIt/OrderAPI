@@ -96,7 +96,7 @@ def validate_permission(identity, permission_list, resource_uuid=None):
             return
 
         for p in permission_list:
-            if _permission_checker[p](uuid, uuid_type, resource_uuid):
+            if p in _permission_checker and _permission_checker[p](uuid, uuid_type, resource_uuid):
                 return
         raise GatorException(Errors.PERMISSION_DENIED)
 
