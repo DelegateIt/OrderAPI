@@ -8,9 +8,9 @@ from gator import payment
 
 def create_transaction(attributes={}):
     if not Transaction.MANDATORY_KEYS <= set(attributes):
-        return False, None, Errors.DATA_NOT_PRESENT
+        return False, None, None, Errors.DATA_NOT_PRESENT
     elif attributes[TFields.CUSTOMER_PLATFORM_TYPE] not in Platforms.VALID_PLATFORMS:
-        return False, None, Errors.INVALID_PLATFORM
+        return False, None, None, Errors.INVALID_PLATFORM
 
     # Create a new transaction
     transaction = Transaction.create_new(attributes)
@@ -21,7 +21,7 @@ def create_transaction(attributes={}):
     # NOTE: a customer must always be initially associated with the transaction
     customer = Model.load_from_db(Customer, attributes[TFields.CUSTOMER_UUID])
     if customer is None:
-        return False, None, Errors.CUSTOMER_DOES_NOT_EXIST
+        return False, None, None, Errors.CUSTOMER_DOES_NOT_EXIST
 
     customer.add_transaction(transaction)
 
@@ -29,7 +29,7 @@ def create_transaction(attributes={}):
     if attributes.get(TFields.DELEGATOR_UUID) is not None:
         delegator = Model.load_from_db(Delegator, attributes[TFields.DELEGATOR_UUID])
         if delegator is None:
-            return False, None, Errors.DELEGATOR_DOES_NOT_EXIST
+            return False, None, None, Errors.DELEGATOR_DOES_NOT_EXIST
 
         delegator.add_transaction(transaction)
 
@@ -37,9 +37,9 @@ def create_transaction(attributes={}):
     # NOTE: failure implies inconsistent result
     if not transaction.create() or not customer.save() or \
             (delegator is not None and not delegator.save()):
-        return False, None, Errors.CONSISTENCY_ERROR
+        return False, None, None, Errors.CONSISTENCY_ERROR
 
-    return True, transaction, None
+    return True, transaction, customer, None
 
 def update_transaction(transaction_uuid, attributes={}):
     # This function should only be used to update the following fields

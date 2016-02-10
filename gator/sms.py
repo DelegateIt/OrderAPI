@@ -45,7 +45,7 @@ def handle_sms():
     # Create a new one doesn't exist
     if transaction is None:
         # Create a new transaction if none exists
-        success, transaction, error = bl.create_transaction({
+        success, transaction, customer, error = bl.create_transaction({
             TFields.CUSTOMER_UUID: customer[CFields.UUID],
             TFields.CUSTOMER_PLATFORM_TYPE: Platforms.SMS
         })

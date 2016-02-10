@@ -275,7 +275,7 @@ def transaction_post():
     token = request.args.get("token", "")
     validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER], data["customer_uuid"])
 
-    success, transaction, error = bl.create_transaction(data)
+    success, transaction, customer, error = bl.create_transaction(data)
 
     if not success:
         return common.error_to_json(error)
@@ -283,7 +283,7 @@ def transaction_post():
     # Send a text to all of the delegators
     for delegator in models.delegators.scan():
          service.sms.send_msg(
-            body="ALERT: New transaction from %s" % delegator["phone_number"],
+            body="ALERT: New transaction from %s" % customer[CFields.PHONE_NUMBER],
             to=delegator[DFields.PHONE_NUMBER])
 
     return jsonpickle.encode({
