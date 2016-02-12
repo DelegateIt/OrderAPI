@@ -67,7 +67,7 @@ class TransactionTest(RestTest):
         token_hashmark = hashmark["token"] if "token" in hashmark else hashmark["?token"]
 
         self.assertEqual(transaction["uuid"], transaction_hashmark[0])
-        self.assertTrue("test" in hashmark or "?test" in hashmark)
+        self.assertTrue("host" in hashmark or "?host" in hashmark)
 
         rsp = apiclient.send_api_request("GET", ["core", "transaction", transaction["uuid"]], token=token_hashmark[0])
         self.assertResponse(0, rsp)
