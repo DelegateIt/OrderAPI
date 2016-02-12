@@ -17,7 +17,7 @@ app.get('/', function(req, res){
 });
 
 app.post('/transaction_change', function(req, res){
-    transaction = req.body.transaction;
+    var transaction = req.body.transaction;
     console.log("Notifying listeners of change to transaction", transaction.uuid);
     io.to(transaction.uuid).emit(transaction.uuid, transaction);
     res.end(JSON.stringify({'result': 0}));
@@ -33,4 +33,3 @@ io.on('connection', function(socket){
 http.listen(port, function(){
     console.log('listening on *:' + port);
 });
-

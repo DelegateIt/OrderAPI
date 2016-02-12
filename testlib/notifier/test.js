@@ -4,6 +4,8 @@ var io = require("socket.io-client");
 
 describe("Notification system test", function() {
 
+    this.timeout(5000);
+
     var setup = function(callback) {
         gator.execApiClient("clear_database", [], function(err) {
             assert(err == null);

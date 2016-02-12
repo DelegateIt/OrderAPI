@@ -28,7 +28,7 @@ table_prefix = config.store["dynamodb"]["table_prefix"]
 class TableNames():
     CUSTOMERS    = table_prefix + "DelegateIt_Customers"
     DELEGATORS   = table_prefix + "DelegateIt_Delegators"
-    TRANSACTIONS = table_prefix + "DelegateIt_Transactions"
+    TRANSACTIONS = table_prefix + "DelegateIt_Transactions_CD"
     HANDLERS     = table_prefix + "DelegateIt_Handlers"
 
 # Tables
@@ -64,11 +64,15 @@ class Model():
 
         item = None
         try:
-            item = cls(cls.TABLE.get_item(
-                consistent=consistent,
-                **{
-                    cls.KEY: key
-                }))
+            full_key = { }
+            if key.find("-") == -1:
+                full_key[cls.KEY] = key
+            else:
+                split = key.split("-", 2)
+                full_key[cls.KEY] = split[0]
+                full_key[cls.RANGE_KEY] = int(split[1])
+
+            item = cls(cls.TABLE.get_item(consistent=consistent, **full_key))
 
             # Migrate the item forward if it is on an old version
             if item["version"] <= cls.VERSION:
@@ -309,7 +313,8 @@ class Transaction(Model):
         if not attr.startswith("__")])
     TABLE_NAME = TableNames.TRANSACTIONS
     TABLE = transactions
-    KEY = TFields.UUID
+    KEY = TFields.CUSTOMER_UUID
+    RANGE_KEY = TFields.TIMESTAMP
     MANDATORY_KEYS = set([TFields.CUSTOMER_UUID, TFields.CUSTOMER_PLATFORM_TYPE])
     VERSION = 3
 
@@ -325,9 +330,10 @@ class Transaction(Model):
     @staticmethod
     def create_new(attributes={}):
         # Default Values
-        attributes[TFields.UUID] = common.get_uuid()
         attributes[TFields.VERSION] = Transaction.VERSION
         attributes[TFields.TIMESTAMP] = common.get_current_timestamp()
+        attributes[TFields.UUID] = (attributes[TFields.CUSTOMER_UUID] + "-" +
+                str(attributes[TFields.TIMESTAMP]))
 
         if attributes.get(TFields.STATUS) is None:
             attributes[TFields.STATUS] = TransactionStates.STARTED

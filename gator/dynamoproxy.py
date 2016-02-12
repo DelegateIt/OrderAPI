@@ -77,7 +77,7 @@ def _catch_all(path):
     logging.debug("\t  * DATA: " + resp.content.decode("utf-8"))
 
     try:
-        _intercept_dynamo(resp, ["DelegateIt_Transactions"])
+        _intercept_dynamo(resp, ["DelegateIt_Transactions_CD"])
     except Exception as e:
         logging.exception(e)
 

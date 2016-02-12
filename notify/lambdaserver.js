@@ -34,7 +34,6 @@ app.get('/', function(req, res){
 });
 
 app.post('/process_records', function(req, res){
-    console.log("Received records", req.body);
     var context = new Context();
     context.timeoutId = setTimeout(function() {
         lambda.handler(req.body, context);
