@@ -19,8 +19,7 @@ class NotifyTest(RestTest):
         self.assertEqual("sms", transaction["customer_platform_type"])
         self.assertEqual("hello", transaction["messages"][0]["content"])
         self.assertEqual("15555555551", customer["phone_number"])
-        self.assertTrue(transaction_uuid in customer["active_transaction_uuids"])
-        self.assertTrue(transaction_uuid in delegator["active_transaction_uuids"])
+        self.assertEqual(delegator_uuid, transaction["delegator_uuid"])
 
         self.assertResponse(0, apiclient.send_sms_to_api("15555555551", "second msg"))
         transaction = apiclient.get_transaction(transaction_uuid)["transaction"]

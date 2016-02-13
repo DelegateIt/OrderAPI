@@ -306,13 +306,6 @@ class TestTransaction(unittest.TestCase):
         self.assertTrue(transaction_orig.is_valid())
         self.assertTrue(transaction_orig.create())
 
-        customer.add_transaction(transaction_orig)
-        customer.save()
-        self.assertTrue(transaction_orig.is_valid()) # Should still be true
-
-        transaction_new = Transaction.create_new(transaction_data)
-        self.assertFalse(transaction_new.is_valid())
-
 class TestMessage(unittest.TestCase):
     def test_init(self):
         message = Message(

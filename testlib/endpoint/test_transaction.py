@@ -78,10 +78,6 @@ class TransactionTest(RestTest):
         uuid1 = self.create()["uuid"]
 
         self.assertResponse(0, apiclient.get_transaction(uuid1))
-        self.assertResponse(10, apiclient.create_transaction("fake uuid", "sms"))
-
-        customer_transactions = apiclient.get_customer(self.customer_uuid)["customer"]["active_transaction_uuids"]
-        self.assertTrue([uuid1] == customer_transactions, "The customer object was not updated")
 
     def test_retreive(self):
         uuid = self.create()["uuid"]
@@ -103,55 +99,17 @@ class TransactionTest(RestTest):
     def test_update_status(self):
        transaction_uuid = self.create()["uuid"]
        apiclient.update_transaction(transaction_uuid, delegator_uuid=self.delegator_uuid)
-       delegator = apiclient.get_delegator(self.delegator_uuid)
-       self.assertEqual([transaction_uuid], delegator["delegator"]["active_transaction_uuids"])
-       self.assertFalse("inactive_transaction_uuids" in delegator)
-       customer = apiclient.get_customer(self.customer_uuid)
-       self.assertEqual([transaction_uuid], customer["customer"]["active_transaction_uuids"])
-       self.assertFalse("inactive_transaction_uuids" in customer)
-
        apiclient.update_transaction(transaction_uuid, status="completed")
+       self.assertEqual("completed", apiclient.get_transaction(transaction_uuid)["transaction"]["status"])
+       # TODO what happens when an invalid status is sent
 
-       delegator = apiclient.get_delegator(self.delegator_uuid)
-       print ("delegator: %s" % delegator)
-       print ("transaction: %s" % apiclient.get_transaction(transaction_uuid))
-       self.assertEqual([transaction_uuid], delegator["delegator"]["inactive_transaction_uuids"])
-       self.assertFalse("active_transaction_uuids" in delegator)
-       customer = apiclient.get_customer(self.customer_uuid)
-       self.assertEqual([transaction_uuid], customer["customer"]["inactive_transaction_uuids"])
-       self.assertFalse("active_transaction_uuids" in customer)
 
     def test_update_delegator(self):
+        #TODO what happens when an invalid delegator_uuid is sent
        transaction_uuid = self.create()["uuid"]
        apiclient.update_transaction(transaction_uuid, delegator_uuid=self.delegator_uuid)
-       delegator_uuid2 = apiclient.create_delegator("asf", "asdf", "15555555553", "no.reply@gmail.com",
-            fbuser_id="123123", fbuser_token="")["uuid"]
-       delegator1 = apiclient.get_delegator(self.delegator_uuid)
-       delegator2 = apiclient.get_delegator(delegator_uuid2)
-       self.assertEqual([transaction_uuid], delegator1["delegator"]["active_transaction_uuids"])
-       self.assertFalse("inactive_transaction_uuids" in delegator1)
-       self.assertFalse("active_transaction_uuids" in delegator2)
-       self.assertFalse("inactive_transaction_uuids" in delegator2)
-
-       apiclient.update_transaction(transaction_uuid, delegator_uuid=delegator_uuid2)
-
-       delegator1 = apiclient.get_delegator(self.delegator_uuid)
-       delegator2 = apiclient.get_delegator(delegator_uuid2)
-       self.assertEqual([transaction_uuid], delegator2["delegator"]["active_transaction_uuids"])
-       self.assertFalse("inactive_transaction_uuids" in delegator2)
-       self.assertFalse("active_transaction_uuids" in delegator1)
-       self.assertFalse("inactive_transaction_uuids" in delegator1)
-       self.assertEqual(delegator_uuid2, apiclient.get_transaction(transaction_uuid)["transaction"]["delegator_uuid"])
-
-       apiclient.update_transaction(transaction_uuid, status="completed")
-       apiclient.update_transaction(transaction_uuid, delegator_uuid=self.delegator_uuid)
-
-       delegator1 = apiclient.get_delegator(self.delegator_uuid)
-       delegator2 = apiclient.get_delegator(delegator_uuid2)
-       self.assertEqual([transaction_uuid], delegator1["delegator"]["inactive_transaction_uuids"])
-       self.assertFalse("active_transaction_uuids" in delegator1)
-       self.assertFalse("active_transaction_uuids" in delegator2)
-       self.assertFalse("inactive_transaction_uuids" in delegator2)
+       transaction = apiclient.get_transaction(transaction_uuid)["transaction"]
+       self.assertEqual(self.delegator_uuid, transaction["delegator_uuid"])
 
     def test_send_message(self):
         transaction_uuid = self.create()["uuid"]

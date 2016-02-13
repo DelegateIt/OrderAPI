@@ -1,99 +1,72 @@
-import logging # TODO: remove later
-
 from gator import config, auth
-from gator.models import Model, Customer, Delegator, Transaction
-from gator.models import TFields
-from gator.common import Errors, TransactionStates, Platforms
-from gator import payment
+from gator.models import Model, Customer, Delegator, Transaction, TFields, DFields, delegators,\
+                         Message, MFields, CFields
+from gator.common import Errors, TransactionStates, Platforms, GatorException
+from gator import payment, service
 
 def create_transaction(attributes={}):
     if not Transaction.MANDATORY_KEYS <= set(attributes):
-        return False, None, None, Errors.DATA_NOT_PRESENT
+        raise GatorException(Errors.DATA_NOT_PRESENT)
     elif attributes[TFields.CUSTOMER_PLATFORM_TYPE] not in Platforms.VALID_PLATFORMS:
-        return False, None, None, Errors.INVALID_PLATFORM
+        raise GatorException(Errors.INVALID_PLATFORM)
 
     # Create a new transaction
     transaction = Transaction.create_new(attributes)
     customer_token = auth.generate_token(transaction[TFields.CUSTOMER_UUID], auth.UuidType.CUSTOMER)
     transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID], customer_token)
 
-    # Load the customer associated with the transaction
-    # NOTE: a customer must always be initially associated with the transaction
-    customer = Model.load_from_db(Customer, attributes[TFields.CUSTOMER_UUID])
-    if customer is None:
-        return False, None, None, Errors.CUSTOMER_DOES_NOT_EXIST
+    if not transaction.create():
+        raise GatorException(Errors.CONSISTENCY_ERROR)
 
-    customer.add_transaction(transaction)
+    # Send a text to all of the delegators
+    for delegator in delegators.scan():
+         service.sms.send_msg(
+            body="ALERT: New transaction",
+            to=delegator[DFields.PHONE_NUMBER])
 
-    delegator = None
-    if attributes.get(TFields.DELEGATOR_UUID) is not None:
-        delegator = Model.load_from_db(Delegator, attributes[TFields.DELEGATOR_UUID])
-        if delegator is None:
-            return False, None, None, Errors.DELEGATOR_DOES_NOT_EXIST
-
-        delegator.add_transaction(transaction)
-
-    # Check to see if all models were saved correctly
-    # NOTE: failure implies inconsistent result
-    if not transaction.create() or not customer.save() or \
-            (delegator is not None and not delegator.save()):
-        return False, None, None, Errors.CONSISTENCY_ERROR
-
-    return True, transaction, customer, None
+    return transaction
 
 def update_transaction(transaction_uuid, attributes={}):
     # This function should only be used to update the following fields
     if not attributes.keys() <= set([TFields.DELEGATOR_UUID, TFields.STATUS, TFields.RECEIPT]):
-        return False, Errors.INVALID_DATA_PRESENT
+        raise GatorException(Errors.INVALID_DATA_PRESENT)
 
     transaction = Model.load_from_db(Transaction, transaction_uuid)
-    customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
-    delegator = Model.load_from_db(Delegator, transaction[TFields.DELEGATOR_UUID])
-    new_delegator = Model.load_from_db(Delegator, attributes.get(TFields.DELEGATOR_UUID))
 
     # Handle possible inconsistencies with the data
     if transaction is None:
-        return False, Errors.TRANSACTION_DOES_NOT_EXIST
+        raise GatorException(Errors.TRANSACTION_DOES_NOT_EXIST)
     elif attributes.get(TFields.STATUS) is not None and attributes[TFields.STATUS] not in TransactionStates.VALID_STATES:
-        return False, Errors.INVALID_DATA_PRESENT
+        raise GatorException(Errors.INVALID_DATA_PRESENT)
     elif TFields.RECEIPT in attributes and TFields.RECEIPT in transaction\
             and "stripe_charge_id" in transaction[TFields.RECEIPT]:
-        return False, Errors.TRANSACTION_ALREADY_PAID
-    elif customer is None:
-        return False, Errors.CUSTOMER_DOES_NOT_EXIST
-
-    # Update the customer data if the transaction state has changed from active to inactive or v.v.
-    orig_is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
-    new_is_active = orig_is_active if attributes.get(TFields.STATUS) is None \
-            else attributes[TFields.STATUS] in TransactionStates.ACTIVE_STATES
+        raise GatorException(Errors.TRANSACTION_ALREADY_PAID)
 
     # Update the transaction with the new data
     transaction.update(attributes)
 
-    if orig_is_active == (not new_is_active):
-        # A transaction will always have a customer
-        customer.update_transaction_status(transaction)
+    if not transaction.save():
+        raise GatorException(Errors.CONSISTENCY_ERROR)
 
-        # Only update the delegator if one has been assigned to the transaction
-        if delegator is not None:
-            delegator.update_transaction_status(transaction)
+def send_message(transaction, message, from_customer, mtype):
+    message = Message(
+        from_customer=from_customer,
+        content=message,
+        mtype=mtype)
 
-    # Update delegator if a new one was assigned
-    if new_delegator is not None:
-        new_delegator.add_transaction(transaction)
+    transaction.add_message(message)
 
-        # Remove the transaction from the old delegator
-        if delegator is not None:
-            delegator.remove_transaction(transaction)
+    if not transaction.save():
+        raise GatorException(Errors.CONSISTENCY_ERROR)
 
-    # Check to see if all models were saved correctly
-    # NOTE: failure implies inconsistent result
-    t_saved = transaction.save()
-    c_saved = customer.save()
-    d_saved = True if delegator is None else delegator.save()
-    nd_saved = True if new_delegator is None else new_delegator.save()
+    # If the message was sent by the delegator send an SMS to the customer
+    if not from_customer and transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
+        customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
+        service.sms.send_msg(body=message, to=customer[CFields.PHONE_NUMBER])
 
-    if not (t_saved and c_saved and d_saved and nd_saved):
-        return False, Errors.CONSISTENCY_ERROR
+    # Notify the delegator that there is a new message
+    if from_customer and "delegator_uuid" in transaction:
+        delegator = Model.load_from_db(Delegator, transaction[TFields.DELEGATOR_UUID])
+        service.sms.send_msg(to=delegator[DFields.PHONE_NUMBER], body="ALERT: New messages")
 
-    return True, None
+    return message

@@ -97,4 +97,3 @@ class DelegatorTest(RestTest):
         rsp = apiclient.assign_new_transaction(delegator_uuid)
         self.assertResponse(0, rsp)
         self.assertEqual(transaction_uuid, rsp["transaction_uuid"])
-        self.assertTrue(transaction_uuid in apiclient.get_delegator(delegator_uuid)["delegator"]["active_transaction_uuids"])

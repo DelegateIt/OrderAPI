@@ -153,50 +153,6 @@ class Model():
     def delete(self):
         return self.item.delete()
 
-class TCFields():
-    A_TRANS_UUIDS = "active_transaction_uuids"
-    IA_TRANS_UUIDS = "inactive_transaction_uuids"
-
-class TransactionContainerFuncs():
-    def add_transaction(self, transaction):
-        if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
-            raise ValueError("Transaction must have UUID and STATUS fields")
-
-        is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
-        trans_type = TCFields.A_TRANS_UUIDS if is_active else TCFields.IA_TRANS_UUIDS
-
-        if self.item[trans_type] is None:
-            self.item[trans_type] = []
-
-        self.item[trans_type].append(transaction[TFields.UUID])
-
-    def update_transaction_status(self, transaction):
-        if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
-            raise ValueError("Transaction must have UUID and STATUS fields")
-
-        old_is_active = transaction[TFields.UUID] in self[TCFields.A_TRANS_UUIDS]
-        new_is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
-
-        if old_is_active == (not new_is_active):
-            old_trans_type = TCFields.A_TRANS_UUIDS if old_is_active else TCFields.IA_TRANS_UUIDS
-            new_trans_type = TCFields.A_TRANS_UUIDS if new_is_active else TCFields.IA_TRANS_UUIDS
-
-            self[old_trans_type].remove(transaction[TFields.UUID])
-
-            if self[new_trans_type] is None:
-                self[new_trans_type] = []
-
-            self[new_trans_type].append(transaction[TFields.UUID])
-
-    def remove_transaction(self, transaction):
-        if transaction[TFields.UUID] is None or transaction[TFields.STATUS] is None:
-            raise ValueError("Transaction must have UUID and STATUS fields")
-
-        is_active = transaction[TFields.STATUS] in TransactionStates.ACTIVE_STATES
-        trans_type = TCFields.A_TRANS_UUIDS if is_active else TCFields.IA_TRANS_UUIDS
-
-        self.item[trans_type].remove(transaction[TFields.UUID])
-
 class CFields():
     UUID = "uuid"
     VERSION = "version"
@@ -206,10 +162,8 @@ class CFields():
     LAST_NAME = "last_name"
     FBUSER_ID = "fbuser_id"
     STRIPE_ID = "stripe_id"
-    A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
-    IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
 
-class Customer(Model, TransactionContainerFuncs):
+class Customer(Model):
     FIELDS = CFields
     VALID_KEYS = set([getattr(CFields, attr) for attr in vars(CFields)
         if not attr.startswith("__")])
@@ -251,10 +205,8 @@ class DFields():
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
     FBUSER_ID = "fbuser_id"
-    A_TRANS_UUIDS = TCFields.A_TRANS_UUIDS
-    IA_TRANS_UUIDS = TCFields.IA_TRANS_UUIDS
 
-class Delegator(Model, TransactionContainerFuncs):
+class Delegator(Model):
     FIELDS = DFields
     VALID_KEYS = set([getattr(DFields, attr) for attr in vars(DFields)
         if not attr.startswith("__")])
@@ -345,22 +297,6 @@ class Transaction(Model):
         data = self.get_data()
         if not set(data) >= self.MANDATORY_KEYS:
             return False
-
-        # Check to see if of the customers transactions are SMS
-        if data[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
-            customer = Model.load_from_db(Customer, data[TFields.CUSTOMER_UUID])
-
-            # Short circuit if the customer doesn't have any transactions
-            # NOTE: ignores the current transaction if it exists in the customer
-            if customer[CFields.A_TRANS_UUIDS] is not None:
-                transaction_list = [Model.load_from_db(Transaction, transaction_uuid)
-                        for transaction_uuid in customer[CFields.A_TRANS_UUIDS]
-                        if transaction_uuid != data[TFields.UUID]]
-
-                if any([transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS
-                        for transaction in transaction_list]):
-                    return False
-
         return True
 
     # Utility Methods

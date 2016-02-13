@@ -247,21 +247,8 @@ def send_message(transaction_uuid):
     token = request.args.get("token", "")
     validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
 
-    message = Message(
-        from_customer=data[MFields.FROM_CUSTOMER],
-        content=data[MFields.CONTENT],
-        mtype=data[MFields.MTYPE])
-
-    transaction.add_message(message)
-
-    if not transaction.save():
-        return common.error_to_json(Errors.CONSISTENCY_ERROR)
-
-    # If the message was sent by the delegator send an SMS to the customer
-    # NOTE: will have to change as we introduce more platforms
-    if not data[MFields.FROM_CUSTOMER] and transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
-        customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
-        service.sms.send_msg(body=data[MFields.CONTENT], to=customer[CFields.PHONE_NUMBER])
+    message = bl.send_message(transaction, data[MFields.CONTENT],
+            data[MFields.FROM_CUSTOMER], data[MFields.MTYPE])
 
     return jsonpickle.encode({
             "result": 0, "timestamp": message.get_timestamp()},
@@ -275,16 +262,7 @@ def transaction_post():
     token = request.args.get("token", "")
     validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER], data["customer_uuid"])
 
-    success, transaction, customer, error = bl.create_transaction(data)
-
-    if not success:
-        return common.error_to_json(error)
-
-    # Send a text to all of the delegators
-    for delegator in models.delegators.scan():
-         service.sms.send_msg(
-            body="ALERT: New transaction from %s" % customer[CFields.PHONE_NUMBER],
-            to=delegator[DFields.PHONE_NUMBER])
+    transaction = bl.create_transaction(data)
 
     return jsonpickle.encode({
         "result": 0, "uuid": transaction[TFields.UUID]},
@@ -312,10 +290,7 @@ def transaction_put(uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
     #TODO verify identity has permission to update this resource
-    success, error = bl.update_transaction(uuid, data)
-
-    if not success:
-        return common.error_to_json(error)
+    bl.update_transaction(uuid, data)
 
     return jsonpickle.encode({"result": 0}, unpicklable=False)
 
@@ -339,10 +314,7 @@ def assign_transaction(delegator_uuid):
     transaction[TFields.DELEGATOR_UUID] = delegator_uuid
     transaction[TFields.STATUS] = TransactionStates.HELPED
 
-    # Update the delegator
-    delegator.add_transaction(transaction)
-
-    if not transaction.save() or not delegator.save():
+    if not transaction.save():
         return common.error_to_json(Errors.CONSISTENCY_ERROR)
 
     return jsonpickle.encode({
