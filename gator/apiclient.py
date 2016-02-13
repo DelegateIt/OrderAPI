@@ -121,6 +121,14 @@ def create_transaction(customer_uuid, customer_platform_type):
 def get_transaction(transaction_uuid):
     return send_api_request("GET", ["core", "transaction", transaction_uuid], token=auth_token)
 
+def list_customers_transactions(customer_uuid):
+    json_data = {"customer_uuid": customer_uuid}
+    return send_api_request("GET", ["core", "transaction"], json_data, token=auth_token)
+
+def list_delegators_transactions(delegator_uuid):
+    json_data = {"delegator_uuid": delegator_uuid}
+    return send_api_request("GET", ["core", "transaction"], json_data, token=auth_token)
+
 def update_transaction(transaction_uuid, status=None, delegator_uuid=None, receipt=None):
     json_data = {}
     if status is not None:

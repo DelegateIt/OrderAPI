@@ -267,6 +267,26 @@ def transaction_post():
     return jsonpickle.encode({
         "result": 0, "uuid": transaction[TFields.UUID]},
         unpicklable=False)
+@app.route('/core/transaction', methods=['GET'])
+def transaction_get_all():
+    #TODO this really needs to be authenticated
+    data = jsonpickle.decode(request.data.decode("utf-8"))
+    if TFields.CUSTOMER_UUID in data:
+        query = models.transactions.query_2(
+                customer_uuid__eq=data["customer_uuid"],
+                consistent=True)
+    elif TFields.DELEGATOR_UUID in data:
+        query = models.transactions.query_2(
+                delegator_uuid__eq=data["delegator_uuid"],
+                index="delegator_uuid-index")
+    else:
+        raise GatorException(Errors.DATA_NOT_PRESENT)
+
+    query = [Transaction(q).get_data() for q in query]
+    return jsonpickle.encode({
+        "result": 0,
+        "transactions": query},
+        unpicklable=False)
 
 @app.route('/core/transaction/<uuid>', methods=['GET'])
 def transaction_get(uuid):

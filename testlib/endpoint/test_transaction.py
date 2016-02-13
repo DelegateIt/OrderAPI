@@ -96,6 +96,24 @@ class TransactionTest(RestTest):
         }
         self.assertEqual(expected, transaction)
 
+    def test_retreive_all(self):
+        uuid1 = self.create()["uuid"]
+        uuid2 = self.create()["uuid"]
+
+        apiclient.update_transaction(uuid1, delegator_uuid=self.delegator_uuid)
+        apiclient.update_transaction(uuid2, delegator_uuid=self.delegator_uuid)
+
+        c_trans = apiclient.list_customers_transactions(self.customer_uuid)["transactions"]
+        d_trans = apiclient.list_delegators_transactions(self.delegator_uuid)["transactions"]
+        c_trans = set([t["uuid"] for t in c_trans])
+        d_trans = set([t["uuid"] for t in d_trans])
+
+        print("Customer's transactions", c_trans)
+        print("Delegator's transactions", d_trans)
+
+        self.assertEqual(set([uuid1, uuid2]), d_trans)
+        self.assertEqual(set([uuid1, uuid2]), c_trans)
+
     def test_update_status(self):
        transaction_uuid = self.create()["uuid"]
        apiclient.update_transaction(transaction_uuid, delegator_uuid=self.delegator_uuid)
