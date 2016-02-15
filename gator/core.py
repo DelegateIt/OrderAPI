@@ -270,7 +270,12 @@ def transaction_post():
 @app.route('/core/transaction', methods=['GET'])
 def transaction_get_all():
     #TODO this really needs to be authenticated
-    data = jsonpickle.decode(request.data.decode("utf-8"))
+
+    try:
+        data = jsonpickle.decode(request.data.decode("utf-8"))
+    except ValueError:
+        data = request.args
+
     if TFields.CUSTOMER_UUID in data:
         query = models.transactions.query_2(
                 customer_uuid__eq=data["customer_uuid"],
