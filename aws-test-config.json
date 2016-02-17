@@ -3,7 +3,7 @@
         "api_key": "AIzaSyBr49DAB57RHciOXU2-bNaZl_kfolM3XFk"
     },
     "api_host": {
-        "name": "test-gatorapi.us-west-2.elasticbeanstalk.com",
+        "name": "gator-api-test.immprnfxbj.us-west-2.elasticbeanstalk.com",
         "bind_port": 8000,
         "recv_port": 80,
         "admin_key": "MjAzOTQ4NTA0OTU5MzA6YXBpOjE2MDQ3MzA0MjU6bVNLZ2hLOXFkUjAzdnIzbjlPanpwU1BpZWV1MldrME1DWlNIMmdGK2orST0="
@@ -17,7 +17,7 @@
     },
     "notifier_host": {
         "bind_port": 8060,
-        "recv_port": 8060,
+        "recv_port": 80,
         "gator_key": "MTkzNzU5Mzc0OTg0ODM6YXBpOjE2MDQ3MzA0NjQ6NXN3RjN1bGZQY2FmdkdnanVabzErZGkwTXYzZGs2K1hYcXkyZVBiYlNGQT0="
     },
     "stripe": {
