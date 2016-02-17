@@ -42,7 +42,11 @@ class TestModel(unittest.TestCase):
             Model.load_from_db(TempClass, {})
 
     def test_load_from_db_nonexistant_item(self):
-        self.assertIsNone(Model.load_from_db(Customer, "INVALID KEY"))
+        try:
+            self.assertIsNone(Model.load_from_db(Customer, "INVALID KEY"))
+            self.assertTrue(False) # Should never reach this point
+        except GatorException as e:
+            self.assertEquals(e.error_type.returncode, 10)
 
     def test_load_from_data(self):
         customer = Model.load_from_data(Customer, {

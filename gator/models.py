@@ -80,7 +80,7 @@ class Model():
                 if not item.save():
                     return None
         except ItemNotFound:
-            pass
+            raise GatorException(cls.ITEM_NOT_FOUND_EX)
 
         return item
 
@@ -172,6 +172,7 @@ class Customer(Model):
     KEY = CFields.UUID
     MANDATORY_KEYS = set([])
     VERSION = 1
+    ITEM_NOT_FOUND_EX = Errors.CUSTOMER_DOES_NOT_EXIST
 
     # Initialize the migration handlers
     HANDLERS = MigrationHandlers(VERSION)
@@ -215,6 +216,7 @@ class Delegator(Model):
     KEY = DFields.UUID
     MANDATORY_KEYS = set([DFields.FBUSER_ID, DFields.PHONE_NUMBER, DFields.EMAIL, DFields.FIRST_NAME, DFields.LAST_NAME])
     VERSION = 1
+    ITEM_NOT_FOUND_EX = Errors.DELEGATOR_DOES_NOT_EXIST
 
     # Initialize the migration handlers
     HANDLERS = MigrationHandlers(VERSION)
@@ -269,6 +271,7 @@ class Transaction(Model):
     RANGE_KEY = TFields.TIMESTAMP
     MANDATORY_KEYS = set([TFields.CUSTOMER_UUID, TFields.CUSTOMER_PLATFORM_TYPE])
     VERSION = 3
+    ITEM_NOT_FOUND_EX = Errors.TRANSACTION_DOES_NOT_EXIST
 
     # Initialize the migration handlers
     HANDLERS = MigrationHandlers(VERSION)
