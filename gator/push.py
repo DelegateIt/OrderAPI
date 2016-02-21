@@ -22,7 +22,7 @@ def create_push_endpoint(customer, device_id):
 
 def create_platform_endpoint(device_id):
     try:
-        resp = sns_conn.create_platform_endpoint(
+        resp = sns.create_platform_endpoint(
             platform_application_arn=PLATFORM_ENDPOINT_ARN,
             token=device_id
         )
@@ -35,7 +35,7 @@ def create_platform_endpoint(device_id):
 
 def remove_platform_endpoint(device_id):
     try:
-        resp = sns_conn.delete_endpoint(
+        resp = sns.delete_endpoint(
            platform_application_arn=PLATFORM_ENDPOINT_ARN,
            token=device_id
         )
