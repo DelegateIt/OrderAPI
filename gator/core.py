@@ -10,6 +10,7 @@ import gator.common as common
 import gator.config as config
 import gator.payment as payment
 import gator.business_logic as bl
+import gator.push as push
 
 from gator.flask import app
 from gator.models import Model, Customer, Delegator, Transaction, Message
@@ -56,21 +57,30 @@ def get_health():
     http_code = 200 if status else 500
     return jsonpickle.encode(payload), http_code
 
-def login(uuid_type):
-    data = jsonpickle.decode(request.data.decode("utf-8"))
+def login(uuid_type, data):
     if not set(["fbuser_id", "fbuser_token"]) <= set(data.keys()):
         raise GatorException(Errors.DATA_NOT_PRESENT)
+
     return login_facebook(data["fbuser_token"], data["fbuser_id"], uuid_type)
 
 @app.route('/core/login/customer', methods=["POST"])
 def customer_login():
-    (uuid, token) = login(UuidType.CUSTOMER)
+    data = jsonpickle.decode(request.data.decode("utf-8"))
+
+    (uuid, token) = login(UuidType.CUSTOMER, data)
     customer = Model.load_from_db(Customer, uuid)
+
+    # Create a push endpoint for the given device
+    if "device_id" in data:
+        push.create_push_endpoint(customer, data["device_id"])
+
     return jsonpickle.encode({"result": 0, "customer": customer.get_data(), "token": token})
 
 @app.route('/core/login/delegator', methods=["POST"])
 def delegator_login():
-    (uuid, token) = login(UuidType.DELEGATOR)
+    data = jsonpickle.decode(request.data.decode("utf-8"))
+
+    (uuid, token) = login(UuidType.DELEGATOR, data)
     delegator = Model.load_from_db(Delegator, uuid)
     return jsonpickle.encode({"result": 0, "delegator": delegator.get_data(), "token": token})
 

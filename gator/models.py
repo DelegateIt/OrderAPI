@@ -26,22 +26,25 @@ conn = service.dynamodb
 # Class of table names
 table_prefix = config.store["dynamodb"]["table_prefix"]
 class TableNames():
-    CUSTOMERS    = table_prefix + "DelegateIt_Customers"
-    DELEGATORS   = table_prefix + "DelegateIt_Delegators"
-    TRANSACTIONS = table_prefix + "DelegateIt_Transactions_CD"
-    HANDLERS     = table_prefix + "DelegateIt_Handlers"
+    CUSTOMERS      = table_prefix + "DelegateIt_Customers"
+    DELEGATORS     = table_prefix + "DelegateIt_Delegators"
+    TRANSACTIONS   = table_prefix + "DelegateIt_Transactions_CD"
+    HANDLERS       = table_prefix + "DelegateIt_Handlers"
+    PUSH_ENDPOINTS = table_prefix + "DelegateIt_PushEndpoints"
 
 # Tables
-customers    = Table(TableNames.CUSTOMERS,    connection=conn)
-delegators   = Table(TableNames.DELEGATORS,   connection=conn)
-transactions = Table(TableNames.TRANSACTIONS, connection=conn)
-handlers     = Table(TableNames.HANDLERS,     connection=conn)
+customers      = Table(TableNames.CUSTOMERS,      connection=conn)
+delegators     = Table(TableNames.DELEGATORS,     connection=conn)
+transactions   = Table(TableNames.TRANSACTIONS,   connection=conn)
+handlers       = Table(TableNames.HANDLERS,       connection=conn)
+push_endpoints = Table(TableNames.PUSH_ENDPOINTS, connection=conn)
 
 # Use boolean for the tables
 customers.use_boolean()
 delegators.use_boolean()
 transactions.use_boolean()
 handlers.use_boolean()
+push_endpoints.use_boolean()
 
 # Base class for all object models
 class Model():

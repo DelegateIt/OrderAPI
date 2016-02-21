@@ -45,5 +45,9 @@
                 "id": "19375937498483"
             }
         }
+    },
+    "sns": {
+        "use_local": true,
+        "platform_endpoint_arn": null
     }
 }

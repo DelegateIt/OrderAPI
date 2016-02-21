@@ -13,6 +13,7 @@ import stripe
 from twilio.rest import TwilioRestClient
 import boto.dynamodb2
 from boto.dynamodb2.layer1 import DynamoDBConnection
+import boto.sns
 
 import gator.config as config
 
@@ -20,7 +21,7 @@ import gator.config as config
 sms = None
 shorturl = None
 dynamodb = None
-
+sns = None
 
 #######################
 # Service Definitions #
@@ -72,6 +73,13 @@ class GoogleUrlService(object):
                         resp.status_code, resp.text)
         return long_url
 
+class SNSService(object):
+    def create_platform_endpoint(self, *args):
+        logging.info("TEST: created platform endpoint")
+
+    def delete_endpoint(self, *args):
+        logging.info("TEST: deleted platform endpoint")
+
 ##########################
 # Service Initialization #
 ##########################
@@ -112,7 +120,19 @@ def _setup_stripe():
         stripe.api_key = config.store["stripe"]["secret_key"]
         stripe.api_version = config.store["stripe"]["version"]
 
+def _create_sns():
+    cnfg = config.store["sns"]
+    if not cnfg["use_local"]:
+        return boto.sns.connect_to_region(
+            cnfg["region"],
+            aws_access_key_id=cnfg["access_key"],
+            aws_secret_access_key=cnfg["secret_key"],
+        )
+    else:
+        return SNSService()
+
 sms = _create_sms()
 dynamodb = _create_dynamodb()
 shorturl = _create_urlshortener()
+sns = _create_sns()
 _setup_stripe()

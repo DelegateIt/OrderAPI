@@ -39,6 +39,7 @@ class Errors():
     INVALID_PHONE_NUMBER       = ErrorType(21, "The phone number is invalid")
     UNSUPORTED_VERSION         = ErrorType(22, "The specified version is no longer supported")
     STALE_API_VERSION          = ErrorType(23, "The API is not up to date with the latest version")
+    SNS_FAILURE                = ErrorType(24, "Amazon SNS sent back an error")
 
 
 def error_to_json(error):

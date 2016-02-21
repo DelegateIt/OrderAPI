@@ -42,5 +42,11 @@
                 "id": "19375937498483"
             }
         }
+    },
+    "sns": {
+        "access_key": "AKIAI33RXX7HQYJMQG4A",
+        "secret_key": "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",
+        "region": "us-west-2",
+        "platform_endpoint_arn": "arn:aws:sns:us-west-2:274622866197:app/APNS_SANDBOX/iOS"
     }
 }
