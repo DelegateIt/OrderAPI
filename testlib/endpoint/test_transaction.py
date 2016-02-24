@@ -139,7 +139,7 @@ class TransactionTest(RestTest):
             "from_customer": True,
             "timestamp": messages[0]["timestamp"]
         }]
-        apiclient.send_message(transaction_uuid, from_customer=False, content="test2")
+        self.assertResponse(0, apiclient.send_message(transaction_uuid, from_customer=False, content="test2"))
         messages = apiclient.get_transaction(transaction_uuid)["transaction"]["messages"]
         expected.append({
             "type": "text",

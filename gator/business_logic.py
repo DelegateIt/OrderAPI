@@ -62,7 +62,7 @@ def send_message(transaction, message, from_customer, mtype):
     # If the message was sent by the delegator send an SMS to the customer
     if not from_customer and transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
         customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
-        service.sms.send_msg(body=message, to=customer[CFields.PHONE_NUMBER])
+        service.sms.send_msg(body=message.content, to=customer[CFields.PHONE_NUMBER])
 
     # Notify the delegator that there is a new message
     if from_customer and "delegator_uuid" in transaction:
