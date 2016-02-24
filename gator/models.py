@@ -14,14 +14,13 @@ import gator.common as common
 import gator.config as config
 import gator.version as version
 
+from gator.service import dynamodb
 from gator.common import TransactionStates, Platforms, Errors, GatorException
 from gator.version import MigrationHandlers
 
 ##############################
 # Global vars, consts, extra #
 ##############################
-
-conn = service.dynamodb
 
 # Class of table names
 table_prefix = config.store["dynamodb"]["table_prefix"]
@@ -33,11 +32,11 @@ class TableNames():
     PUSH_ENDPOINTS = table_prefix + "DelegateIt_PushEndpoints"
 
 # Tables
-customers      = Table(TableNames.CUSTOMERS,      connection=conn)
-delegators     = Table(TableNames.DELEGATORS,     connection=conn)
-transactions   = Table(TableNames.TRANSACTIONS,   connection=conn)
-handlers       = Table(TableNames.HANDLERS,       connection=conn)
-push_endpoints = Table(TableNames.PUSH_ENDPOINTS, connection=conn)
+customers      = Table(TableNames.CUSTOMERS,      connection=dynamodb)
+delegators     = Table(TableNames.DELEGATORS,     connection=dynamodb)
+transactions   = Table(TableNames.TRANSACTIONS,   connection=dynamodb)
+handlers       = Table(TableNames.HANDLERS,       connection=dynamodb)
+push_endpoints = Table(TableNames.PUSH_ENDPOINTS, connection=dynamodb)
 
 # Use boolean for the tables
 customers.use_boolean()

@@ -74,11 +74,14 @@ class GoogleUrlService(object):
         return long_url
 
 class SNSService(object):
-    def create_platform_endpoint(self, *args):
-        logging.info("TEST: created platform endpoint")
+    def create_platform_endpoint(self, platform_application_arn, token):
+        logging.info("TEST: created platform endpoint (%s)" % token)
+        return {'CreatePlatformEndpointResponse':
+                    {'CreatePlatformEndpointResult':
+                    {'EndpointArn': 'LOCAL_ENDPOINT_ARN'}}}
 
-    def delete_endpoint(self, *args):
-        logging.info("TEST: deleted platform endpoint")
+    def delete_endpoint(self, endpoint_arn):
+        logging.info("TEST: deleted platform endpoint (%s)" % endpoint_arn)
 
 ##########################
 # Service Initialization #
