@@ -74,7 +74,9 @@ def customer_login():
     if "device_id" in data:
         push.create_push_endpoint(customer, data["device_id"])
 
-    return jsonpickle.encode({"result": 0, "customer": customer.get_data(), "token": token})
+    return jsonpickle.encode({
+        "result": 0, "customer": customer.get_data(), "token": token}
+        unpicklable=False)
 
 @app.route('/core/login/delegator', methods=["POST"])
 def delegator_login():
@@ -82,7 +84,9 @@ def delegator_login():
 
     (uuid, token) = login(UuidType.DELEGATOR, data)
     delegator = Model.load_from_db(Delegator, uuid)
-    return jsonpickle.encode({"result": 0, "delegator": delegator.get_data(), "token": token})
+    return jsonpickle.encode({
+        "result": 0, "delegator": delegator.get_data(), "token": token},
+        unpicklable=False)
 
 @app.route('/core/customer', methods=['POST'])
 def customer_post():
