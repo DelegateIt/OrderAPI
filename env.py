@@ -11,6 +11,7 @@ import os
 import argparse
 import subprocess
 import tempfile
+import json
 
 USE_DOCKER_IO = False
 DOCKER_COMMAND = "docker.io" if USE_DOCKER_IO else "docker"
@@ -31,22 +32,30 @@ def execute(command, cwd=None, shell=False, stdout=None, stderr=None):
 class Start(object):
 
     @staticmethod
-    def start_container(name):
-        print("Starting {} container".format(name))
-        return execute_no_fail([DOCKER_COMMAND, "start", name])
+    def start_all():
+        for name in ["db", "api", "ntfy"]:
+            print("Starting", name, "container")
+            execute_no_fail([DOCKER_COMMAND, "start", name])
+        print("\nThe api is accessible from port 8000 and socket.io from 8060")
 
     @staticmethod
-    def start_api_env():
-        Start.start_container("db")
-        Start.start_container("api")
-        Start.start_container("ntfy")
-        print("\nThe api is accessible from port 8000 and socket.io from 8060")
+    def setup_all():
+        volume_overrides = { "apisource": os.getcwd() }
+        with open("./docker/api/Dockerrun.aws.json", "r") as f:
+            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host")
+        with open("./docker/notify/Dockerrun.aws.json", "r") as f:
+            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host")
+        Create.setup_db_container(os.getcwd(), False)
 
     @staticmethod
     def parse_args():
         parser = argparse.ArgumentParser(description="Starts the api environment")
-        parser.parse_args()
-        Start.start_api_env()
+        parser.add_argument("-l", "--local", default=False, action="store_true",
+                help="Don't pull any images, just run the latest local tag")
+        args = parser.parse_args()
+        if not args.local:
+            Start.setup_all()
+        Start.start_all()
 
 class Stop(object):
 
@@ -81,6 +90,27 @@ class Create(object):
             args.append("--no-cache")
         args.append(source)
         execute_no_fail(args)
+
+    @staticmethod
+    def pull_image(name):
+        execute_no_fail([DOCKER_COMMAND, "pull", name])
+
+    @staticmethod
+    def setup_with_dockerrun(dockerrun, port_mirror=False, volume_overrides={}, net="bridge"):
+        containers = dockerrun["containerDefinitions"]
+        volume_mounts = {
+                v["name"]: volume_overrides.get(v["name"], v["host"]["sourcePath"])
+                for v in dockerrun["volumes"] }
+        for c in containers:
+            ports = [
+                    [ p["containerPort"] if port_mirror else p["hostPort"], p["containerPort"] ]
+                    for p in c["portMappings"] ]
+            volumes = [
+                    [ volume_mounts[v["sourceVolume"]], v["containerPath"] ]
+                    for v in c["mountPoints"] ]
+            Create.pull_image(c["image"])
+            Create.kill_and_delete(c["name"])
+            Create.create_container(c["name"], c["image"], ports=ports, volumes=volumes, net=net)
 
     @staticmethod
     def create_container(name, image, ports=None, volumes=None, links=None, tty=False, net="bridge"):
