@@ -272,14 +272,12 @@ class Deploy(object):
         return binary.decode("utf-8").strip("\n")
 
     @staticmethod
-    def eb_deploy(modules, eb_group, version_tag=None, version_message=None):
+    def eb_deploy(modules, eb_group, commit_hash):
         for m in modules:
             env_name = "gator-" + m + "-" + eb_group
             args = ["eb", "deploy", env_name, "-nh"]
-            if version_tag is not None:
-                args.extend(["--label", env_name + "-" + version_tag])
-            if version_message is not None:
-                args.extend(["--message", version_message])
+            args.extend(["--label", env_name + "-" + commit_hash[:7]])
+            args.extend(["--message", "https://github.com/DelegateIt/OrderAPI/commit/" + commit_hash])
             execute(args, cwd=os.path.join(".", "docker", m))
 
     @staticmethod
@@ -288,11 +286,11 @@ class Deploy(object):
 
 
     @staticmethod
-    def deploy(apipath, apiconfig, eb_group, version_tag, lambda_name):
+    def deploy(apipath, apiconfig, eb_group, lambda_name):
         Package.package_all(apipath, apiconfig, ".")
         commit_hash = Deploy.get_commit_hash(apipath)
         print("Deploying commit hash", commit_hash)
-        Deploy.eb_deploy(["api", "notify"], eb_group, version_tag, commit_hash)
+        Deploy.eb_deploy(["api", "notify"], eb_group, commit_hash)
         Deploy.lambda_deploy(lambda_name, "./gator-lambda.zip")
 
     @staticmethod
@@ -313,15 +311,12 @@ class Deploy(object):
                 description="Deploys the code to elastic beanstalk")
         parser.add_argument("deploy_type", choices=types.keys(),
                 help="The type of deployment")
-        parser.add_argument("version_tag",
-                help="The version label to apply. Ex: 'v1.12.2-rc0'")
         args = parser.parse_args()
 
         apipath = "."
         deploy_type = types[args.deploy_type]
         apiconfig = os.path.join(apipath, deploy_type["config"])
-        Deploy.deploy(apipath, apiconfig, deploy_type["eb-group"],
-                      args.version_tag, deploy_type["lambda"])
+        Deploy.deploy(apipath, apiconfig, deploy_type["eb-group"], deploy_type["lambda"])
 
 
 if __name__ == "__main__":
