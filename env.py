@@ -147,6 +147,15 @@ class Create(object):
 
 class Package(object):
 
+    excludes = [
+        "*/.git/*",
+        "*/__pycache__/*",
+        "*/.elasticbeanstalk/*",
+        "*.swp",
+        "*/.noseids",
+        "apisource/testlib/*"
+    ]
+
     @staticmethod
     def package_lambda(apisource, apiconfig, outdir, tempdir):
         print("Packaging lambda")
@@ -172,7 +181,7 @@ class Package(object):
                 "apisource",
                 "Dockerrun.aws.json",
                 "env.yaml",
-                "-x", "*/.git/*", "*/__pycache__/*"], cwd=tempdir)
+                "-x", *Package.excludes], cwd=tempdir)
 
     @staticmethod
     def package_notify(apisource, apiconfig, outdir, tempdir):
@@ -187,7 +196,7 @@ class Package(object):
                 "apisource",
                 "Dockerrun.aws.json",
                 "env.yaml",
-                "-x", "*/.git/*", "*/__pycache__/*"], cwd=tempdir)
+                "-x", *Package.excludes], cwd=tempdir)
 
     @staticmethod
     def package_all(apisource, apiconfig, outdir):
