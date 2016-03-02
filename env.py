@@ -31,6 +31,19 @@ def execute(command, cwd=None, shell=False, stdout=None, stderr=None):
     (out, err) = proc.communicate()
     return proc.wait(), out, err
 
+class Git(object):
+
+    @staticmethod
+    def ensure_clean_head(repopath="."):
+        print("Ensuring the git HEAD is clean. All changes must be commited")
+        execute_no_fail(["git", "diff", "--exit-code", "--stat"], cwd=repopath)
+
+    @staticmethod
+    def get_latest_commit_hash(repopath="."):
+        binary = execute_no_fail(["git", "rev-parse", "HEAD"], cwd=repopath, stdout=subprocess.PIPE)[1]
+        return binary.decode("utf-8").strip("\n")
+
+
 class Start(object):
     @staticmethod
     def start_all():
@@ -150,8 +163,8 @@ class Create(object):
     @staticmethod
     def setup_db_container(volume, no_cache):
         Create.kill_and_delete("db")
-        Create.create_image("gatdb", "./docker/db", no_cache)
-        Create.create_container("db", "gatdb",
+        Create.create_image("delegateit/gatdb", "./docker/db", no_cache)
+        Create.create_container("db", "delegateit/gatdb",
                 ports=[[8040, 8040]],
                 volumes=[[volume, "/var/gator/api"]],
                 net="host")
@@ -168,11 +181,11 @@ class Create(object):
         abs_source = os.getcwd()
         Create.create_image("delegateit/gatbase", "./docker/base", args.no_cache)
         if args.name == "api" or args.name == "fullapi":
-            Create.setup_api_container(abs_source, args.no_cache)
+            Create.setup_api_container(abs_source, False)
         if args.name == "db" or args.name == "fullapi":
-            Create.setup_db_container(abs_source, args.no_cache)
+            Create.setup_db_container(abs_source, False)
         if args.name == "ntfy" or args.name == "fullapi":
-            Create.setup_ntfy_container(abs_source, args.no_cache)
+            Create.setup_ntfy_container(abs_source, False)
 
 class Package(object):
     excludes = [
@@ -251,24 +264,45 @@ class Package(object):
         Package.package_all(".", args.config, args.outdir)
 
 class DockerPush(object):
+
     @staticmethod
-    def docker_push_list(image_list, tag=None):
+    def docker_push_list(image_list, tag=None, force=False):
         for image in image_list:
             if tag is not None:
-                execute_no_fail(["docker", "tag", image + ":latest", image + ":" + tag])
+                args = ["docker", "tag", image + ":latest", image + ":" + tag]
+                if force:
+                    args.append("-f")
+                execute_no_fail(args)
             execute_no_fail(["docker", "push", image])
+
+    @staticmethod
+    def update_dockerrun_image(filename, image):
+        with open(filename, "r") as f:
+            dockerrun = json.loads(f.read())
+            dockerrun["containerDefinitions"][0]["image"] = image
+        with open(filename, "w") as f:
+            f.write(json.dumps(dockerrun, indent=4, sort_keys=True))
+
+    @staticmethod
+    def docker_deploy(force=False):
+        Git.ensure_clean_head()
+        tag = Git.get_latest_commit_hash()[:7]
+        DockerPush.docker_push_list([
+                "delegateit/gatdb",
+                "delegateit/gatapi",
+                "delegateit/gatntfy"], tag, force)
+        DockerPush.update_dockerrun_image("./docker/api/Dockerrun.aws.json", "delegateit/gatapi:" + tag)
+        DockerPush.update_dockerrun_image("./docker/notify/Dockerrun.aws.json", "delegateit/gatntfy:" + tag)
+
 
     @staticmethod
     def parse_args():
         parser = argparse.ArgumentParser(
-                description="Pushes all the production images to docker hub")
-        parser.add_argument("-t", "--tag",
-                help="The tag to attach to the images if any")
+                description="Pushes the images to docker hub and updates the Dockerrun.aws.json files")
+        parser.add_argument("-f", "--force",
+                help="Image tagging is forced. Will overwrite previous tags")
         args = parser.parse_args()
-        DockerPush.docker_push_list([
-                "delegateit/gatbase",
-                "delegateit/gatapi",
-                "delegateit/gatntfy"], args.tag)
+        DockerPush.docker_deploy(args.force)
 
 class Health(object):
     def display(eb_group):
@@ -363,9 +397,9 @@ if __name__ == "__main__":
             "parse": Package.parse_args,
             "description": "Packages the environment for elastic beanstalk in a zip"
         },
-        "dockerpush": {
+        "docker-push": {
             "parse": DockerPush.parse_args,
-            "description": "Pushes all the production images to docker hub"
+            "description": "Pushes the images to docker hub and updates the Dockerrun.aws.json files"
         },
         "deploy": {
             "parse": Deploy.parse_args,
