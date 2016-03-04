@@ -219,11 +219,13 @@ class Package(object):
                 os.path.join(tempdir, "apisource", "local-config.json")])
         execute_no_fail(["cp", os.path.join("docker", "api", "Dockerrun.aws.json"), tempdir])
         execute_no_fail(["cp", os.path.join("docker", "api", "env.yaml"), tempdir])
-        execute_no_fail(["zip", "-r", os.path.join(os.getcwd(), outdir, "gator-api.zip"),
+        zip_args = ["zip", "-r", os.path.join(os.getcwd(), outdir, "gator-api.zip"),
                 "apisource",
                 "Dockerrun.aws.json",
                 "env.yaml",
-                "-x", *Package.excludes], cwd=tempdir)
+                "-x"]
+        zip_args.extend(Package.excludes)
+        execute_no_fail(zip_args, cwd=tempdir)
 
     @staticmethod
     def package_notify(apisource, apiconfig, outdir, tempdir):
@@ -234,11 +236,13 @@ class Package(object):
                 os.path.join(tempdir, "apisource", "local-config.json")])
         execute_no_fail(["cp", os.path.join("docker", "notify", "Dockerrun.aws.json"), tempdir])
         execute_no_fail(["cp", os.path.join("docker", "notify", "env.yaml"), tempdir])
-        execute_no_fail(["zip", "-r", os.path.join(os.getcwd(), outdir, "gator-notify.zip"),
+        zip_args = ["zip", "-r", os.path.join(os.getcwd(), outdir, "gator-notify.zip"),
                 "apisource",
                 "Dockerrun.aws.json",
                 "env.yaml",
-                "-x", *Package.excludes], cwd=tempdir)
+                "-x"]
+        zip_args.extend(Package.excludes)
+        execute_no_fail(zip_args, cwd=tempdir)
 
     @staticmethod
     def package_all(apisource, apiconfig, outdir):
