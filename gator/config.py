@@ -3,6 +3,7 @@ import os
 
 # Static variables for easy access
 NEW_CUSTOMER_MESSAGE = "Welcome to DelegateIt! Text us whatever you want and we will get it to you."
+CONFIRMATION_MESSAGE = "Hello, thank you for using DelegateIt. We will be with you shortly."
 MAX_TWILIO_MSG_SIZE = 1600
 
 # This is just a template, the actual config is loaded from disk on startup,

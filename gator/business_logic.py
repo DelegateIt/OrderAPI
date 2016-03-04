@@ -59,10 +59,19 @@ def send_message(transaction, message, from_customer, mtype):
     if not transaction.save():
         raise GatorException(Errors.CONSISTENCY_ERROR)
 
-    # If the message was sent by the delegator send an SMS to the customer
-    if not from_customer and transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
+    # Handle logic for messages sent via SMS
+    if transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
         customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
-        service.sms.send_msg(body=message.content, to=customer[CFields.PHONE_NUMBER])
+        if from_customer:
+            # If the message was sent by the customer on SMS send them a confirmation
+            service.sms.send_msg(
+                body=config.CONFIRMATION_MESSAGE,
+                to=customer[CFields.PHONE_NUMBER])
+        elif not from_customer:
+            # If the message was sent by the delegator send an SMS to the customer
+            service.sms.send_msg(
+                body=message.content,
+                to=customer[CFields.PHONE_NUMBER])
 
     # Notify the delegator that there is a new message
     if from_customer and "delegator_uuid" in transaction:
