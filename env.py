@@ -6,15 +6,17 @@ if sys.version_info < REQUIRED_PYTHON:
     print("Please upgrade your version of python to at least v{}.{}.{}".format(*REQUIRED_PYTHON))
     exit(1)
 
-
+# Set the scripts working directory to it's own location so relative
+# paths work as expected
 import os
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
 import argparse
 import subprocess
 import tempfile
 import json
-
-USE_DOCKER_IO = False
-DOCKER_COMMAND = "docker.io" if USE_DOCKER_IO else "docker"
 
 def execute_no_fail(command, *args, **kwargs):
     result = execute(command, *args, **kwargs)
@@ -30,12 +32,11 @@ def execute(command, cwd=None, shell=False, stdout=None, stderr=None):
     return proc.wait(), out, err
 
 class Start(object):
-
     @staticmethod
     def start_all():
         for name in ["db", "api", "ntfy"]:
             print("Starting", name, "container")
-            execute_no_fail([DOCKER_COMMAND, "start", name])
+            execute_no_fail(["docker", "start", name])
         print("\nThe api is accessible from port 8000 and socket.io from 8060")
 
     @staticmethod
@@ -58,11 +59,10 @@ class Start(object):
         Start.start_all()
 
 class Stop(object):
-
     @staticmethod
     def stop_container(name, time_till_kill=3):
         print("Stopping {} container".format(name))
-        return execute_no_fail([DOCKER_COMMAND, "stop", "-t", str(time_till_kill), name])
+        return execute_no_fail(["docker", "stop", "-t", str(time_till_kill), name])
 
     @staticmethod
     def stop_api_env():
@@ -78,14 +78,13 @@ class Stop(object):
 
 
 class Create(object):
-
     @staticmethod
     def kill_and_delete(name):
-       execute([DOCKER_COMMAND, "rm", "-f", name])
+       execute(["docker", "rm", "-f", name])
 
     @staticmethod
     def create_image(name, source, no_cache):
-        args = [DOCKER_COMMAND, "build", "-t", name]
+        args = ["docker", "build", "-t", name]
         if no_cache:
             args.append("--no-cache")
         args.append(source)
@@ -93,7 +92,7 @@ class Create(object):
 
     @staticmethod
     def pull_image(name):
-        execute_no_fail([DOCKER_COMMAND, "pull", name])
+        execute_no_fail(["docker", "pull", name])
 
     @staticmethod
     def setup_with_dockerrun(dockerrun, port_mirror=False, volume_overrides={}, net="bridge"):
@@ -114,7 +113,7 @@ class Create(object):
 
     @staticmethod
     def create_container(name, image, ports=None, volumes=None, links=None, tty=False, net="bridge"):
-        command = [DOCKER_COMMAND, "create", "--name", name]
+        command = ["docker", "create", "--name", name]
         if ports:
             for p in ports:
                 command.extend(["-p", str(p[0]) + ":" + str(p[1])])
@@ -176,7 +175,6 @@ class Create(object):
             Create.setup_ntfy_container(abs_source, args.no_cache)
 
 class Package(object):
-
     excludes = [
         "*/.git/*",
         "*/__pycache__/*",
@@ -257,8 +255,8 @@ class DockerPush(object):
     def docker_push_list(image_list, tag=None):
         for image in image_list:
             if tag is not None:
-                execute_no_fail([DOCKER_COMMAND, "tag", image + ":latest", image + ":" + tag])
-            execute_no_fail([DOCKER_COMMAND, "push", image])
+                execute_no_fail(["docker", "tag", image + ":latest", image + ":" + tag])
+            execute_no_fail(["docker", "push", image])
 
     @staticmethod
     def parse_args():
@@ -273,7 +271,6 @@ class DockerPush(object):
                 "delegateit/gatntfy"], args.tag)
 
 class Health(object):
-
     def display(eb_group):
         cmd =  "tmux new-session -d -s eb-health 'cd docker/api && eb health gator-api-" + eb_group  + " --refresh';"
         cmd += "tmux split-window -v 'cd docker/notify && eb health gator-notify-" + eb_group + " --refresh';"
@@ -293,7 +290,6 @@ class Health(object):
 
 
 class Deploy(object):
-
     @staticmethod
     def get_commit_hash(apipath):
         print("Making sure api directory has a committed HEAD")
