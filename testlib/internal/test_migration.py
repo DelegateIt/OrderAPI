@@ -1,12 +1,12 @@
 import unittest
 
-import gator.common as common
 import gator.apiclient as apiclient
 import gator.config as config
+import gator.core.common as common
 
-from gator.version import MigrationHandlers
-from gator.models import Model, customers
-from gator.common import GatorException
+from gator.core.version import MigrationHandlers
+from gator.core.models import Model, customers
+from gator.core.common import GatorException
 
 class TestHandler():
     @staticmethod

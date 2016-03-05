@@ -1,12 +1,15 @@
-from gator.common import get_current_timestamp, Errors, GatorException, get_uuid
-from gator.config import  store
-from gator import models
-
-from enum import Enum
 import logging
 import requests
 import hashlib
 import base64
+
+from enum import Enum
+
+import gator.core.models as models
+
+from gator.config import store
+from gator.core.common import get_current_timestamp, Errors, GatorException, get_uuid
+
 
 class Permission(Enum):
     CUSTOMER_OWNER = 1

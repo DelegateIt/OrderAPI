@@ -1,15 +1,15 @@
 import json
 import jsonpickle
 import requests
+
 from flask import request
 
-import gator.config
-from gator.flask import app
-from gator import common
-from gator import models
-from gator.auth import authenticate, validate_permission, Permission, validate_token
+import gator.core.common as common
+import gator.core.models as models
 
-from gator.models import Model, TFields, Transaction
+from gator.flask import app
+from gator.core.auth import authenticate, validate_permission, Permission, validate_token
+from gator.core.models import Model, TFields, Transaction
 
 def add_handler(ip_address, port, expires):
     data = {

@@ -5,7 +5,8 @@ app = flask.Flask(__name__)
 
 logging.getLogger().setLevel(logging.INFO)
 
-import gator.core
-import gator.payment
-import gator.sms
-import gator.notify
+import gator.endpoints.core
+import gator.endpoints.payment
+import gator.endpoints.sms
+import gator.endpoints.notify
+import gator.endpoints.push

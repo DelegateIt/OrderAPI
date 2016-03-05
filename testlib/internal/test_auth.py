@@ -2,9 +2,10 @@ import nose
 import unittest
 import base64
 
-from gator.auth import login_facebook, validate_token, UuidType, validate_permission, Permission
-from gator.common import GatorException, Errors
-from gator import apiclient
+import gator.apiclient as apiclient
+
+from gator.core.auth import login_facebook, validate_token, UuidType, validate_permission, Permission
+from gator.core.common import GatorException, Errors
 
 class AuthTest(unittest.TestCase):
 

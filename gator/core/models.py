@@ -9,14 +9,14 @@ import json
 import uuid
 from enum import Enum, unique
 
-import gator.service as service
-import gator.common as common
 import gator.config as config
-import gator.version as version
+import gator.core.service as service
+import gator.core.common as common
+import gator.core.version as version
 
-from gator.service import dynamodb
-from gator.common import TransactionStates, Platforms, Errors, GatorException
-from gator.version import MigrationHandlers
+from gator.core.service import dynamodb
+from gator.core.common import TransactionStates, Platforms, Errors, GatorException
+from gator.core.version import MigrationHandlers
 
 ##############################
 # Global vars, consts, extra #

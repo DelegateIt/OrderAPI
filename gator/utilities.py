@@ -14,12 +14,12 @@ import base64
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + "../../../"))
 
-import gator.models as models
+import gator.core.models as models
 
-from gator.models import Customer, Delegator, Transaction
+from gator.core.models import Customer, Delegator, Transaction
 
 def mass_text(body_fn, numbers_fn):
-    from gator.service import sms
+    from gator.core.service import sms
     body = open(body_fn, "r").read()
 
     with open(numbers_fn, "r") as cur_file:
@@ -29,9 +29,9 @@ def mass_text(body_fn, numbers_fn):
             cur_line = cur_file.readline()
 
 def retreive_transaction_info():
-    import gator.models as models
-    import gator.common as common
-    from gator.models import Transaction, TFields
+    import gator.core.models as models
+    import gator.core.common as common
+    from gator.core.models import Transaction, TFields
     customers = {}
     for t in common.convert_query(Transaction, models.transactions.scan()):
         if t["customer_uuid"] not in customers:
@@ -66,8 +66,8 @@ def generate_entropy(size=128):
     return base64.b64encode(os.urandom(size)).decode("utf-8")
 
 def generate_api_key(key_type):
-    from gator import auth
-    from gator.common import get_uuid
+    import gator.core.auth as auth
+    from gator.core.common import get_uuid
     permission_map = {
         "admin": ["API_SMS", "API_NOTIFY", "DELEGATOR_OWNER", "CUSTOMER_OWNER", "ALL_DELEGATORS", "ADMIN"],
         "sms": ["API_SMS"],

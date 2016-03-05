@@ -23,17 +23,17 @@ class MockSNSService(object):
     def delete_endpoint(self, endpoint_arn):
         self.last_deleted_token = endpoint_arn
 
-import gator.service as service
+import gator.core.service as service
 service.sns = MockSNSService()
 
 #################
 # Other Imports #
 #################
 
-import gator.push as push
+import gator.core.push_endpoints as push
 import gator.apiclient as apiclient
 
-from gator.models import Customer, CFields, push_endpoints
+from gator.core.models import Customer, CFields, push_endpoints
 
 BENS_PHONE_ARN = "EB0144965D9916B274BDCC2AEDD5D5DD9D1DF1FEE59F07C7EDAD292D1F81DC61"
 

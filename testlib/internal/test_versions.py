@@ -1,11 +1,11 @@
 import unittest
 from copy import deepcopy
 
-import gator.version as version
+import gator.core.version as version
 
-from gator.version import MigrationHandlers
-from gator.common import GatorException
-from gator.models import MFields, MTypes
+from gator.core.version import MigrationHandlers
+from gator.core.common import GatorException
+from gator.core.models import MFields, MTypes
 
 # Test handlers used to mock a real migration
 class TestHandler1():

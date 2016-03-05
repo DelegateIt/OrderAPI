@@ -4,21 +4,20 @@ import jsonpickle
 import logging
 import boto
 
-import gator.service as service
-import gator.models as models
-import gator.common as common
 import gator.config as config
-import gator.payment as payment
-import gator.business_logic as bl
-import gator.push as push
+import gator.core.service as service
+import gator.core.models as models
+import gator.core.common as common
+import gator.core.push_endpoints as push_endpoints
+import gator.logic.transactions as transactions
 
 from gator.flask import app
-from gator.models import Model, Customer, Delegator, Transaction, Message
-from gator.models import CFields, DFields, TFields, MFields
-from gator.common import Errors, TransactionStates, GatorException, Platforms,\
-                         validate_phonenumber, validate_email
-from gator.auth import authenticate, Permission, validate_permission,\
-                       validate_fb_token, UuidType, login_facebook, validate_token
+from gator.core.models import Model, Customer, Delegator, Transaction, Message,\
+                              CFields, DFields, TFields, MFields
+from gator.core.common import Errors, TransactionStates, GatorException, Platforms,\
+                              validate_phonenumber, validate_email
+from gator.core.auth import authenticate, Permission, validate_permission,\
+                            validate_fb_token, UuidType, login_facebook, validate_token
 
 @app.after_request
 def after_request(response):
@@ -72,7 +71,7 @@ def customer_login():
 
     # Create a push endpoint for the given device
     if "device_id" in data:
-        push.create_push_endpoint(customer, data["device_id"])
+        push_endpoints.create_push_endpoint(customer, data["device_id"])
 
     return jsonpickle.encode({
         "result": 0, "customer": customer.get_data(), "token": token},
@@ -261,7 +260,7 @@ def send_message(transaction_uuid):
     token = request.args.get("token", "")
     validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER, Permission.ALL_DELEGATORS], transaction["customer_uuid"])
 
-    message = bl.send_message(transaction, data[MFields.CONTENT],
+    message = transactions.send_message(transaction, data[MFields.CONTENT],
             data[MFields.FROM_CUSTOMER], data[MFields.MTYPE])
 
     return jsonpickle.encode({
@@ -276,7 +275,7 @@ def transaction_post():
     token = request.args.get("token", "")
     validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER], data["customer_uuid"])
 
-    transaction = bl.create_transaction(data)
+    transaction = transactions.create_transaction(data)
 
     return jsonpickle.encode({
         "result": 0, "uuid": transaction[TFields.UUID]},
@@ -329,7 +328,7 @@ def transaction_put(uuid):
     data = jsonpickle.decode(request.data.decode("utf-8"))
 
     #TODO verify identity has permission to update this resource
-    bl.update_transaction(uuid, data)
+    transactions.update_transaction(uuid, data)
 
     return jsonpickle.encode({"result": 0}, unpicklable=False)
 

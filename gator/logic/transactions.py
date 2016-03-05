@@ -1,8 +1,11 @@
-from gator import config, auth
-from gator.models import Model, Customer, Delegator, Transaction, TFields, DFields, delegators,\
-                         Message, MFields, CFields
-from gator.common import Errors, TransactionStates, Platforms, GatorException
-from gator import payment, service
+import gator.config as config
+import gator.core.auth as auth
+import gator.core.stripe as stripe
+import gator.core.service as service
+
+from gator.core.models import Model, Customer, Delegator, Transaction, TFields, DFields, delegators,\
+                              Message, MFields, CFields
+from gator.core.common import Errors, TransactionStates, Platforms, GatorException
 
 def create_transaction(attributes={}):
     if not Transaction.MANDATORY_KEYS <= set(attributes):
@@ -13,7 +16,7 @@ def create_transaction(attributes={}):
     # Create a new transaction
     transaction = Transaction.create_new(attributes)
     customer_token = auth.generate_token(transaction[TFields.CUSTOMER_UUID], auth.UuidType.CUSTOMER)
-    transaction[TFields.PAYMENT_URL] = payment.create_url(transaction[TFields.UUID], customer_token)
+    transaction[TFields.PAYMENT_URL] = stripe.create_url(transaction[TFields.UUID], customer_token)
 
     if not transaction.create():
         raise GatorException(Errors.CONSISTENCY_ERROR)

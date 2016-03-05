@@ -1,13 +1,13 @@
 import unittest
 
-import gator.common as common
 import gator.apiclient as apiclient
+import gator.core.common as common
 import gator.config as config
 
-from gator.models import Model, Customer, Delegator, Transaction, Message,\
-                         CFields, DFields, TFields, MFields,\
-                         customers, delegators, transactions, handlers
-from gator.common import Platforms, GatorException
+from gator.core.models import Model, Customer, Delegator, Transaction, Message,\
+                              CFields, DFields, TFields, MFields,\
+                              customers, delegators, transactions, handlers
+from gator.core.common import Platforms, GatorException
 
 class TestModel(unittest.TestCase):
     def setUp(self):

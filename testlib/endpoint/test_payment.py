@@ -4,7 +4,7 @@ from gator import apiclient
 from endpoint.rest import RestTest
 
 # "service" initializes stripe with the correct api key and version
-import gator.service
+import gator.core.service
 
 class PaymentTest(RestTest):
 

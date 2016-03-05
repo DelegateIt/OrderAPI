@@ -1,6 +1,6 @@
 import gator.config as config
 
-from gator.common import GatorException, Errors
+from gator.core.common import GatorException, Errors
 
 ########################
 # Handler Helper Class #
