@@ -59,7 +59,8 @@ class Start(object):
             Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host")
         with open("./docker/notify/Dockerrun.aws.json", "r") as f:
             Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host")
-        Create.setup_db_container(os.getcwd(), False)
+        with open("./docker/db/Dockerrun.aws.json", "r") as f:
+            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host")
 
     @staticmethod
     def parse_args():

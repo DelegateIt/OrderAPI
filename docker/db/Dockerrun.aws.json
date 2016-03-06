@@ -1,0 +1,32 @@
+{
+    "AWSEBDockerrunVersion": 2,
+    "containerDefinitions": [
+        {
+            "essential": true,
+            "image": "delegateit/gatdb:25f96ff",
+            "memory": 512,
+            "mountPoints": [
+                {
+                    "containerPath": "/var/gator/api",
+                    "readOnly": true,
+                    "sourceVolume": "apisource"
+                }
+            ],
+            "name": "db",
+            "portMappings": [
+                {
+                    "containerPort": 8040,
+                    "hostPort": 8040
+                }
+            ]
+        }
+    ],
+    "volumes": [
+        {
+            "host": {
+                "sourcePath": "/var/app/current/apisource"
+            },
+            "name": "apisource"
+        }
+    ]
+}
