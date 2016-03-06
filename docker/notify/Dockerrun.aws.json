@@ -1,32 +1,32 @@
 {
-  "AWSEBDockerrunVersion": 2,
-  "volumes": [
-    {
-      "name": "apisource",
-      "host": {
-        "sourcePath": "/var/app/current/apisource"
-      }
-    }
-  ],
-  "containerDefinitions": [
-    {
-      "name": "ntfy",
-      "image": "delegateit/gatntfy:v1.13.0",
-      "essential": true,
-      "memory": 512,
-      "portMappings": [
+    "AWSEBDockerrunVersion": 2,
+    "containerDefinitions": [
         {
-          "hostPort": 80,
-          "containerPort": 8060
+            "essential": true,
+            "image": "delegateit/gatntfy:25f96ff",
+            "memory": 512,
+            "mountPoints": [
+                {
+                    "containerPath": "/var/gator/api",
+                    "readOnly": true,
+                    "sourceVolume": "apisource"
+                }
+            ],
+            "name": "ntfy",
+            "portMappings": [
+                {
+                    "containerPort": 8060,
+                    "hostPort": 80
+                }
+            ]
         }
-      ],
-      "mountPoints": [
+    ],
+    "volumes": [
         {
-          "sourceVolume": "apisource",
-          "containerPath": "/var/gator/api",
-          "readOnly": true
+            "host": {
+                "sourcePath": "/var/app/current/apisource"
+            },
+            "name": "apisource"
         }
-      ]
-    }
-  ]
+    ]
 }

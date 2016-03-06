@@ -1,32 +1,32 @@
 {
-  "AWSEBDockerrunVersion": 2,
-  "volumes": [
-    {
-      "name": "apisource",
-      "host": {
-        "sourcePath": "/var/app/current/apisource"
-      }
-    }
-  ],
-  "containerDefinitions": [
-    {
-      "name": "api",
-      "image": "delegateit/gatapi:v1.13.0",
-      "essential": true,
-      "memory": 512,
-      "portMappings": [
+    "AWSEBDockerrunVersion": 2,
+    "containerDefinitions": [
         {
-          "hostPort": 80,
-          "containerPort": 8000
+            "essential": true,
+            "image": "delegateit/gatapi:25f96ff",
+            "memory": 512,
+            "mountPoints": [
+                {
+                    "containerPath": "/var/gator/api",
+                    "readOnly": true,
+                    "sourceVolume": "apisource"
+                }
+            ],
+            "name": "api",
+            "portMappings": [
+                {
+                    "containerPort": 8000,
+                    "hostPort": 80
+                }
+            ]
         }
-      ],
-      "mountPoints": [
+    ],
+    "volumes": [
         {
-          "sourceVolume": "apisource",
-          "containerPath": "/var/gator/api",
-          "readOnly": true
+            "host": {
+                "sourcePath": "/var/app/current/apisource"
+            },
+            "name": "apisource"
         }
-      ]
-    }
-  ]
+    ]
 }
