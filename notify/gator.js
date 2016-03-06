@@ -51,13 +51,22 @@ module.exports.request = function(host, port, path, method, json, callback) {
 };
 
 module.exports.updateHandler = function(callback) {
+
+    var wrapped = function(err, resp) {
+        if (err != null)
+            setTimeout(function() { module.exports.updateHandler(callback) }, 5000);
+        else
+            return callback(err, resp);
+    };
+
     module.exports.request(
             module.exports.config.api_host.name,
             module.exports.config.api_host.recv_port,
             '/notify/handler',
             'POST',
             {"port": module.exports.config.notifier_host.recv_port},
-            callback);
+            wrapped);
+
 };
 
 

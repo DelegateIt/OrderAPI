@@ -10,7 +10,9 @@ var port = gator.config.notifier_host.bind_port;
 app.use(bodyParser.json());
 
 //Add IP to transaction update handler
-gator.updateHandler(function() {});
+gator.updateHandler(function(err, resp) {
+    console.log("Recveived response trying to update notifer handlers", err, resp);
+});
 
 app.get('/', function(req, res){
     res.send('gator web socket server');
