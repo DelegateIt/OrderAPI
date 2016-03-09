@@ -83,6 +83,9 @@ class SNSService(object):
     def delete_endpoint(self, endpoint_arn):
         logging.info("TEST: deleted platform endpoint (%s)" % endpoint_arn)
 
+    def publish(self, **kwargs):
+        logging.info("TEST: send publish message")
+
 ##########################
 # Service Initialization #
 ##########################

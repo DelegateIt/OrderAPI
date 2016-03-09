@@ -25,7 +25,7 @@ def send_push_notification(customer_uuid):
 
     # Publish to all of the push_endpoints
     for item in query_result:
-        publish_result = sns.publish(
+        sns.publish(
             target_arn=item["endpoint_arn"],
             message=data["message"],
         )
