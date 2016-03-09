@@ -97,6 +97,9 @@ class Model():
     def __getitem__(self, key):
         return self.item[key]
 
+    def get(self, key, default=None):
+        return self.item[key] if key in self.item else default
+
     def __setitem__(self, key, val):
         if key in self.VALID_KEYS:
             self.item[key] = val
@@ -104,7 +107,7 @@ class Model():
             raise ValueError("Attribute %s is not valid." % key)
 
     def __contains__(self, key):
-        return key in self.get_data()
+        return key in self.item
 
     def update(self, atts):
         for key, val in atts.items():

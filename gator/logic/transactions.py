@@ -7,6 +7,10 @@ from gator.core.models import Model, Customer, Delegator, Transaction, TFields, 
                               Message, MFields, CFields
 from gator.core.common import Errors, TransactionStates, Platforms, GatorException
 
+def get_customer_alias(customer):
+    name = customer.get("first_name", "") + " " + customer.get("last_name", "")
+    return name if name != " " else customer.get("phone_number", "UNKNOWN")
+
 def create_transaction(attributes={}):
     if not Transaction.MANDATORY_KEYS <= set(attributes):
         raise GatorException(Errors.DATA_NOT_PRESENT)
@@ -31,7 +35,8 @@ def create_transaction(attributes={}):
     # Send a text to all of the delegators
     for delegator in delegators.scan():
          service.sms.send_msg(
-            body="ALERT: New transaction",
+            body="ALERT: New transaction from %s" % get_customer_alias(
+                    Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])),
             to=delegator[DFields.PHONE_NUMBER])
 
     return transaction
@@ -81,7 +86,7 @@ def send_message(transaction, message, from_customer, mtype):
     if from_customer and "delegator_uuid" in transaction:
         delegator = Model.load_from_db(Delegator, transaction[TFields.DELEGATOR_UUID])
         service.sms.send_msg(
-            body="ALERT: New message from %s" % customer[CFields.PHONE_NUMBER],
+            body="ALERT: New message from %s" % get_customer_alias(customer),
             to=delegator[DFields.PHONE_NUMBER])
 
     return message
