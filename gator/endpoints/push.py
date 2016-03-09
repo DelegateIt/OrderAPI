@@ -1,5 +1,6 @@
 import jsonpickle
 
+from flask import request
 from gator.flask import app
 from gator.core.service import sns
 from gator.core.models import push_endpoints
@@ -29,4 +30,4 @@ def send_push_notification(customer_uuid):
             message=data["message"],
         )
 
-    return {"result": 0}
+    return jsonpickle.encode({"result": 0})
