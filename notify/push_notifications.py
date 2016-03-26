@@ -12,10 +12,12 @@ def handler(event, context):
     new_item = event["Records"][0]["dynamodb"]["NewImage"]
     old_item = event["Records"][0]["dynamodb"]["OldImage"]
 
+    print("NEW_ITEM", new_item)
+
     # Important/Required fields
     platform_type = new_item["customer_platform_type"]["S"]
     new_last_message = new_item["messages"]["L"][-1]["M"]
-    from_delegator = new_last_message["from_customer"]["BOOL"] == "false"
+    from_delegator = new_last_message["from_customer"] == "false"
     old_last_message = old_item["messages"]["L"][-1]["M"]
 
     # Return if the platform isn't ios, the last message was sent by the
