@@ -207,6 +207,7 @@ class Package(object):
         execute_no_fail(["zip", "-r", os.path.join(os.getcwd(), outdir, "gator-lambda.zip"),
                 "lambda.js",
                 "gator.js",
+                "push_notifications.py",
                 "config.json"],
                 cwd=os.path.join(tempdir, "notify"))
 
@@ -351,12 +352,13 @@ class Deploy(object):
 
 
     @staticmethod
-    def deploy(apipath, apiconfig, eb_group, lambda_name):
+    def deploy(apipath, apiconfig, eb_group, notify_lambda_name, push_lambda_name):
         Package.package_all(apipath, apiconfig, ".")
         commit_hash = Deploy.get_commit_hash(apipath)
         print("Deploying commit hash", commit_hash)
         Deploy.eb_deploy(["api", "notify"], eb_group, commit_hash)
-        Deploy.lambda_deploy(lambda_name, "./gator-lambda.zip")
+        Deploy.lambda_deploy(notify_lambda_name, "./gator-lambda.zip")
+        Deploy.lambda_deploy(push_lambda_name, "./gator-lambda.zip")
 
     @staticmethod
     def parse_args():
@@ -364,12 +366,14 @@ class Deploy(object):
             "test": {
                 "config": "aws-test-config.json",
                 "eb-group": "test",
-                "lambda": "TestTransactionChange"
+                "notify_lambda": "TestTransactionChange",
+                "push_lambda": "TestPushNotifications"
             },
             "live": {
                 "config": "aws-prod-config.json",
                 "eb-group": "live",
-                "lambda": "TransactionUpdate"
+                "notify_lambda": "TransactionUpdate",
+                "push_lambda": "PushNotifications"
             }
         }
         parser = argparse.ArgumentParser(
@@ -381,7 +385,7 @@ class Deploy(object):
         apipath = "."
         deploy_type = types[args.deploy_type]
         apiconfig = os.path.join(apipath, deploy_type["config"])
-        Deploy.deploy(apipath, apiconfig, deploy_type["eb-group"], deploy_type["lambda"])
+        Deploy.deploy(apipath, apiconfig, deploy_type["eb-group"], deploy_type["notify_lambda"], deploy_type["push_lambda"])
 
 
 if __name__ == "__main__":
