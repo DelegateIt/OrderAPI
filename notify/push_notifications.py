@@ -9,15 +9,18 @@ SEND_PUSH_NOTIFICATION_ENDPOINT = "%s/push/send_push_notification/" % BASE_URL
 
 # Handles dynamodb event stream request
 def handler(event, context):
-    new_item = event["Records"][0]["dynamodb"]["NewImage"]
-    old_item = event["Records"][0]["dynamodb"]["OldImage"]
+    # Make sure the event is an update
+    root = event["Records"][0]["dynamodb"]
+    if root.get("OldImage") is None:
+        return
 
-    print("NEW_ITEM", new_item)
+    new_item = root["NewImage"]
+    old_item = root["OldImage"]
 
     # Important/Required fields
     platform_type = new_item["customer_platform_type"]["S"]
     new_last_message = new_item["messages"]["L"][-1]["M"]
-    from_delegator = new_last_message["from_customer"] == "false"
+    from_delegator = new_last_message["from_customer"]["BOOL"] == False
     old_last_message = old_item["messages"]["L"][-1]["M"]
 
     # Return if the platform isn't ios, the last message was sent by the
