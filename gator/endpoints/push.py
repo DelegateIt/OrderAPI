@@ -7,8 +7,8 @@ from gator.core.service import sns
 from gator.core.models import push_endpoints
 from gator.core.common import GatorException, Errors
 
-@app.route("/push/send_push_notification/<customer_uuid>", methods=["POST"])
-def send_push_notification(customer_uuid):
+@app.route("/push/send_push_notification/<customer_uuid>/<transaction_uuid>", methods=["POST"])
+def send_push_notification(customer_uuid, transaction_uuid):
     """
         Sends push notifications to all of the devices registered to the
         given `customer_uuid`
@@ -30,6 +30,7 @@ def send_push_notification(customer_uuid):
             sns.publish(
                 target_arn=item["endpoint_arn"],
                 message=data["message"],
+                custom_user_data={"transaction_uuid": transaction_uuid}
             )
         except BotoServerError:
             # Ignore these. It probably means that the user didn't allow

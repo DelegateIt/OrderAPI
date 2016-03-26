@@ -27,14 +27,13 @@ def handler(event, context):
 
     # Request data
     customer_uuid = new_item["customer_uuid"]["S"]
+    transaction_uuid = new_item["uuid"]["S"]
     message = new_last_message["content"]["S"]
 
     req = urllib2.Request(
-        "%s%s" % (SEND_PUSH_NOTIFICATION_ENDPOINT, "10535386475720166119"),
+        "%s%s/%s" % (SEND_PUSH_NOTIFICATION_ENDPOINT, customer_uuid, transaction_uuid),
         json.dumps({"message": message}),
         {"Content-Type": "application/json"})
 
     f = urllib2.urlopen(req)
     f.close()
-
-print (SEND_PUSH_NOTIFICATION_ENDPOINT)
