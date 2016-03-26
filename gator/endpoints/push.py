@@ -1,4 +1,5 @@
 import jsonpickle
+from boto.exception import BotoServerError
 
 from flask import request
 from gator.flask import app
@@ -25,9 +26,14 @@ def send_push_notification(customer_uuid):
 
     # Publish to all of the push_endpoints
     for item in query_result:
-        sns.publish(
-            target_arn=item["endpoint_arn"],
-            message=data["message"],
-        )
+        try:
+            sns.publish(
+                target_arn=item["endpoint_arn"],
+                message=data["message"],
+            )
+        except BotoServerError:
+            # Ignore these. It probably means that the user didn't allow
+            # push notifications
+            pass
 
     return jsonpickle.encode({"result": 0})
