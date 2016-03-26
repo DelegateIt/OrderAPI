@@ -1,10 +1,10 @@
 import json
 import urllib2
 
-config_file = open("./push_config.json", "r")
+config_file = open("./config.json", "r")
 config = json.loads(config_file.read())
 
-BASE_URL = config["base_url"]
+BASE_URL = "http://%s:%s" % (config["api_host"]["name"], config["api_host"]["recv_port"])
 SEND_PUSH_NOTIFICATION_ENDPOINT = "%s/push/send_push_notification/" % BASE_URL
 
 # Handles dynamodb event stream request
@@ -34,3 +34,5 @@ def handler(event, context):
 
     f = urllib2.urlopen(req)
     f.close()
+
+print (SEND_PUSH_NOTIFICATION_ENDPOINT)
