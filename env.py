@@ -34,9 +34,9 @@ def execute(command, cwd=None, shell=False, stdout=None, stderr=None):
 class Git(object):
 
     @staticmethod
-    def ensure_clean_head(repopath="."):
-        print("Ensuring the git HEAD is clean. All changes must be commited")
-        execute_no_fail(["git", "diff", "--exit-code", "--stat"], cwd=repopath)
+    def ensure_updated_head(repopath="."):
+        print("Ensuring there are no un-pushed changes")
+        execute_no_fail(["git", "diff", "--exit-code", "--stat", "origin/master"], cwd=repopath)
 
     @staticmethod
     def get_latest_commit_hash(repopath="."):
@@ -291,7 +291,7 @@ class DockerPush(object):
 
     @staticmethod
     def docker_deploy(force=False):
-        Git.ensure_clean_head()
+        Git.ensure_updated_head()
         tag = Git.get_latest_commit_hash()[:7]
         DockerPush.docker_push_list([
                 "delegateit/gatdb",
@@ -333,9 +333,6 @@ class Deploy(object):
     @staticmethod
     def get_commit_hash(apipath):
         print("Making sure api directory has a committed HEAD")
-        execute_no_fail(["git", "diff", "--exit-code", "--stat"], cwd=apipath)
-        binary = execute_no_fail(["git", "rev-parse", "HEAD"], cwd=apipath, stdout=subprocess.PIPE)[1]
-        return binary.decode("utf-8").strip("\n")
 
     @staticmethod
     def eb_deploy(modules, eb_group, commit_hash):
@@ -353,8 +350,9 @@ class Deploy(object):
 
     @staticmethod
     def deploy(apipath, apiconfig, eb_group, notify_lambda_name, push_lambda_name):
+        Git.ensure_updated_head(apipath)
+        commit_hash = Git.get_latest_commit_hash(apipath)
         Package.package_all(apipath, apiconfig, ".")
-        commit_hash = Deploy.get_commit_hash(apipath)
         print("Deploying commit hash", commit_hash)
         Deploy.eb_deploy(["api", "notify"], eb_group, commit_hash)
         Deploy.lambda_deploy(notify_lambda_name, "./gator-lambda.zip")
