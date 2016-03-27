@@ -20,7 +20,7 @@ def handler(event, context):
     # Important/Required fields
     platform_type = new_item["customer_platform_type"]["S"]
     new_last_message = new_item["messages"]["L"][-1]["M"]
-    from_delegator = new_last_message["from_customer"]["BOOL"] == False
+    from_delegator = new_last_message["from_customer"]["S"] == "false"
     old_last_message = old_item["messages"]["L"][-1]["M"]
 
     # Return if the platform isn't ios, the last message was sent by the
