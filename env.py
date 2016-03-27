@@ -382,6 +382,13 @@ class Deploy(object):
 
         apipath = "."
         deploy_type = types[args.deploy_type]
+
+        # Prompt the user if they are deploying into production
+        if args.deploy_type == "live":
+            resp = input("Are you sure you want to deploy to PRODUCTION [Y/N]: ")
+            if resp != "Y":
+                sys.exit(0)
+
         apiconfig = os.path.join(apipath, deploy_type["config"])
         Deploy.deploy(apipath, apiconfig, deploy_type["eb-group"], deploy_type["notify_lambda"], deploy_type["push_lambda"])
 
