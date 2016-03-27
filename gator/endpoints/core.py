@@ -120,12 +120,6 @@ def customer_post():
     if not customer.create():
         return common.error_to_json(Errors.CONSISTENCY_ERROR)
 
-    # Send a text to the user if they signed up from the LandingPage
-    if request.args.get('sendtext', 'false') == 'true':
-        service.sms.send_msg(
-            body=config.NEW_CUSTOMER_MESSAGE,
-            to=data[CFields.PHONE_NUMBER])
-
     return jsonpickle.encode({
         "result": 0, "uuid": customer[CFields.UUID]},
         unpicklable=False)
@@ -397,12 +391,18 @@ def get_quickorders():
         ]
     })
 
-@app.route("/core/sendgreeting", methods=["POST"])
-def send_greeting():
-    data = jsonpickle.decode(request.data.decode("utf-8"))
-    if "phone_number" not in data.keys():
-        return common.error_to_json(Errors.DATA_NOT_PRESENT)
-    service.sms.send_msg(body=config.NEW_CUSTOMER_MESSAGE, to=data["phone_number"])
+phones_greeted = {}
+@app.route("/core/sendgreeting/<phone_number>", methods=["POST"])
+def send_greeting(phone_number):
+    global phones_greeted
+
+    if phone_number not in phones_greeted:
+        phones_greeted[phone_number] = 0
+    if phones_greeted[phone_number] > 2:
+        raise GatorException(Errors.PERMISSION_DENIED)
+
+    phones_greeted[phone_number] += 1
+    service.sms.send_msg(body=config.NEW_CUSTOMER_MESSAGE, to=phone_number)
     return jsonpickle.encode({"result": 0})
 
 @app.errorhandler(BaseException)
