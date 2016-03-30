@@ -66,9 +66,18 @@ def save_properties(file, property_ids):
         with open(tmpfile, "w") as f:
             json.dump(store, f)
         os.rename(tmpfile, file)
+
+def print_csv(properties):
+    for pid, p in properties.items():
+        c = p["listing"]["contact"]
+        if "Primary" in c["phonesByType"]:
+            print("{},{},,,,https://www.homeaway.com/vacation-rental/p{}".format(c["name"], c["phonesByType"]["Primary"]["telScheme"], pid))
             
 
 if __name__ == "__main__":
+    # with open("/Users/xuset/ha_properties.json", "r") as f:
+    #     print_csv(json.loads(f.read()))
+
     parser = argparse.ArgumentParser(description="Graps info on homeaway propertys")
     parser.add_argument("listings", help="File containing the listings to pull")
     parser.add_argument("file_store", help="File to save progress to")
