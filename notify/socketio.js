@@ -3,7 +3,9 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var bodyParser = require('body-parser');
-var io = require('socket.io')(http);
+var io = require('socket.io')(http, {
+    pingTimeout: 50000
+});
 var gator = require('./gator.js');
 var port = gator.config.notifier_host.bind_port;
 
