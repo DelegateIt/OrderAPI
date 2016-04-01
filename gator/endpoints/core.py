@@ -245,6 +245,10 @@ def send_message(transaction_uuid):
     if not set([MFields.FROM_CUSTOMER, MFields.CONTENT, MFields.MTYPE]) <= set(data.keys()):
         return common.error_to_json(Errors.DATA_NOT_PRESENT)
 
+    # See https://github.com/DelegateIt/OrderAPI/issues/113
+    if type(data[MFields.FROM_CUSTOMER]) is str:
+        data[MFields.FROM_CUSTOMER] = data[MFields.FROM_CUSTOMER] == "true"
+
     transaction = Model.load_from_db(Transaction, transaction_uuid)
 
     if transaction is None:

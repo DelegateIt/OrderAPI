@@ -149,3 +149,13 @@ class TransactionTest(RestTest):
         })
         self.assertResponse(19, apiclient.send_message(transaction_uuid,
                 from_customer=False, content="test3", mtype="asdf"))
+
+    # See https://github.com/DelegateIt/OrderAPI/issues/113
+    def test_string_from_customer(self):
+        transaction_uuid = self.create()["uuid"]
+        self.assertResponse(0, apiclient.send_message(transaction_uuid, from_customer="true", content="test1"))
+        self.assertResponse(0, apiclient.send_message(transaction_uuid, from_customer="false", content="test2"))
+        messages = apiclient.get_transaction(transaction_uuid)["transaction"]["messages"]
+        self.assertTrue(messages[0]["from_customer"] == True)
+        self.assertTrue(messages[1]["from_customer"] == False)
+

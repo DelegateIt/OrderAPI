@@ -164,8 +164,6 @@ def update_delegator(delegator_uuid, update):
     return send_api_request("PUT", ["core", "delegator", delegator_uuid], update, token=auth_token)
 
 def send_message(transaction_uuid, content, from_customer, mtype="text"):
-    if type(from_customer) is str:
-        from_customer = from_customer.lower() == "true"
     json_data = {
         "content": content,
         "from_customer": from_customer,
