@@ -241,7 +241,7 @@ def get_quickorders():
     return send_api_request("GET", ["core", "quickorders"], token=auth_token)
 
 def send_greeting(phone_number):
-    components = ["core", "sendgreeting", phone_number]
+    components = ["sms", "sendgreeting", phone_number]
     return send_api_request("POST", components, token=auth_token)
 
 def get_health():

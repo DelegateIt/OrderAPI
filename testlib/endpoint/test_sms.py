@@ -33,6 +33,13 @@ class NotifyTest(RestTest):
 
         self.assertResponse(0, apiclient.assign_new_transaction(delegator_uuid))
 
+    def test_help_message(self):
+        delegator_uuid = apiclient.create_delegator("1", "2", "15555555552", "noreply@gmail.com", "1", "2")["uuid"]
+
+        for message in ["HELP", "  HELP ", "Help", "help", "  HelP"]:
+            self.assertResponse(0, apiclient.send_sms_to_api("15555555551", message))
+            self.assertResponse(8, apiclient.assign_new_transaction(delegator_uuid))
+
     def test_multiple_transactions_handle_sms(self):
         pass # Need to fill this in later
 

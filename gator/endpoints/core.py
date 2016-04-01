@@ -391,20 +391,6 @@ def get_quickorders():
         ]
     })
 
-phones_greeted = {}
-@app.route("/core/sendgreeting/<phone_number>", methods=["POST"])
-def send_greeting(phone_number):
-    global phones_greeted
-
-    if phone_number not in phones_greeted:
-        phones_greeted[phone_number] = 0
-    if phones_greeted[phone_number] > 2:
-        raise GatorException(Errors.PERMISSION_DENIED)
-
-    phones_greeted[phone_number] += 1
-    service.sms.send_msg(body=config.NEW_CUSTOMER_MESSAGE, to=phone_number)
-    return jsonpickle.encode({"result": 0})
-
 @app.errorhandler(BaseException)
 def handle_exception(e):
     if issubclass(type(e), GatorException):

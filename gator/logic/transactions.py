@@ -25,13 +25,6 @@ def create_transaction(attributes={}):
     if not transaction.create():
         raise GatorException(Errors.CONSISTENCY_ERROR)
 
-    # If transaction was sent by the customer on SMS send them a confirmation
-    if transaction[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
-        customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
-        service.sms.send_msg(
-            body=config.CONFIRMATION_MESSAGE,
-            to=customer[CFields.PHONE_NUMBER])
-
     # Send a text to all of the delegators
     for delegator in delegators.scan():
          service.sms.send_msg(

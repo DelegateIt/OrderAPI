@@ -2,9 +2,15 @@ import json
 import os
 
 # Static variables for easy access
-NEW_CUSTOMER_MESSAGE = "Welcome to DelegateIt! Text us whatever you want and we will get it to you."
-CONFIRMATION_MESSAGE = "Hello, thank you for using DelegateIt. We will be with you shortly."
-MAX_TWILIO_MSG_SIZE = 1600
+HELP_MESSAGE_1       = ("DelegateIt is your personal assistant while you are on"
+                        "vacation. All you have to do is send a text with your "
+                        "request and one of us will be with you shortly.")
+HELP_MESSAGE_2       = ("Example Order: I would like to plan an afternoon "
+                        "paddleboarding trip and get a reservation for dinner "
+                        "tonight.")
+CONFIRMATION_MESSAGE = ("Hello, thank you for using DelegateIt. We will be "
+                        "with you shortly.")
+MAX_TWILIO_MSG_SIZE  = 1600
 
 # This is just a template, the actual config is loaded from disk on startup,
 # then overwrites the below data.
