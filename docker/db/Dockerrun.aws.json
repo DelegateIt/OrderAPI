@@ -8,7 +8,7 @@
             "mountPoints": [
                 {
                     "containerPath": "/var/gator/api",
-                    "readOnly": true,
+                    "readOnly": false,
                     "sourceVolume": "apisource"
                 }
             ],

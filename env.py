@@ -53,14 +53,14 @@ class Start(object):
         print("\nThe api is accessible from port 8000 and socket.io from 8060")
 
     @staticmethod
-    def setup_all():
+    def setup_all(pull):
         volume_overrides = { "apisource": os.getcwd() }
         with open("./docker/api/Dockerrun.aws.json", "r") as f:
-            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host")
+            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host", pull)
         with open("./docker/notify/Dockerrun.aws.json", "r") as f:
-            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host")
+            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host", pull)
         with open("./docker/db/Dockerrun.aws.json", "r") as f:
-            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host")
+            Create.setup_with_dockerrun(json.loads(f.read()), True, volume_overrides, "host", pull)
 
     @staticmethod
     def parse_args():
@@ -68,8 +68,7 @@ class Start(object):
         parser.add_argument("-l", "--local", default=False, action="store_true",
                 help="Don't pull any images, just run the latest local tag")
         args = parser.parse_args()
-        if not args.local:
-            Start.setup_all()
+        Start.setup_all(not args.local)
         Start.start_all()
 
 class Stop(object):
@@ -109,7 +108,7 @@ class Create(object):
         execute_no_fail(["docker", "pull", name])
 
     @staticmethod
-    def setup_with_dockerrun(dockerrun, port_mirror=False, volume_overrides={}, net="bridge"):
+    def setup_with_dockerrun(dockerrun, port_mirror=False, volume_overrides={}, net="bridge", pull=True):
         containers = dockerrun["containerDefinitions"]
         volume_mounts = {
                 v["name"]: volume_overrides.get(v["name"], v["host"]["sourcePath"])
@@ -119,9 +118,10 @@ class Create(object):
                     [ p["containerPort"] if port_mirror else p["hostPort"], p["containerPort"] ]
                     for p in c["portMappings"] ]
             volumes = [
-                    [ volume_mounts[v["sourceVolume"]], v["containerPath"] ]
+                    [ volume_mounts[v["sourceVolume"]], v["containerPath"], v["readOnly"] ]
                     for v in c["mountPoints"] ]
-            Create.pull_image(c["image"])
+            if pull:
+                Create.pull_image(c["image"])
             Create.kill_and_delete(c["name"])
             Create.create_container(c["name"], c["image"], ports=ports, volumes=volumes, net=net)
 
@@ -133,7 +133,8 @@ class Create(object):
                 command.extend(["-p", str(p[0]) + ":" + str(p[1])])
         if volumes:
             for v in volumes:
-                command.extend(["-v", v[0] + ":" + v[1]])
+                ro = ":ro" if v[2] else ""
+                command.extend(["-v", v[0] + ":" + v[1] + ro])
         if links:
             for link in links:
                 command.extend(["--link", link])
@@ -147,28 +148,17 @@ class Create(object):
     def setup_api_container(volume, no_cache):
         Create.kill_and_delete("api")
         Create.create_image("delegateit/gatapi", "./docker/api", no_cache)
-        Create.create_container("api", "delegateit/gatapi",
-                ports=[[8000, 8000]],
-                volumes=[[volume, "/var/gator/api"]],
-                net="host")
 
     @staticmethod
     def setup_ntfy_container(volume, no_cache):
         Create.kill_and_delete("ntfy")
         Create.create_image("delegateit/gatntfy", "./docker/notify", no_cache)
-        Create.create_container("ntfy", "delegateit/gatntfy",
-                ports=[[8060, 8060]],
-                volumes=[[volume, "/var/gator/api"]],
-                net="host")
 
     @staticmethod
     def setup_db_container(volume, no_cache):
         Create.kill_and_delete("db")
         Create.create_image("delegateit/gatdb", "./docker/db", no_cache)
-        Create.create_container("db", "delegateit/gatdb",
-                ports=[[8040, 8040]],
-                volumes=[[volume, "/var/gator/api"]],
-                net="host")
+
     @staticmethod
     def parse_args():
         containers = ["api", "db", "ntfy", "fullapi"]
