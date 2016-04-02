@@ -61,8 +61,9 @@ def handle_sms():
     transaction = get_sms_transaction(customer[CFields.UUID])
     transactions.send_message(transaction, text_message_body, True, MTypes.TEXT)
 
-    # Send the customer a confirmation message
-    sms.send_msg(body=config.CONFIRMATION_MESSAGE, to=customer_phone_number)
+    # Send the customer a confirmation message if its the first message
+    if len(transaction[TFields.MESSAGES]) == 1:
+        sms.send_msg(body=config.CONFIRMATION_MESSAGE, to=customer_phone_number)
 
     return jsonpickle.encode({"result": 0})
 
