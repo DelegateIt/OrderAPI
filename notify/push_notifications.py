@@ -11,7 +11,8 @@ SEND_PUSH_NOTIFICATION_ENDPOINT = "%s/push/send_push_notification/" % BASE_URL
 def handler(event, context):
     # Make sure the event is an update
     root = event["Records"][0]["dynamodb"]
-    if root.get("OldImage") is None:
+    if root.get("OldImage") is None or "messages" not in root["NewImage"]:
+        print("Exiting: Transaction contains no messages")
         return
 
     new_item = root["NewImage"]
@@ -20,12 +21,13 @@ def handler(event, context):
     # Important/Required fields
     platform_type = new_item["customer_platform_type"]["S"]
     new_last_message = new_item["messages"]["L"][-1]["M"]
-    from_delegator = new_last_message["from_customer"]["S"] == "false"
+    from_delegator = not new_last_message["from_customer"]["BOOL"]
     old_last_message = old_item["messages"]["L"][-1]["M"]
 
     # Return if the platform isn't ios, the last message was sent by the
     # customer, or the transaction update didn't include a new message
     if platform_type != "ios" or not from_delegator or new_last_message == old_last_message:
+        print("Exiting: not ios or no new messages")
         return
 
     # Request data
@@ -33,6 +35,8 @@ def handler(event, context):
     transaction_uuid = new_item["uuid"]["S"]
     message = new_last_message["content"]["S"]
 
+    print("Sending push notification to %s with timestamp %s" %
+            (transaction_uuid, new_last_message["timestamp"]["N"]))
     req = urllib2.Request(
         "%s%s/%s" % (SEND_PUSH_NOTIFICATION_ENDPOINT, customer_uuid, transaction_uuid),
         json.dumps({"message": message}),
