@@ -1,4 +1,5 @@
 import jsonpickle
+import logging
 from boto.exception import BotoServerError
 
 from flask import request
@@ -29,12 +30,11 @@ def send_push_notification(customer_uuid, transaction_uuid):
         try:
             sns.publish(
                 target_arn=item["endpoint_arn"],
-                message=data["message"],
-                custom_user_data={"transaction_uuid": transaction_uuid}
+                message=data["message"]
             )
-        except BotoServerError:
+        except BotoServerError as e:
             # Ignore these. It probably means that the user didn't allow
             # push notifications
-            pass
+            logging.exception(e)
 
     return jsonpickle.encode({"result": 0})
