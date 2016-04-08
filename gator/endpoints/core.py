@@ -71,6 +71,7 @@ def customer_login():
 
     # Create a push endpoint for the given device
     if "device_id" in data:
+        logging.info("Device token %s\n", data["device_id"])
         push_endpoints.create_push_endpoint(customer, data["device_id"])
 
     return jsonpickle.encode({
