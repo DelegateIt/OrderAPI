@@ -21,12 +21,12 @@ def handler(event, context):
     # Important/Required fields
     platform_type = new_item["customer_platform_type"]["S"]
     new_last_message = new_item["messages"]["L"][-1]["M"]
-    from_delegator = not new_last_message["from_customer"]["BOOL"]
-    old_last_message = old_item["messages"]["L"][-1]["M"]
+    from_customer = new_last_message["from_customer"]["BOOL"]
+    old_last_message = old_item["messages"]["L"][-1]["M"] if "messages" in old_item else None
 
     # Return if the platform isn't ios, the last message was sent by the
     # customer, or the transaction update didn't include a new message
-    if platform_type != "ios" or not from_delegator or new_last_message == old_last_message:
+    if platform_type != "ios" or from_customer or new_last_message == old_last_message:
         print("Exiting: not ios or no new messages")
         return
 
