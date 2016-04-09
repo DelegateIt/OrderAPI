@@ -10,15 +10,15 @@ from gator.core.models import Model, TFields, RFields, Customer, CFields
 
 
 def create_url(transaction_uuid, token):
-    host = config.store["api_host"]["name"]
-    port = config.store["api_host"]["recv_port"]
     args = {
         "token": token,
         "transaction": transaction_uuid,
-        "host": host + ":" + str(port)
+        "host": config.store["api_host"]["name"] + ":" +
+                str(config.store["api_host"]["recv_port"])
     }
-    long_url = 'http://%s:%s/static/payment.html#?%s' % \
-            (host, port, urllib.parse.urlencode(args))
+    long_url = '%s#?%s' % \
+            (config.store["stripe"]["payment_url"],
+            urllib.parse.urlencode(args))
     return service.shorturl.shorten_url(long_url)
 
 def get_stripe_customer(customer, save_on_create=True):
