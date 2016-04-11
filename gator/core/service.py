@@ -62,7 +62,7 @@ class GoogleUrlService(object):
         headers = {'Content-Type': 'application/json'}
 
         try:
-            resp = requests.post(self.api_url, data=data, headers=headers, timeout=0.5)
+            resp = requests.post(self.api_url, data=data, headers=headers, timeout=2.0)
         except requests.exceptions.RequestException as e:
             logging.exception(e)
         else:
