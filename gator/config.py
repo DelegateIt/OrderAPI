@@ -2,12 +2,13 @@ import json
 import os
 
 # Static variables for easy access
-HELP_MESSAGE_1       = ("DelegateIt is your personal assistant while you are on"
+HELP_MESSAGE_1       = ("DelegateIt is your personal assistant while you are on "
                         "vacation. All you have to do is send a text with your "
                         "request and one of us will be with you shortly.")
 HELP_MESSAGE_2       = ("Example Order: I would like to plan an afternoon "
                         "paddleboarding trip and get a reservation for dinner "
                         "tonight.")
+APP_LINK_MESSAGE     = ("Download Our iPhone App: www.appstore.com/delegateit")
 CONFIRMATION_MESSAGE = ("Hello, thank you for using DelegateIt. We will be "
                         "with you shortly.")
 MAX_TWILIO_MSG_SIZE  = 1600

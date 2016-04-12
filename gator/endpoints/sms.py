@@ -77,5 +77,9 @@ def send_greeting(phone_number):
         raise GatorException(Errors.PERMISSION_DENIED)
 
     phones_greeted.add(phone_number)
-    sms.send_msg(body=config.HELP_MESSAGE_1, to=phone_number)
+
+    # Send help message and app link
+    sms.send_msg(body=config.HELP_MESSAGE_1,   to=phone_number)
+    sms.send_msg(body=config.APP_LINK_MESSAGE, to=phone_number)
+
     return jsonpickle.encode({"result": 0})
