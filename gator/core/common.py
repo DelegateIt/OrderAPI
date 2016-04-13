@@ -124,3 +124,11 @@ def get_current_timestamp():
 def convert_query(cls, query):
     for item in query:
         yield cls(item)
+
+def get_customer_alias(customer):
+    first_name = customer.get("first_name")
+    last_name  = customer.get("last_name")
+    name = "%s %s" % (first_name, last_name)
+
+    return name if first_name is not None or last_name is not None \
+            else customer.get("phone_number", "UNKNOWN")

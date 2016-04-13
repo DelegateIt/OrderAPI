@@ -5,11 +5,8 @@ import gator.core.service as service
 
 from gator.core.models import Model, Customer, Delegator, Transaction, TFields, DFields, delegators,\
                               Message, MFields, CFields
-from gator.core.common import Errors, TransactionStates, Platforms, GatorException
-
-def get_customer_alias(customer):
-    name = customer.get("first_name", "") + " " + customer.get("last_name", "")
-    return name if name != " " else customer.get("phone_number", "UNKNOWN")
+from gator.core.common import Errors, TransactionStates, Platforms, GatorException,\
+                              get_customer_alias
 
 def create_transaction(attributes={}):
     if not Transaction.MANDATORY_KEYS <= set(attributes):
@@ -26,11 +23,10 @@ def create_transaction(attributes={}):
         raise GatorException(Errors.CONSISTENCY_ERROR)
 
     # Send a text to all of the delegators
+    message = "ALERT: New transaction from %s" % get_customer_alias(
+            Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID]))
     for delegator in delegators.scan():
-         service.sms.send_msg(
-            body="ALERT: New transaction from %s" % get_customer_alias(
-                    Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])),
-            to=delegator[DFields.PHONE_NUMBER])
+         service.sms.send_msg(body=message, to=delegator[DFields.PHONE_NUMBER])
 
     return transaction
 

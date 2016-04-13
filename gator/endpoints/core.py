@@ -13,9 +13,10 @@ import gator.logic.transactions as transactions
 
 from gator.flask import app
 from gator.core.models import Model, Customer, Delegator, Transaction, Message,\
-                              CFields, DFields, TFields, MFields
+                              CFields, DFields, TFields, MFields, delegators
 from gator.core.common import Errors, TransactionStates, GatorException, Platforms,\
-                              validate_phonenumber, validate_email
+                              validate_phonenumber, validate_email, \
+                              get_customer_alias
 from gator.core.auth import authenticate, Permission, validate_permission,\
                             validate_fb_token, UuidType, login_facebook, validate_token
 
@@ -353,6 +354,13 @@ def assign_transaction(delegator_uuid):
 
     if not transaction.save():
         return common.error_to_json(Errors.CONSISTENCY_ERROR)
+
+    # Alert delegators that the transaction was claimed
+    customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
+    message = "ALERT: Transaction from %s has been claimed by %s" % \
+            (get_customer_alias(customer), delegator[DFields.FIRST_NAME])
+    for d in delegators.scan():
+         service.sms.send_msg(body=message, to=d[DFields.PHONE_NUMBER])
 
     return jsonpickle.encode({
         "result": 0, "transaction_uuid": transaction[TFields.UUID]},
