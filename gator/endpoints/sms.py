@@ -82,4 +82,8 @@ def send_greeting(phone_number):
     sms.send_msg(body=config.HELP_MESSAGE_1,   to=phone_number)
     sms.send_msg(body=config.APP_LINK_MESSAGE, to=phone_number)
 
+    # Create the customer items
+    customer = Customer.create_new({CFields.PHONE_NUMBER: phone_number})
+    customer.create()
+
     return jsonpickle.encode({"result": 0})
