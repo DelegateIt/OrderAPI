@@ -27,7 +27,7 @@
         "payment_url": "http://localhost:8000/static/payment.html",
         "public_key": "pk_test_ZoK03rN4pxc2hfeYTzjByrdV",
         "secret_key": "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH",
-        "version": "2015-10-16"
+        "version": "2016-03-07"
     },
     "twilio": {
         "auth_token": null,

@@ -24,7 +24,7 @@
         "payment_url": "http://gator-api-test.ixgvzamgqt.us-west-2.elasticbeanstalk.com/static/payment.html",
         "public_key": "pk_test_ZoK03rN4pxc2hfeYTzjByrdV",
         "secret_key": "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH",
-        "version": "2015-09-03"
+        "version": "2016-03-07"
     },
     "twilio": {
         "auth_token": "dd9b4240a96556da1abb1e49646c73f3",
