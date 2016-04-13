@@ -24,7 +24,7 @@
         "gator_key": "MTkzNzU5Mzc0OTg0ODM6YXBpOjE2MDQ3MzA0NjQ6NXN3RjN1bGZQY2FmdkdnanVabzErZGkwTXYzZGs2K1hYcXkyZVBiYlNGQT0="
     },
     "stripe": {
-        "payment_url": "http://localhost:9000/payment/payment.html",
+        "payment_url": "http://localhost:8000/static/payment.html",
         "public_key": "pk_test_ZoK03rN4pxc2hfeYTzjByrdV",
         "secret_key": "sk_test_WYJIBAm8Ut2kMBI2G6qfEbAH",
         "version": "2015-10-16"
