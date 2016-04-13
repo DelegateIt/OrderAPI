@@ -30,7 +30,7 @@ def validate_fb_token(fbuser_token, fbuser_id):
     try:
         url = "https://graph.facebook.com/me?fields=id&access_token={}".format(fbuser_token)
         resp = requests.get(url, timeout=2.0).json()
-        if fbuser_id != resp["id"]:
+        if "id" not in resp or fbuser_id != resp["id"]:
             raise GatorException(Errors.INVALID_FACEBOOK_TOKEN)
     except requests.exceptions.RequestException as e:
         logging.exception(e)
