@@ -50,6 +50,7 @@ angular.module("app", [])
     };
 
     var loadTransaction = function() {
+        $scope.errorMsg = "";
         $http({
             url: apiUrl + "/core/transaction/" + transactionUuid + "?token=" + apiToken,
             method: "GET",
@@ -73,6 +74,7 @@ angular.module("app", [])
     };
 
     var payTransaction = function(stripeSource) {
+        $scope.errorMsg = "";
         $scope.loading = true;
         $http({
             url: apiUrl + "/payment/charge/" + transactionUuid + "?token=" + apiToken,

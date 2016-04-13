@@ -57,18 +57,21 @@ def new_transaction_charge(transaction, stripe_source, email=None):
         raise GatorException(Errors.TRANSACTION_ALREADY_PAID)
 
     customer = Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID])
-    stripe_customer = get_stripe_customer(customer, save_on_create=False)
 
-    stripe_customer.source = stripe_source
-    stripe_customer.email = email
-    stripe_customer.save()
+    try:
+        stripe_customer = get_stripe_customer(customer, save_on_create=False)
+        stripe_customer.source = stripe_source
+        stripe_customer.email = email
+        stripe_customer.save()
 
-    stripe_charge = stripe.Charge.create(
-        amount=transaction[TFields.RECEIPT][RFields.TOTAL], # in cents
-        currency="usd",
-        customer=stripe_customer.id,
-        metadata={"gator_transaction_uuid": transaction[TFields.UUID]}
-    )
+        stripe_charge = stripe.Charge.create(
+            amount=transaction[TFields.RECEIPT][RFields.TOTAL], # in cents
+            currency="usd",
+            customer=stripe_customer.id,
+            metadata={"gator_transaction_uuid": transaction[TFields.UUID]}
+        )
+    except stripe.error.CardError as e:
+        raise GatorException(Errors.STRIPE_ERROR, str(e))
 
     transaction[TFields.RECEIPT][RFields.STRIPE_CHARGE_ID] = stripe_charge.id
     logging.info("Charged transaction %s with charge_id %s",

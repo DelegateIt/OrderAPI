@@ -13,10 +13,10 @@ class PaymentTest(RestTest):
         self.customer_uuid = apiclient.create_customer("A", "B",
                 fbuser_id="1", fbuser_token="")["uuid"]
 
-    def generate_card_token(self):
+    def generate_card_token(self, cardno="4242424242424242"):
         return stripe.Token.create(
             card={
-                "number": '4242424242424242',
+                "number": cardno,
                 "exp_month": 12,
                 "exp_year": 2020,
                 "cvc": '123'
@@ -27,6 +27,21 @@ class PaymentTest(RestTest):
         rsp = apiclient.add_payment_card(self.customer_uuid, token.id)
         self.assertResponse(0, rsp)
         return rsp["card"], token
+
+    def test_charge_declined(self):
+        transaction_uuid = apiclient.create_transaction(self.customer_uuid, "ios")["uuid"]
+        apiclient.update_transaction(transaction_uuid, receipt={
+            "total": 100,
+            "items": [ {"Pizza": 90} ]
+        })
+
+        token = self.generate_card_token("4000000000000002")
+        rsp = apiclient.charge_transaction_payment(transaction_uuid, token.id)
+        self.assertResponse(17, rsp)
+
+        token = self.generate_card_token("4100000000000019")
+        rsp = apiclient.charge_transaction_payment(transaction_uuid, token.id)
+        self.assertResponse(17, rsp)
 
     def test_charge_card(self):
         (card, _) = self.add_card()
