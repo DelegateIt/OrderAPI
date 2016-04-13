@@ -71,9 +71,9 @@ def customer_login():
     customer = Model.load_from_db(Customer, uuid)
 
     # Create a push endpoint for the given device
-    if "device_id" in data:
-        logging.info("Device token %s\n", data["device_id"])
-        push_endpoints.create_push_endpoint(customer, data["device_id"])
+    if "device_token" in data:
+        logging.info("Device token %s\n", data["device_token"])
+        push_endpoints.create_push_endpoint(customer, data["device_token"])
 
     return jsonpickle.encode({
         "result": 0, "customer": customer.get_data(), "token": token},
