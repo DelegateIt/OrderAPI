@@ -50,5 +50,9 @@
         "secret_key": "OLAjIWhPr2g3uLvB0P9ZRAg2kGw/GdA3hDzxWyyi",
         "region": "us-west-2",
         "platform_endpoint_arn": "arn:aws:sns:us-west-2:274622866197:app/APNS_SANDBOX/iOS"
+    },
+    "postmates": {
+        "customer_id": "cus_Kft9RosILraW1V",
+        "api_key": "2582be0a-9661-4028-8af1-84c8081a5cf1"
     }
 }

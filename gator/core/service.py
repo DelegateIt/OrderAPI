@@ -17,11 +17,14 @@ import boto.sns
 
 import gator.config as config
 
+from gator.common import GatorException, Errors
+
 # Global services. Initalized at bottom
 sms = None
 shorturl = None
 dynamodb = None
 sns = None
+postmates = None
 
 #######################
 # Service Definitions #
@@ -86,6 +89,62 @@ class SNSService(object):
     def publish(self, **kwargs):
         logging.info("TEST: send publish message")
 
+
+class PostmatesService(object):
+    def __init__(self, customer_id, api_key):
+        self.api_url = "https://api.postmates.com"
+
+        # Load data from config
+        self.customer_id = customer_id
+        self.api_key     = api_key
+
+        # Create endpoint URLs
+        self.delivery_quote_ep  = '%s/v1/customers/%s/delivery_quotes'\
+                % (self.api_url, self.customer_id)
+        self.create_delivery_ep = '%s/v1/customers/%s/deliveries'\
+                % (self.api_url, self.customer_id)
+
+    def get_delivery_quote(self, pickup_address, dropoff_address):
+        '''
+            The pickup_address and dropoff_address should be instances
+            of PostmatesAddress from common.py
+        '''
+        rsp = requests.post(
+            self.delivery_quote_ep,
+            data={
+                'pickup_address': pickup_address['address'],
+                'dropoff_address': dropoff_address['address']
+            },
+            auth=(self.api_key, '')
+
+        # Raise an error if the request failed
+        if rsp.status_code != 200:
+            raise GatorException(Errors.POSTMATES_ERROR)
+
+        return rsp.json()
+
+    def create_delivery(quote_id, manifest, pickup_address, delivery_address):
+        '''
+            The pickup_address and dropoff_address should be instances
+            of PostmatesAddress from common.py
+        '''
+        # Create the data to send to the PostMates API
+        data = {'quote_id': quote_id, 'manifest': manifest}
+        data.update(pickup_address.get_data(is_pickup=True))
+        data.update(delivery_address.get_data(is_pickup=False))
+
+        rsp = requests.post(
+            self.create_delivery_ep,
+            data=data, auth=(self.api_key, '')
+        )
+
+        # Raise an error if the request failed
+        if rsp.status_code != 200:
+            raise GatorException(Erros.POSTMATES_ERROR)
+
+        return rsp.json()
+
+
 ##########################
 # Service Initialization #
 ##########################
@@ -114,7 +173,6 @@ def _create_dynamodb():
                          aws_access_key_id=cnfg["access_key"],
                          aws_secret_access_key=cnfg["secret_key"])
 
-
 def _create_urlshortener():
     key = config.store["google"]["api_key"]
     if key is None:
@@ -123,8 +181,8 @@ def _create_urlshortener():
         return GoogleUrlService(key)
 
 def _setup_stripe():
-        stripe.api_key = config.store["stripe"]["secret_key"]
-        stripe.api_version = config.store["stripe"]["version"]
+    stripe.api_key = config.store["stripe"]["secret_key"]
+    stripe.api_version = config.store["stripe"]["version"]
 
 def _create_sns():
     cnfg = config.store["sns"]
@@ -137,8 +195,14 @@ def _create_sns():
     else:
         return SNSService()
 
+def _create_postmates():
+    cnfg = config.store['postmates']
+    return PostmatesService(cnfg['customer_id'], cnfg['api_key'])
+
+
 sms = _create_sms()
 dynamodb = _create_dynamodb()
 shorturl = _create_urlshortener()
 sns = _create_sns()
+postmates = _create_postmates()
 _setup_stripe()

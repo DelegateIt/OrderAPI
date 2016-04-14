@@ -40,6 +40,7 @@ class Errors():
     UNSUPORTED_VERSION         = ErrorType(22, "The specified version is no longer supported")
     STALE_API_VERSION          = ErrorType(23, "The API is not up to date with the latest version")
     SNS_FAILURE                = ErrorType(24, "Amazon SNS sent back an error")
+    POSTMATES_ERROR            = ErrorType(25, "The Postmates API returned an error")
 
 
 def error_to_json(error):
@@ -132,3 +133,27 @@ def get_customer_alias(customer):
 
     return name if first_name is not None or last_name is not None \
             else customer.get("phone_number", "UNKNOWN")
+
+########
+# Misc #
+########
+
+class PostmatesAddress():
+    VALID_KEYS = ['name', 'address', 'phone_number', 'business_name', 'notes']
+
+    def __init__(self, name, address, phone_number, business_name='', notes=''):
+        self.name = name
+        self.address = address
+        self.phone_number = phone_number
+        self.business_name = business_name
+        self.notes = notes
+
+    def __getitem__(self, key):
+        if key not in self.VALID_KEYS:
+            raise KeyError('%s is not a valid key' % key)
+
+        return self.__dict__.get(key)
+
+    def get_data(self, is_pickup):
+        prefix = 'pickup_' if is_pickup else 'dropoff_'
+        return {prefix + key: self[key] for key in self.VALID_KEYS}
