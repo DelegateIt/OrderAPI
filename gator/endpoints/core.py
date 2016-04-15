@@ -58,6 +58,7 @@ def get_health():
     return jsonpickle.encode(payload), http_code
 
 def login(uuid_type, data):
+    logging.info(">>>>>>>>>>>> LOGIN FB_ID=%s FB_TOKEN=%s", data.get("fbuser_id"), data.get("fbuser_token"))
     if not set(["fbuser_id", "fbuser_token"]) <= set(data.keys()):
         raise GatorException(Errors.DATA_NOT_PRESENT)
 
@@ -110,7 +111,7 @@ def customer_post():
 
     # Authenticate the request
     if "fbuser_id" in data:
-        logging.info(">>>>>>>>>>>> FB LOGIN ID=%s TOKEN=%s", data["fbuser_id"], data.get("fbuser_token"))
+        logging.info(">>>>>>>>>>>> CREATE FB_ID=%s FB_TOKEN=%s", data["fbuser_id"], data.get("fbuser_token"))
         validate_fb_token(data.get("fbuser_token"), data["fbuser_id"])
         del data["fbuser_token"]
 
