@@ -110,6 +110,7 @@ def customer_post():
 
     # Authenticate the request
     if "fbuser_id" in data:
+        logging.info(">>>>>>>>>>>> FB LOGIN ID=%s TOKEN=%s", data["fbuser_id"], data.get("fbuser_token"))
         validate_fb_token(data.get("fbuser_token"), data["fbuser_id"])
         del data["fbuser_token"]
 
