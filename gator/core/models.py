@@ -67,6 +67,8 @@ class Model():
         item = None
         try:
             full_key = { }
+            if ("RANGE_KEY" in cls.__dict__) != (key.find("-") != -1):
+                raise GatorException(Errors.DATA_NOT_PRESENT)
             if key.find("-") == -1:
                 full_key[cls.KEY] = key
             else:

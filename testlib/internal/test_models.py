@@ -1,4 +1,5 @@
 import unittest
+from nose.tools import raises
 
 import gator.apiclient as apiclient
 import gator.core.common as common
@@ -278,6 +279,10 @@ class TestTransaction(unittest.TestCase):
         self.assertIsNotNone(data[TFields.TIMESTAMP])
         self.assertEquals(data[TFields.MESSAGES][0][MFields.FROM_CUSTOMER], "2")
         self.assertIsNotNone(data[TFields.MESSAGES][0][MFields.TIMESTAMP])
+
+    @raises(GatorException)
+    def test_invalid_range_key(self):
+        Model.load_from_db(Transaction, "unknown")
 
     def test_add_message(self):
         transaction = Transaction.create_new({
