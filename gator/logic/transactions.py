@@ -2,17 +2,31 @@ import gator.config as config
 import gator.core.auth as auth
 import gator.core.stripe as stripe
 import gator.core.service as service
+import gator.core.models as models
 
 from gator.core.models import Model, Customer, Delegator, Transaction, TFields, DFields, delegators,\
                               Message, MFields, CFields
 from gator.core.common import Errors, TransactionStates, Platforms, GatorException,\
                               get_customer_alias
 
+def get_open_sms_transaction(customer_uuid):
+    query = models.transactions.query_2(
+                customer_uuid__eq=customer_uuid,
+                reverse=True,
+                consistent=True)
+    for q in query:
+        if q[TFields.STATUS] != TransactionStates.COMPLETED and q[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
+            return Transaction(q)
+    return None
+
 def create_transaction(attributes={}):
     if not Transaction.MANDATORY_KEYS <= set(attributes):
         raise GatorException(Errors.DATA_NOT_PRESENT)
     elif attributes[TFields.CUSTOMER_PLATFORM_TYPE] not in Platforms.VALID_PLATFORMS:
         raise GatorException(Errors.INVALID_PLATFORM)
+    elif attributes[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS and \
+            get_open_sms_transaction(attributes[TFields.CUSTOMER_UUID]) is not None:
+        raise GatorException(Errors.OPEN_SMS_EXISTS)
 
     # Create a new transaction
     transaction = Transaction.create_new(attributes)
@@ -22,11 +36,12 @@ def create_transaction(attributes={}):
     if not transaction.create():
         raise GatorException(Errors.CONSISTENCY_ERROR)
 
-    # Send a text to all of the delegators
-    message = "ALERT: New transaction from %s" % get_customer_alias(
-            Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID]))
-    for delegator in delegators.scan():
-         service.sms.send_msg(body=message, to=delegator[DFields.PHONE_NUMBER])
+    # Send a text to all of the delegators if the transaction is not already claimed
+    if TFields.DELEGATOR_UUID not in transaction:
+        message = "ALERT: New transaction from %s" % get_customer_alias(
+                Model.load_from_db(Customer, transaction[TFields.CUSTOMER_UUID]))
+        for delegator in delegators.scan():
+             service.sms.send_msg(body=message, to=delegator[DFields.PHONE_NUMBER])
 
     return transaction
 

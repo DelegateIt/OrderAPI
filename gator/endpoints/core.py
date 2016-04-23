@@ -275,7 +275,7 @@ def transaction_post():
 
     # Authenticate the request
     token = request.args.get("token", "")
-    validate_permission(validate_token(token), [Permission.CUSTOMER_OWNER], data["customer_uuid"])
+    validate_permission(validate_token(token), [Permission.ALL_DELEGATORS, Permission.CUSTOMER_OWNER], data["customer_uuid"])
 
     transaction = transactions.create_transaction(data)
 

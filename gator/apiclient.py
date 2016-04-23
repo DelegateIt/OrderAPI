@@ -218,6 +218,10 @@ def send_sms_to_api(from_phone_num, message):
     }
     return send_api_request("POST", ["sms", "handle_sms"], token=auth_token, query=query)
 
+def open_sms_order(phone, delegator_uuid):
+    data = {"delegator_uuid": delegator_uuid}
+    return send_api_request("POST", ["sms", "open", phone], data, token=auth_token)
+
 def get_payment_cards(customer_uuid):
     return send_api_request("GET", ["payment", "card", customer_uuid], token=auth_token)
 

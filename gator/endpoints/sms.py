@@ -6,7 +6,8 @@ import gator.logic.transactions as transactions
 import gator.config as config
 
 from gator.core.models import Model, Customer, CFields, Transaction, TFields, MTypes
-from gator.core.common import TransactionStates, Platforms, Errors, GatorException
+from gator.core.common import TransactionStates, Platforms, Errors, GatorException, \
+                              validate_phonenumber
 from gator.core.auth import validate_permission, Permission, validate_token
 from gator.core.service import sms
 
@@ -27,13 +28,9 @@ def get_sms_customer(phone_number):
         return customer
 
 def get_sms_transaction(customer_uuid):
-    query = models.transactions.query_2(
-                customer_uuid__eq=customer_uuid,
-                reverse=True,
-                consistent=True)
-    for q in query:
-        if q[TFields.STATUS] != TransactionStates.COMPLETED and q[TFields.CUSTOMER_PLATFORM_TYPE] == Platforms.SMS:
-            return Transaction(q)
+    open_sms = transactions.get_open_sms_transaction(customer_uuid)
+    if open_sms is not None:
+        return open_sms
 
     transaction = transactions.create_transaction({
         TFields.CUSTOMER_UUID: customer_uuid,
@@ -66,6 +63,33 @@ def handle_sms():
         sms.send_msg(body=config.CONFIRMATION_MESSAGE, to=customer_phone_number)
 
     return jsonpickle.encode({"result": 0})
+
+@app.route('/sms/open/<phone_number>', methods=["POST"])
+def open_sms(phone_number):
+    validate_phonenumber(phone_number)
+    validate_permission(validate_token(request.args.get("token", "")),
+                        [Permission.ALL_DELEGATORS])
+
+    data = jsonpickle.decode(request.data.decode("utf-8"))
+    if TFields.DELEGATOR_UUID not in data:
+        raise GatorException(Errors.DATA_NOT_PRESENT)
+
+    customer = get_sms_customer(phone_number)
+    open_sms = transactions.get_open_sms_transaction(customer[CFields.UUID])
+    if open_sms is not None:
+        raise GatorException(Errors.OPEN_SMS_EXISTS)
+
+    transaction = transactions.create_transaction({
+        TFields.CUSTOMER_UUID: customer[CFields.UUID],
+        TFields.CUSTOMER_PLATFORM_TYPE: Platforms.SMS,
+        TFields.DELEGATOR_UUID: data[TFields.DELEGATOR_UUID]
+    })
+    transaction.create()
+    return jsonpickle.encode({
+        "transaction_uuid": transaction[TFields.UUID],
+        "customer_uuid": customer[CFields.UUID],
+        "result": 0
+    })
 
 phones_greeted = set({})
 @app.route("/sms/sendgreeting/<phone_number>", methods=["POST"])

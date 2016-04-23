@@ -40,6 +40,7 @@ class Errors():
     UNSUPORTED_VERSION         = ErrorType(22, "The specified version is no longer supported")
     STALE_API_VERSION          = ErrorType(23, "The API is not up to date with the latest version")
     SNS_FAILURE                = ErrorType(24, "Amazon SNS sent back an error")
+    OPEN_SMS_EXISTS            = ErrorType(25, "An open sms transaction already exists")
 
 
 def error_to_json(error):

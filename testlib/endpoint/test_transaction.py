@@ -19,7 +19,7 @@ class TransactionTest(RestTest):
         self.assertResponse(0, rsp2)
         self.customer_uuid = rsp1["uuid"]
         self.delegator_uuid = rsp2["uuid"]
-        self.customer_platform_type = "sms"
+        self.customer_platform_type = "ios"
 
     def test_receipt(self):
         uuid = self.create()["uuid"]
@@ -87,7 +87,7 @@ class TransactionTest(RestTest):
             "transaction": {
                 "uuid": uuid,
                 "version": transaction["transaction"]["version"],
-                "customer_platform_type": "sms",
+                "customer_platform_type": "ios",
                 "status": "started",
                 "customer_uuid": transaction["transaction"]["customer_uuid"],
                 "payment_url": transaction["transaction"]["payment_url"],
