@@ -74,3 +74,12 @@ class CustomerTest(RestTest):
         self.assertResponse(14, rsp_get)
         rsp_get = apiclient.send_api_request("GET", ["core", "customer", uuid], token=None)
         self.assertResponse(12, rsp_get)
+
+    # Some app versions send an empty email string. We should allow this but ignore the email
+    def test_empty_email(self):
+        create_rsp = apiclient.create_customer("first", "last", fbuser_id="1", fbuser_token="", email="")
+        self.assertResponse(0, create_rsp)
+        get_rsp = apiclient.get_customer(create_rsp["uuid"])
+        self.assertResponse(0, get_rsp)
+        self.assertFalse("email" in get_rsp)
+

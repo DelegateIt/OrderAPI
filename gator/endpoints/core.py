@@ -58,7 +58,6 @@ def get_health():
     return jsonpickle.encode(payload), http_code
 
 def login(uuid_type, data):
-    logging.info(">>>>>>>>>>>> LOGIN FB_ID=%s FB_TOKEN=%s", data.get("fbuser_id"), data.get("fbuser_token"))
     if not set(["fbuser_id", "fbuser_token"]) <= set(data.keys()):
         raise GatorException(Errors.DATA_NOT_PRESENT)
 
@@ -73,7 +72,6 @@ def customer_login():
 
     # Create a push endpoint for the given device
     if "device_token" in data:
-        logging.info("Device token %s\n", data["device_token"])
         push_endpoints.create_push_endpoint(customer, data["device_token"])
 
     return jsonpickle.encode({
@@ -101,6 +99,11 @@ def customer_post():
         "fbuser_token"
     ])
 
+    # Some app versions will send an empty email string
+    # The email should just be ignored in that case
+    if CFields.EMAIL in data and data[CFields.EMAIL] == "":
+        del data[CFields.EMAIL]
+
     if CFields.PHONE_NUMBER in data:
         validate_phonenumber(data[CFields.PHONE_NUMBER])
     if CFields.EMAIL in data:
@@ -111,7 +114,6 @@ def customer_post():
 
     # Authenticate the request
     if "fbuser_id" in data:
-        logging.info(">>>>>>>>>>>> CREATE FB_ID=%s FB_TOKEN=%s", data["fbuser_id"], data.get("fbuser_token"))
         validate_fb_token(data.get("fbuser_token"), data["fbuser_id"])
         del data["fbuser_token"]
 
@@ -416,6 +418,7 @@ def handle_exception(e):
         }
         if e.data is not None:
             resp["data"] = e.data
+        logging.info ("Bad request %s", resp)
         return (jsonpickle.encode(resp), 400)
     else:
         logging.exception(e)
